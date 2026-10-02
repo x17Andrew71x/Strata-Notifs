@@ -1,0 +1,53 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+local.properties
+secrets.properties
+
+# Android / Gradle
+.gradle/
+**/.gradle/
+**/build/
+android/.idea/
+android/*.iml
+android/captures/
+android/.kotlin/
+
+# Node
+node_modules/
+**/node_modules/
+.pnpm-store/
+coverage/
+*.tsbuildinfo
+
+# Editors and OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Runtime/test output
+.tmp/
+tmp/
+reports/
+test-results/
+*.log
+
+# Packages and artifacts
+*.apk
+*.aab
+*.apks
+*.zip
+*.tgz
+
+# Local Railway/provider state
+.railway/
