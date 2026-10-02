@@ -1,4 +1,4 @@
-# Quiet Strata implementation plans
+# Stratawake implementation plans
 
 > **For Hermes:** Execute these plans in order. Each phase uses test-first slices, independent review of delegated work, real command output, and coherent commits. Production is forbidden until Andrew approves it.
 
@@ -11,7 +11,7 @@
 
 | Version | Plan | Exit condition | Status |
 |---|---|---|---|
-| `0.1.0` | [00 Foundation](00-foundation.md) | Reproducible monorepo, contracts, CI and local quality gates | Pending |
+| `0.1.0` | [00 Foundation](00-foundation.md) | Reproducible monorepo, contracts, CI and local quality gates | In progress |
 | `0.2.0` | [01 Server data foundation](01-server-data-foundation.md) | Real-PostgreSQL identity, consent, analytics ingest and safe migrations | Pending |
 | `0.3.0` | [02 Android capture and generator](02-android-capture-generator.md) | Privacy-reduced capture, day sealing and deterministic specimens work offline | Pending |
 | `0.4.0` | [03 Museum, worlds and UI](03-museum-worlds-ui.md) | Complete local game loop, concise Compose UI and launch renderers | Pending |

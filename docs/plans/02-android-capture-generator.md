@@ -13,7 +13,7 @@
 ## Task 1: Local database and migrations
 
 **Files:**
-- Create: `android/app/src/main/java/.../data/local/QuietStrataDatabase.kt`
+- Create: `android/app/src/main/java/.../data/local/StratawakeDatabase.kt`
 - Create: `android/app/src/main/java/.../data/local/entity/ReducedNotificationEntity.kt`
 - Create: `android/app/src/main/java/.../data/local/entity/DaySummaryEntity.kt`
 - Create: `android/app/src/main/java/.../data/local/entity/SpecimenEntity.kt`

@@ -1,0 +1,8 @@
+<resources>
+  <string name="app_name">Stratawake</string>
+  <string name="today_title">Today’s strata</string>
+  <string name="today_subtitle">Your day settles here, one quiet layer at a time.</string>
+  <string name="permission_explanation">Notification text never enters the collection. Stratawake keeps only coarse timing and category signals on this device.</string>
+  <string name="enable_notification_access">Enable notification access</string>
+  <string name="strata_preview_description">A dark layered stone preview with a small fossil at its centre</string>
+</resources>

@@ -1,0 +1,9 @@
+{
+  "name": "@stratawake/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "*.schema.json",
+    "openapi.yaml"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "stratawake",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome check . && (cd server && ./node_modules/.bin/tsc --noEmit --project tsconfig.json)",
+    "privacy:check": "python3 scripts/check_privacy_boundary.py",
+    "privacy:test": "python3 -m unittest scripts/test_check_privacy_boundary.py",
+    "test": "cd server && ./node_modules/.bin/vitest run --pool=threads --maxWorkers=1 --no-file-parallelism",
+    "test:coverage": "cd server && ./node_modules/.bin/vitest run --coverage --pool=threads --maxWorkers=1 --no-file-parallelism",
+    "build": "cd server && ./node_modules/.bin/tsc --project tsconfig.build.json",
+    "check": "./scripts/check.sh",
+    "dev": "pnpm --filter @stratawake/server dev",
+    "db:generate": "pnpm --filter @stratawake/server db:generate",
+    "db:migrate": "pnpm --filter @stratawake/server db:migrate"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.15"
+  }
+}

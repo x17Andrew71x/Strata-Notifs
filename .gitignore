@@ -24,6 +24,7 @@ node_modules/
 **/node_modules/
 .pnpm-store/
 coverage/
+**/dist/
 *.tsbuildinfo
 
 # Editors and OS
@@ -40,6 +41,8 @@ Thumbs.db
 tmp/
 reports/
 test-results/
+__pycache__/
+*.py[cod]
 *.log
 
 # Packages and artifacts

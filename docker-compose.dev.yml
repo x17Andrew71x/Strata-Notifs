@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: stratawake
+      POSTGRES_USER: stratawake_owner
+      POSTGRES_PASSWORD: ${STRATAWAKE_DEV_POSTGRES_PASSWORD:?set STRATAWAKE_DEV_POSTGRES_PASSWORD in ignored .env}
+    ports:
+      - "127.0.0.1:54329:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stratawake_owner -d stratawake"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    tmpfs:
+      - /var/lib/postgresql/data

@@ -1,0 +1,31 @@
+import { describe, expect, it } from "vitest";
+import { loadConfig } from "../src/config.js";
+
+const validEnvironment = {
+  NODE_ENV: "development",
+  DATABASE_URL: "postgresql://stratawake:replace-me@127.0.0.1:54329/stratawake",
+  ACCESS_TOKEN_SECRET: "an-access-secret-that-is-definitely-long-enough",
+  REFRESH_TOKEN_PEPPER: "a-refresh-pepper-that-is-definitely-long-enough",
+};
+
+describe("loadConfig", () => {
+  it("parses safe defaults and origin lists", () => {
+    const config = loadConfig({
+      ...validEnvironment,
+      CORS_ORIGINS: "https://one.example, https://two.example",
+    });
+
+    expect(config.port).toBe(3000);
+    expect(config.allowDevAuth).toBe(false);
+    expect(config.corsOrigins).toEqual(["https://one.example", "https://two.example"]);
+  });
+
+  it("rejects weak secrets", () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        ACCESS_TOKEN_SECRET: "short",
+      }),
+    ).toThrow();
+  });
+});

@@ -1,0 +1,16 @@
+import type { ServerConfig } from "../src/config.js";
+
+export const testConfig: ServerConfig = {
+  nodeEnv: "test",
+  host: "127.0.0.1",
+  port: 3000,
+  logLevel: "silent",
+  databaseUrl: "postgresql://stratawake:replace-me@127.0.0.1:54329/stratawake_test",
+  accessTokenSecret: "test-access-token-secret-at-least-32-characters",
+  refreshTokenPepper: "test-refresh-token-pepper-at-least-32-characters",
+  adminApiKeyHash: "",
+  corsOrigins: [],
+  allowDevAuth: true,
+  billingProvider: "fake",
+  analyticsRawRetentionDays: 730,
+};

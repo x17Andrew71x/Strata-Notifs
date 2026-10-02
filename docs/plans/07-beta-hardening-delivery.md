@@ -117,4 +117,4 @@ Install and exercise on an emulator/physical Android device when available. If n
 
 ## Phase exit
 
-Quiet Strata is complete as a development beta only when all material review findings are fixed, broad gates pass against the exact candidate, the development runtime is healthy, and the verified APK is delivered successfully.
+Stratawake is complete as a development beta only when all material review findings are fixed, broad gates pass against the exact candidate, the development runtime is healthy, and the verified APK is delivered successfully.

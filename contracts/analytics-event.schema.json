@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/schemas/analytics-event.schema.json",
+  "title": "Stratawake analytics event",
+  "description": "A consent-bound, pseudonymous product interaction. Notification content and source identifiers are forbidden.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_name",
+    "schema_version",
+    "occurred_at",
+    "local_date",
+    "timezone_offset_minutes",
+    "app_version",
+    "build_channel",
+    "consent_scope",
+    "properties"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "event_name": {
+      "type": "string",
+      "enum": [
+        "app_opened",
+        "session_started",
+        "session_ended",
+        "screen_viewed",
+        "onboarding_step_viewed",
+        "onboarding_completed",
+        "permission_prompt_viewed",
+        "permission_result_recorded",
+        "analytics_consent_changed",
+        "notification_aggregate_consent_changed",
+        "specimen_sealed",
+        "specimen_revealed",
+        "specimen_viewed",
+        "specimen_combined",
+        "diorama_completed",
+        "world_previewed",
+        "world_selected",
+        "purchase_started",
+        "purchase_completed",
+        "purchase_failed",
+        "share_started",
+        "share_completed",
+        "community_campaign_viewed",
+        "contribution_started",
+        "contribution_committed",
+        "contribution_failed",
+        "community_art_awarded",
+        "settings_changed",
+        "sync_started",
+        "sync_completed",
+        "sync_failed",
+        "recoverable_error_shown"
+      ]
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "local_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "timezone_offset_minutes": {
+      "type": "integer",
+      "minimum": -840,
+      "maximum": 840
+    },
+    "app_version": {
+      "type": "string",
+      "pattern": "^0\\.[0-9]{1,3}\\.[0-9]{1,3}(?:-[A-Za-z0-9.-]+)?$"
+    },
+    "build_channel": {
+      "type": "string",
+      "enum": ["dev", "prod"]
+    },
+    "session_id": {
+      "type": ["string", "null"],
+      "format": "uuid"
+    },
+    "screen": {
+      "type": ["string", "null"],
+      "maxLength": 64,
+      "pattern": "^[a-z0-9_]*$"
+    },
+    "consent_scope": {
+      "type": "string",
+      "const": "product_analytics"
+    },
+    "properties": {
+      "type": "object",
+      "maxProperties": 24,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+      },
+      "additionalProperties": {
+        "anyOf": [
+          { "type": "string", "maxLength": 256 },
+          { "type": "number" },
+          { "type": "integer" },
+          { "type": "boolean" },
+          { "type": "null" },
+          {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "maxLength": 64
+            }
+          }
+        ]
+      }
+    }
+  }
+}
