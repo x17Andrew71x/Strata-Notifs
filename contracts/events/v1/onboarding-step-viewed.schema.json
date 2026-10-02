@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/onboarding-step-viewed.schema.json",
+  "title": "Stratawake Analytics Event v1: onboarding_step_viewed",
+  "allOf": [
+    {
+      "$ref": "base.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": {
+          "const": "onboarding_step_viewed"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["step", "step_index"],
+          "properties": {
+            "step": {
+              "enum": ["welcome", "privacy", "notification_access", "analytics_consent", "ready"]
+            },
+            "step_index": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            }
+          }
+        }
+      }
+    }
+  ]
+}

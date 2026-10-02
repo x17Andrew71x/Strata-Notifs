@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/app-updated.schema.json",
+  "title": "Stratawake Analytics Event v1: app_updated",
+  "allOf": [
+    {
+      "$ref": "base.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": {
+          "const": "app_updated"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["previous_app_version"],
+          "properties": {
+            "previous_app_version": {
+              "type": "string",
+              "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+              "maxLength": 48
+            }
+          }
+        }
+      }
+    }
+  ]
+}

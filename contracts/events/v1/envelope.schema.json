@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/envelope.schema.json",
+  "title": "Stratawake Analytics Event v1",
+  "oneOf": [
+    {
+      "$ref": "installation-created.schema.json"
+    },
+    {
+      "$ref": "app-opened.schema.json"
+    },
+    {
+      "$ref": "session-started.schema.json"
+    },
+    {
+      "$ref": "session-ended.schema.json"
+    },
+    {
+      "$ref": "app-backgrounded.schema.json"
+    },
+    {
+      "$ref": "app-updated.schema.json"
+    },
+    {
+      "$ref": "auth-session-created.schema.json"
+    },
+    {
+      "$ref": "auth-session-refreshed.schema.json"
+    },
+    {
+      "$ref": "online-mode-disabled.schema.json"
+    },
+    {
+      "$ref": "onboarding-started.schema.json"
+    },
+    {
+      "$ref": "onboarding-step-viewed.schema.json"
+    },
+    {
+      "$ref": "onboarding-completed.schema.json"
+    },
+    {
+      "$ref": "notification-access-prompted.schema.json"
+    },
+    {
+      "$ref": "notification-access-result.schema.json"
+    },
+    {
+      "$ref": "analytics-consent-changed.schema.json"
+    },
+    {
+      "$ref": "notification-aggregate-consent-changed.schema.json"
+    }
+  ]
+}

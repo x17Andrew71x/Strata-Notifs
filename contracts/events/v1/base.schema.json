@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/base.schema.json",
+  "title": "Stratawake Analytics Event v1 Base",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "event_name",
+    "schema_version",
+    "installation_id",
+    "occurred_at",
+    "local_date",
+    "timezone_offset_minutes",
+    "app_version",
+    "version_code",
+    "build_channel",
+    "android_api_level",
+    "device_class",
+    "locale",
+    "consent_scope_version",
+    "properties"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "event_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z_]{2,63}$"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "user_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "installation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time",
+      "readOnly": true
+    },
+    "local_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "timezone_offset_minutes": {
+      "type": "integer",
+      "minimum": -840,
+      "maximum": 840
+    },
+    "app_version": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+      "maxLength": 48
+    },
+    "version_code": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
+    },
+    "build_channel": {
+      "enum": ["dev", "prod"]
+    },
+    "android_api_level": {
+      "type": "integer",
+      "minimum": 26,
+      "maximum": 100
+    },
+    "device_class": {
+      "enum": ["phone", "tablet", "foldable"]
+    },
+    "locale": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(?:-[A-Z]{2})?$",
+      "maxLength": 16
+    },
+    "screen_name": {
+      "enum": ["onboarding", "privacy", "settings", "today", "museum", "community", "more"]
+    },
+    "consent_scope_version": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "properties": {
+      "type": "object",
+      "maxProperties": 3
+    }
+  }
+}

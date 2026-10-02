@@ -20,6 +20,10 @@
 | `0.7.0` | [06 Commerce and owner operations](06-commerce-operations.md) | Dev billing, entitlements, owner metrics and dev Railway operations are complete | Pending |
 | `0.8.0` | [07 Beta hardening and delivery](07-beta-hardening-delivery.md) | Review findings fixed; installable verified APK delivered; prod inert | Pending |
 
+## Verified progress
+
+- **2026-10-02 — Foundation Task 5:** Replaced the broad analytics schema with closed v1 lifecycle/onboarding contracts, shared valid/invalid fixtures, server and Android fixture validation, OpenAPI batch bounds, and the data dictionary. `bash scripts/check.sh` passed; Task 6 CI remains next.
+
 Patch versions are used whenever a phase requires fixes after its coherent capability lands. Milestone numbers express ordering, not a target to reach artificially.
 
 ## Execution order

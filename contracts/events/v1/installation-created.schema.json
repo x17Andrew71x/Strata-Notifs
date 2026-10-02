@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/installation-created.schema.json",
+  "title": "Stratawake Analytics Event v1: installation_created",
+  "allOf": [
+    {
+      "$ref": "base.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": {
+          "const": "installation_created"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entry_point"],
+          "properties": {
+            "entry_point": {
+              "enum": ["first_run", "online_mode_enabled"]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

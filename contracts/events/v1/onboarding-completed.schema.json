@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/onboarding-completed.schema.json",
+  "title": "Stratawake Analytics Event v1: onboarding_completed",
+  "allOf": [
+    {
+      "$ref": "base.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": {
+          "const": "onboarding_completed"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["duration_seconds"],
+          "properties": {
+            "duration_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3600
+            }
+          }
+        }
+      }
+    }
+  ]
+}

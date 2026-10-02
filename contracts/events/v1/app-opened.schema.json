@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/app-opened.schema.json",
+  "title": "Stratawake Analytics Event v1: app_opened",
+  "allOf": [
+    {
+      "$ref": "base.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": {
+          "const": "app_opened"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["launch_type"],
+          "properties": {
+            "launch_type": {
+              "enum": ["cold", "warm"]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

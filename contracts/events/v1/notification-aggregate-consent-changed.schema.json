@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/notification-aggregate-consent-changed.schema.json",
+  "title": "Stratawake Analytics Event v1: notification_aggregate_consent_changed",
+  "allOf": [
+    {
+      "$ref": "base.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": {
+          "const": "notification_aggregate_consent_changed"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["consent_version", "enabled"],
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "consent_version": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        }
+      }
+    }
+  ]
+}

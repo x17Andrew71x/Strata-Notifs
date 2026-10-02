@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/auth-session-refreshed.schema.json",
+  "title": "Stratawake Analytics Event v1: auth_session_refreshed",
+  "allOf": [
+    {
+      "$ref": "base.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": {
+          "const": "auth_session_refreshed"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["outcome"],
+          "properties": {
+            "outcome": {
+              "const": "rotated"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://stratawake.invalid/contracts/events/v1/notification-access-prompted.schema.json",
+  "title": "Stratawake Analytics Event v1: notification_access_prompted",
+  "allOf": [
+    {
+      "$ref": "base.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": {
+          "const": "notification_access_prompted"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entry_point"],
+          "properties": {
+            "entry_point": {
+              "enum": ["onboarding", "settings"]
+            }
+          }
+        }
+      }
+    }
+  ]
+}
