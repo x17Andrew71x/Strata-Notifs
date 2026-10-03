@@ -4,7 +4,7 @@
 
 **Canonical product contract:** [`../PRODUCT_SPEC.md`](../PRODUCT_SPEC.md)<br>
 **Integration branch:** `dev`<br>
-**Current milestone:** `0.2.0`<br>
+**Current milestone:** `0.3.0`<br>
 **Last revised:** 2026-10-03
 
 ## Version milestones
@@ -13,7 +13,7 @@
 |---|---|---|---|
 | `0.1.0` | [00 Foundation](00-foundation.md) | Reproducible monorepo, contracts, CI and local quality gates | Complete |
 | `0.2.0` | [01 Server data foundation](01-server-data-foundation.md) | Real-PostgreSQL identity, consent, analytics ingest and safe migrations | Complete |
-| `0.3.0` | [02 Android capture and generator](02-android-capture-generator.md) | Privacy-reduced capture, day sealing and deterministic specimens work offline | Pending |
+| `0.3.0` | [02 Android capture and generator](02-android-capture-generator.md) | Privacy-reduced capture, day sealing and deterministic specimens work offline | In progress |
 | `0.4.0` | [03 Museum, worlds and UI](03-museum-worlds-ui.md) | Complete local game loop, concise Compose UI and launch renderers | Pending |
 | `0.5.0` | [04 Online sync and analytics](04-online-sync-analytics.md) | Consent-aware online identity, batching, sync and derived metrics | Pending |
 | `0.6.0` | [05 Community exhibitions](05-community-exhibitions.md) | Donations, seasonal mosaics, World Formation and awards survive replay/restart | Pending |
@@ -35,6 +35,8 @@
 - **2026-10-03 — Server data foundation Task 7:** Added a runtime-attested worker command and a security-definer, advisory-lock-protected daily rollup. It writes checkpointed/idempotent installation, global, consent-coverage, release-health, and UTC notification-volume marts; records bounded leases and safe run outcomes; preserves installation-scoped forced RLS; and fails visibly rather than overwriting stable-source drift. The isolated local PostgreSQL 14 suite passed all 41 server tests with extended test/hook timeouts for this host’s slower disposable cluster, including migration/RLS and rollup drift cases. Formatting, lint/typecheck, build, and notification-privacy checks passed. Task 8 (deletion and retention) is next.
 - **2026-10-03 — Server data foundation Task 8:** Added the authenticated, idempotent `DELETE /v1/account` path and a scope-bound security-definer erasure transaction. It removes an account’s direct installations, refresh credentials, consent history, events, notification aggregates, idempotency records and installation marts while leaving only non-reidentifiable global rollups. Added a bounded, advisory-lock-protected retention worker; it resumes safely across batches, deletes expired direct records after 24 months, and records only safe category-level outcomes. The daily rollup now preserves historical global marts after source expiry. The isolated PostgreSQL 17.6 suite passed all 30 database-backed cases, including retention, account deletion, migration/RLS, identity, consent and ingestion; final focused deletion/retention rerun passed. `pnpm check`, `bash scripts/check.sh`, privacy checks, formatting, server build and Android dev lint/build passed. The host’s nested-container `runc` restriction still prevents the Compose port-mapping harness, so PostgreSQL verification used the same pinned image through isolated host networking.
 - **2026-10-03 — Server data foundation phase exit:** Re-exercised `pnpm check`, the zero-vulnerability production dependency audit, and every database suite serially against the pinned disposable PostgreSQL 17.6 image. The ordinary Compose harness remains blocked only by the host `runc` port-publish sysctl restriction; its loopback host-network fallback passed and cleaned up. Plan 01 is complete. Plan 02 Task 1 (privacy-reduced capture boundary) is next; no Railway service is required or authorised by this phase.
+- **2026-10-03 — Android capture and generator Task 1:** Added the direct Android notification reducer and immutable reduced model. The only emitted values are the received timestamp, local hour, a category closed to the server contract, and HMAC-derived local source token/colour; system, own-app, group-summary, ongoing, and configured categories are rejected. The privacy scanner now allows raw package identity only in that reducer rather than exempting the whole file, and regression tests reject content-bearing Android member access. Focused Android/scanner tests and `bash scripts/check.sh` passed. Task 2 (local database and migrations) is next; no Railway service is required or authorised.
+- **2026-10-03 — Android capture and generator Task 2:** Added the Room v1 local store for the approved reduced-event, day-state and sealed-specimen fields, with local-day and anchored-specimen uniqueness, generator version and observation state. Focused persistence tests cover approved-column storage, reads, both uniqueness rules and failed-transaction rollback. The exported-schema v1 create/validate contract compiles into the device-test APK; runtime execution remains open because this host has neither an attached Android device nor an installed AVD. Focused JVM/privacy tests and the complete `bash scripts/check.sh` suite passed. Task 3 remains next; no Railway service is required or authorised.
 
 Patch versions are used whenever a phase requires fixes after its coherent capability lands. Milestone numbers express ordering, not a target to reach artificially.
 

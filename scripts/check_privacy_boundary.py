@@ -11,8 +11,15 @@ from pathlib import Path
 
 SOURCE_ROOTS = ("android/app/src/main", "server/src", "contracts", ".github")
 TEXT_EXTENSIONS = {".cjs", ".js", ".json", ".kts", ".kt", ".mjs", ".properties", ".py", ".sh", ".ts", ".tsx", ".xml", ".yaml", ".yml"}
-REDUCER_ALLOWLIST = Path(
+REDUCER_RAW_IDENTITY_ALLOWLIST = Path(
     "android/app/src/main/java/com/techfullymade/afterchime/capture/NotificationReducer.kt"
+)
+REDUCER_RAW_IDENTITY_PATTERNS = (
+    re.compile(r"^val rawPackageName = statusBarNotification\.packageName$"),
+    re.compile(r"^if \(rawPackageName == ownPackageName\) \{$"),
+    re.compile(r"^sourceDigest = sourceDigest\(rawPackageName\),$"),
+    re.compile(r"^private fun sourceDigest\(rawPackageName: String\): ByteArray \{$"),
+    re.compile(r"^return mac\.doFinal\(rawPackageName\.toByteArray\(UTF_8\)\)$"),
 )
 
 
@@ -69,12 +76,17 @@ def relative(root: Path, path: Path) -> Path:
     return path.resolve().relative_to(root.resolve())
 
 
+def is_allowed_reducer_raw_identity_reference(relative_path: Path, line: str) -> bool:
+    return (
+        relative_path == REDUCER_RAW_IDENTITY_ALLOWLIST
+        and any(pattern.fullmatch(line.strip()) for pattern in REDUCER_RAW_IDENTITY_PATTERNS)
+    )
+
+
 def violations(root: Path) -> list[str]:
     findings: list[str] = []
     for path in release_files(root):
         rel = relative(root, path)
-        if rel == REDUCER_ALLOWLIST:
-            continue
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
         except UnicodeDecodeError:
@@ -82,6 +94,11 @@ def violations(root: Path) -> list[str]:
             continue
         for line_number, line in enumerate(lines, start=1):
             for rule in RULES:
+                if (
+                    rule.label == "raw package identity"
+                    and is_allowed_reducer_raw_identity_reference(rel, line)
+                ):
+                    continue
                 if rule.pattern.search(line):
                     findings.append(f"{rel}:{line_number}: prohibited {rule.label}")
     return findings

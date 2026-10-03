@@ -10,19 +10,7 @@
 
 ---
 
-## Task 1: Local database and migrations
-
-**Files:**
-- Create: `android/app/src/main/java/.../data/local/AfterchimeDatabase.kt`
-- Create: `android/app/src/main/java/.../data/local/entity/ReducedNotificationEntity.kt`
-- Create: `android/app/src/main/java/.../data/local/entity/DaySummaryEntity.kt`
-- Create: `android/app/src/main/java/.../data/local/entity/SpecimenEntity.kt`
-- Create: `android/app/src/main/java/.../data/local/dao/*.kt`
-- Create: `android/app/src/androidTest/.../DatabaseMigrationTest.kt`
-
-Define only approved fields. Add unique day/specimen keys, generator version and observation state. Test CRUD, transaction rollback and migration identity.
-
-## Task 2: Notification privacy reducer
+## Task 1: Notification privacy reducer
 
 **Files:**
 - Create: `android/app/src/main/java/.../capture/NotificationReducer.kt`
@@ -35,6 +23,18 @@ Define only approved fields. Add unique day/specimen keys, generator version and
 **Implementation:** output only occurred timestamp, local time bucket, approved coarse category and HMAC-derived local source token/colour. Never expose raw package name beyond the reducer call stack. Filter own app, group summaries and configured excluded classes.
 
 **Acceptance:** serialised/persisted models have no content-bearing fields; scans and tests prove fixtures cannot leak into database/log representations.
+
+## Task 2: Local database and migrations
+
+**Files:**
+- Create: `android/app/src/main/java/.../data/local/AfterchimeDatabase.kt`
+- Create: `android/app/src/main/java/.../data/local/entity/ReducedNotificationEntity.kt`
+- Create: `android/app/src/main/java/.../data/local/entity/DaySummaryEntity.kt`
+- Create: `android/app/src/main/java/.../data/local/entity/SpecimenEntity.kt`
+- Create: `android/app/src/main/java/.../data/local/dao/*.kt`
+- Create: `android/app/src/androidTest/.../DatabaseMigrationTest.kt`
+
+Define only approved fields. Add unique day/specimen keys, generator version and observation state. Test CRUD, transaction rollback and migration identity.
 
 ## Task 3: Listener service and observation state
 

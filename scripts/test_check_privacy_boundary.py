@@ -58,6 +58,21 @@ class PrivacyBoundaryScannerTest(unittest.TestCase):
             self.assertIn(source.relative_to(root).as_posix(), result.stderr)
             self.assertIn("raw package identity", result.stderr)
 
+    def test_rejects_unapproved_raw_package_identity_inside_reducer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self.write_source(
+                root,
+                "android/app/src/main/java/com/techfullymade/afterchime/capture/NotificationReducer.kt",
+                "println(rawPackageName)\n",
+            )
+
+            result = self.scan(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(source.relative_to(root).as_posix(), result.stderr)
+            self.assertIn("raw package identity", result.stderr)
+
     def test_allows_reduced_fields_and_narrow_reducer_access(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -69,12 +84,35 @@ class PrivacyBoundaryScannerTest(unittest.TestCase):
             self.write_source(
                 root,
                 "android/app/src/main/java/com/techfullymade/afterchime/capture/NotificationReducer.kt",
-                "val source = sbn.packageName\n",
+                "\n".join(
+                    (
+                        "val rawPackageName = statusBarNotification.packageName",
+                        "if (rawPackageName == ownPackageName) {",
+                        "sourceDigest = sourceDigest(rawPackageName),",
+                        "private fun sourceDigest(rawPackageName: String): ByteArray {",
+                        "return mac.doFinal(rawPackageName.toByteArray(UTF_8))",
+                    ),
+                ),
             )
 
             result = self.scan(root)
 
             self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_rejects_content_field_inside_reducer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self.write_source(
+                root,
+                "android/app/src/main/java/com/techfullymade/afterchime/capture/NotificationReducer.kt",
+                "val copied = notification.extras\n",
+            )
+
+            result = self.scan(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(source.relative_to(root).as_posix(), result.stderr)
+            self.assertIn("notification content field", result.stderr)
 
 
 if __name__ == "__main__":

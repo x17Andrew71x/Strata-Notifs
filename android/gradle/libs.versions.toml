@@ -7,6 +7,9 @@ core-ktx = "1.19.1"
 lifecycle = "2.11.0"
 junit4 = "4.13.2"
 org-json = "20250517"
+robolectric = "4.17"
+room = "2.8.5"
+ksp = "2.2.10-2.0.2"
 androidx-test-ext = "1.3.0"
 espresso = "3.7.0"
 
@@ -22,6 +25,11 @@ androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 junit4 = { module = "junit:junit", version.ref = "junit4" }
 org-json = { module = "org.json:json", version.ref = "org-json" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+room-testing = { module = "androidx.room:room-testing", version.ref = "room" }
 androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-test-ext" }
 androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
 androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
@@ -30,3 +38,4 @@ androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-mani
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

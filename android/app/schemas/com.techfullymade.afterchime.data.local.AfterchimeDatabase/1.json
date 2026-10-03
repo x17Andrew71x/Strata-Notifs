@@ -1,0 +1,162 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "ff6374f596f5456e81b2a2293e8f94db",
+    "entities": [
+      {
+        "tableName": "reduced_notifications",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `occurred_at_epoch_millis` INTEGER NOT NULL, `local_date` TEXT NOT NULL, `local_hour` INTEGER NOT NULL, `category` TEXT NOT NULL, `source_token` TEXT NOT NULL, `source_colour_rgb` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurredAtEpochMillis",
+            "columnName": "occurred_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localDate",
+            "columnName": "local_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localHour",
+            "columnName": "local_hour",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceToken",
+            "columnName": "source_token",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceColourRgb",
+            "columnName": "source_colour_rgb",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_reduced_notifications_local_date_occurred_at_epoch_millis",
+            "unique": false,
+            "columnNames": ["local_date", "occurred_at_epoch_millis"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_reduced_notifications_local_date_occurred_at_epoch_millis` ON `${TABLE_NAME}` (`local_date`, `occurred_at_epoch_millis`)"
+          }
+        ]
+      },
+      {
+        "tableName": "day_summaries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`local_date` TEXT NOT NULL, `timezone_offset_minutes` INTEGER NOT NULL, `observation_state` TEXT NOT NULL, `generator_version` INTEGER NOT NULL, `created_at_epoch_millis` INTEGER NOT NULL, PRIMARY KEY(`local_date`))",
+        "fields": [
+          {
+            "fieldPath": "localDate",
+            "columnName": "local_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timezoneOffsetMinutes",
+            "columnName": "timezone_offset_minutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observationState",
+            "columnName": "observation_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatorVersion",
+            "columnName": "generator_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "created_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["local_date"]
+        }
+      },
+      {
+        "tableName": "specimens",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`specimen_id` TEXT NOT NULL, `anchored_local_date` TEXT NOT NULL, `generator_version` INTEGER NOT NULL, `created_at_epoch_millis` INTEGER NOT NULL, `revealed_at_epoch_millis` INTEGER, PRIMARY KEY(`specimen_id`))",
+        "fields": [
+          {
+            "fieldPath": "specimenId",
+            "columnName": "specimen_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchoredLocalDate",
+            "columnName": "anchored_local_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatorVersion",
+            "columnName": "generator_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "created_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revealedAtEpochMillis",
+            "columnName": "revealed_at_epoch_millis",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["specimen_id"]
+        },
+        "indices": [
+          {
+            "name": "index_specimens_anchored_local_date",
+            "unique": true,
+            "columnNames": ["anchored_local_date"],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_specimens_anchored_local_date` ON `${TABLE_NAME}` (`anchored_local_date`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ff6374f596f5456e81b2a2293e8f94db')"
+    ]
+  }
+}
