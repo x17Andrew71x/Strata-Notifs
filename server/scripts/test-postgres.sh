@@ -62,3 +62,4 @@ pnpm exec vitest run test/db/migration.test.ts --pool=threads --maxWorkers=1 --n
 pnpm exec vitest run test/api/installations.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
 pnpm exec vitest run test/api/consent.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
 pnpm exec vitest run test/api/analytics-ingest.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
+pnpm exec vitest run test/api/notification-aggregates.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism

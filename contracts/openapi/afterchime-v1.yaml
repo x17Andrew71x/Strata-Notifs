@@ -51,6 +51,92 @@
           }
         }
       }
+    },
+    "/v1/notification-aggregates/daily": {
+      "put": {
+        "summary": "Idempotently replace one consented installation-owned daily notification aggregate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "category_counts",
+                  "consent_scope_version",
+                  "eligible_count",
+                  "game_pressure",
+                  "hourly_buckets",
+                  "local_date",
+                  "observation_completeness",
+                  "revision",
+                  "rules_version",
+                  "timezone_offset_minutes"
+                ],
+                "properties": {
+                  "category_counts": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "alarm": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "call": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "email": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "event": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "message": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "navigation": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "other": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "progress": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "reminder": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "social": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "transport": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                      "workout": { "type": "integer", "minimum": 0, "maximum": 100000 }
+                    }
+                  },
+                  "consent_scope_version": { "type": "string", "minLength": 1, "maxLength": 32 },
+                  "eligible_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                  "game_pressure": { "type": "integer", "minimum": 0, "maximum": 100 },
+                  "hourly_buckets": {
+                    "type": "array",
+                    "maxItems": 24,
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["count", "hour"],
+                      "properties": {
+                        "count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+                        "hour": { "type": "integer", "minimum": 0, "maximum": 23 }
+                      }
+                    }
+                  },
+                  "local_date": { "type": "string", "format": "date" },
+                  "observation_completeness": { "type": "integer", "minimum": 0, "maximum": 100 },
+                  "revision": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+                  "rules_version": { "type": "integer", "minimum": 1, "maximum": 2147483647 },
+                  "timezone_offset_minutes": { "type": "integer", "minimum": -840, "maximum": 840 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Aggregate accepted or exact duplicate replayed."
+          },
+          "400": {
+            "description": "Invalid, inconsistent, or unapproved aggregate payload; no aggregate is retained."
+          },
+          "401": {
+            "description": "Installation authentication failed."
+          },
+          "403": {
+            "description": "Notification aggregate consent is not active at the supplied version."
+          },
+          "409": {
+            "description": "The daily aggregate already has the supplied or a newer conflicting revision."
+          }
+        }
+      }
     }
   }
 }

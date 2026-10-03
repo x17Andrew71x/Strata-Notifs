@@ -1,6 +1,6 @@
 # Afterchime data dictionary
 
-This foundation records the approved analytics contract only. Physical PostgreSQL tables, retention enforcement, consent checks and ingestion persistence are owned by **01 Server data foundation**; this document does not authorise collection beyond the product specification.
+This foundation records approved analytics and notification-aggregate contracts only. Physical PostgreSQL tables, retention enforcement, consent checks and ingestion persistence are owned by **01 Server data foundation**; this document does not authorise collection beyond the product specification.
 
 ## Contract records
 
@@ -9,6 +9,25 @@ This foundation records the approved analytics contract only. Physical PostgreSQ
 | Analytics event v1 | One consented client interaction | Analytics domain | Encrypted Android outbox, then authenticated analytics ingestion | Pseudonymous product telemetry | Enforceable duration pending the server retention policy; rejected payloads are never stored |
 | Analytics event batch | One bounded upload request, 1–50 events and at most 128 KiB | Analytics ingestion boundary | Android WorkManager | Operational transport metadata only | Not retained as a raw request |
 | Analytics rejection counter | One reason/category/window aggregate | Analytics operations | Server validator | No payload content or identifiers | Enforceable duration pending the server operations policy |
+| Daily notification aggregate | One consented installation-local day and explicit revision | Notification aggregate domain | Android aggregate uploader, then authenticated aggregate ingestion | Pseudonymous derived counts only | Product-specified 24-month target; enforcement is owned by Server data foundation Task 8 |
+
+## Daily notification aggregate
+
+The aggregate endpoint accepts only one authenticated installation's local day. It stores no notification payload, source identity, source token, source colour, package identity, key, media, action, or free-form content.
+
+| Field | Meaning and bound | Sensitivity / handling |
+|---|---|---|
+| `local_date` / `timezone_offset_minutes` | Installation-local calendar day and coarse offset | Derived day boundary; installation identity is server-derived, never supplied by the client |
+| `revision` | Positive client revision for one local day | Exact replay is a duplicate; only a newer revision may replace the stored aggregate |
+| `eligible_count` | Integer `0`–`100,000` | True eligible count; never a reward multiplier |
+| `hourly_buckets` | At most one `{ hour, count }` per hour, summing to `eligible_count` | Coarse time distribution only; no event or source identity |
+| `category_counts` | Closed approved Android category totals, summing to `eligible_count` | Coarse category totals only; unknown keys reject |
+| `game_pressure` | Integer `0`–`100` | Separate capped community-progress measure |
+| `observation_completeness` | Integer `0`–`100` | Distinguishes observation gaps from quiet days |
+| `rules_version` | Positive local aggregation/generator rules version | Compatibility metadata |
+| `consent_scope_version` | Active notification-aggregate consent version | Admission check only; consent history remains its own domain record |
+
+Server-derived build channel and synthetic markers are never accepted from the client. A malformed, unconsented, stale, or conflicting request stores no additional aggregate row.
 
 ## Analytics event v1 envelope
 

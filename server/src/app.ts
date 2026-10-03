@@ -13,6 +13,7 @@ import { attestRuntimeRole, type RuntimeDatabaseAttestation } from "./db/runtime
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
 import { registerConsentRoutes } from "./modules/consent/routes.js";
 import { registerIdentityRoutes } from "./modules/identity/routes.js";
+import { registerNotificationAggregateRoutes } from "./modules/notifications/routes.js";
 import { registerHealthRoutes } from "./routes/health.js";
 
 export type BuildAppOptions = Readonly<{
@@ -74,6 +75,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     await registerIdentityRoutes(app, options.config, options.database);
     await registerConsentRoutes(app, options.config, options.database);
     await registerAnalyticsRoutes(app, options.config, options.database);
+    await registerNotificationAggregateRoutes(app, options.config, options.database);
   }
   return app;
 }
