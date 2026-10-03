@@ -15,6 +15,13 @@
       "when": 1791008976237,
       "tag": "0001_session_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791021371617,
+      "tag": "0002_slow_skrulls",
+      "breakpoints": true
     }
   ]
 }

@@ -86,6 +86,8 @@ export const jobRuns = pgTable(
     finishedAt: timestamp("finished_at", { withTimezone: true }),
     checkpoint: varchar("checkpoint", { length: 128 }),
     failureCode: varchar("failure_code", { length: 64 }),
+    leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+    leaseOwner: varchar("lease_owner", { length: 64 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -93,7 +95,17 @@ export const jobRuns = pgTable(
     check("job_runs_name_check", sql`length("job_name") > 0`),
     check(
       "job_runs_finished_status_check",
-      sql`("status" = 'running'::job_run_status AND "finished_at" IS NULL) OR ("status" <> 'running'::job_run_status AND "finished_at" IS NOT NULL)`,
+      sql`
+        ("status" = 'running'::job_run_status
+          AND "finished_at" IS NULL
+          AND "lease_owner" IS NOT NULL
+          AND "lease_expires_at" IS NOT NULL)
+        OR
+        ("status" <> 'running'::job_run_status
+          AND "finished_at" IS NOT NULL
+          AND "lease_owner" IS NULL
+          AND "lease_expires_at" IS NULL)
+      `,
     ),
   ],
 );

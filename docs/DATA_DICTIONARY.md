@@ -10,6 +10,12 @@ This foundation records approved analytics and notification-aggregate contracts 
 | Analytics event batch | One bounded upload request, 1–50 events and at most 128 KiB | Analytics ingestion boundary | Android WorkManager | Operational transport metadata only | Not retained as a raw request |
 | Analytics rejection counter | One reason/category/window aggregate | Analytics operations | Server validator | No payload content or identifiers | Enforceable duration pending the server operations policy |
 | Daily notification aggregate | One consented installation-local day and explicit revision | Notification aggregate domain | Android aggregate uploader, then authenticated aggregate ingestion | Pseudonymous derived counts only | Product-specified 24-month target; enforcement is owned by Server data foundation Task 8 |
+| Analytics daily installation rollup | One installation-local day | Analytics worker | Security-definer daily rollup | Pseudonymous derived counts; forced-RLS, installation-scoped | Removed with the installation; raw-retention enforcement remains Task 8 |
+| Analytics daily global rollup | One local day, build channel and synthetic marker | Analytics worker | Security-definer daily rollup | Aggregate counts only | Retention policy remains Task 8 |
+| Analytics consent coverage | One observed UTC day, build channel and synthetic marker | Analytics worker | Security-definer daily rollup | Aggregate consent counts only | Retention policy remains Task 8 |
+| Analytics release health | One received UTC day and app release | Analytics worker | Security-definer daily rollup | Aggregate event/failure counts only | Retention policy remains Task 8 |
+| Analytics notification volume | One UTC day, build channel and synthetic marker | Analytics worker | Hourly notification aggregate rollup | Global counts only; no installation identifiers | Retention policy remains Task 8 |
+| Analytics daily job run | One leased worker invocation | Analytics operations | `job_runs` | Safe status, checkpoint and failure code only | Operational retention policy remains Task 8 |
 
 ## Daily notification aggregate
 
@@ -28,6 +34,19 @@ The aggregate endpoint accepts only one authenticated installation's local day. 
 | `consent_scope_version` | Active notification-aggregate consent version | Admission check only; consent history remains its own domain record |
 
 Server-derived build channel and synthetic markers are never accepted from the client. A malformed, unconsented, stale, or conflicting request stores no additional aggregate row.
+
+## Daily analytics marts and job state
+
+The worker reads only the approved event and notification aggregates through a narrowly granted security-definer function. It returns a safe status/checkpoint/failure code; no mart, source row, identifier or notification-derived value is returned through the worker command.
+
+| Record | Stored fields | Use and boundary |
+|---|---|---|
+| `analytics_daily_installation` | installation ID, local day, build/synthetic marker, event count, eligible notification count, game pressure | User-scoped derived row. Forced RLS permits the current installation to read only its own derived day; worker writes are security-definer-only. |
+| `analytics_daily_global` | local day, build/synthetic marker, active installation count, event count, eligible notification count, game-pressure total | Aggregate reconciliation across installation days. |
+| `analytics_consent_coverage` | observation day, build/synthetic marker, installation and active-consent counts | Daily aggregate coverage snapshot; no identity is retained. |
+| `analytics_release_health` | received UTC day, release/version code, build/synthetic marker, event and failure counts | Coarse release-health evidence only. |
+| `analytics_notification_volume` | UTC day, build/synthetic marker, eligible notification and reporting-installation counts | True global UTC notification volume is reconstructed from approved hourly buckets. |
+| `job_runs` analytics-daily record | job name, status, start/finish, opaque source checkpoint, bounded lease owner/expiry and safe failure code | An advisory lock permits one rollup at a time. A stable-source mismatch is recorded as `rollup_drift` and never silently repaired. |
 
 ## Analytics event v1 envelope
 

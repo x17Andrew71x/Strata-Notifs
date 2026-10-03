@@ -17,7 +17,8 @@
     "test:coverage": "vitest run --coverage",
     "check": "pnpm typecheck && pnpm test && pnpm build",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate.ts"
+    "db:migrate": "tsx src/db/migrate.ts",
+    "jobs:run": "tsx src/jobs/runner.ts"
   },
   "dependencies": {
     "@fastify/cors": "11.3.0",

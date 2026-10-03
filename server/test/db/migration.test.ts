@@ -7,7 +7,12 @@ const config = loadPostgresTestConfig();
 const describePostgres = config ? describe : describe.skip;
 
 const requiredTables = [
+  "analytics_consent_coverage",
+  "analytics_daily_global",
+  "analytics_daily_installation",
   "analytics_events",
+  "analytics_notification_volume",
+  "analytics_release_health",
   "auth_refresh_tokens",
   "consent_records",
   "daily_notification_aggregates",
@@ -20,6 +25,7 @@ const requiredTables = [
 ] as const;
 
 const userOwnedTables = [
+  "analytics_daily_installation",
   "analytics_events",
   "auth_refresh_tokens",
   "consent_records",
@@ -76,7 +82,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
     await migrator?.end({ timeout: 5 });
     await admin?.end({ timeout: 5 });
     await harness?.close();
-  });
+  }, 30_000);
 
   it("creates the typed operational tables, immutable identities, and privacy-safe aggregate fields", async () => {
     await migrateDatabase(harness.migrationDatabaseUrl);
@@ -165,6 +171,46 @@ describePostgres("initial PostgreSQL schema migration", () => {
         "is_synthetic",
       ]),
     );
+    expect(columnNames(columns.get("analytics_daily_installation"))).toEqual(
+      expect.arrayContaining([
+        "installation_id",
+        "local_date",
+        "analytics_event_count",
+        "notification_eligible_count",
+        "game_pressure_total",
+        "build_channel",
+        "is_synthetic",
+      ]),
+    );
+    expect(columnNames(columns.get("analytics_daily_global"))).toEqual(
+      expect.arrayContaining([
+        "local_date",
+        "active_installation_count",
+        "analytics_event_count",
+        "notification_eligible_count",
+        "game_pressure_total",
+      ]),
+    );
+    expect(columnNames(columns.get("analytics_consent_coverage"))).toEqual(
+      expect.arrayContaining([
+        "observed_date",
+        "total_installation_count",
+        "product_analytics_consent_count",
+        "notification_aggregate_consent_count",
+      ]),
+    );
+    expect(columnNames(columns.get("analytics_release_health"))).toEqual(
+      expect.arrayContaining([
+        "received_date",
+        "app_version",
+        "version_code",
+        "analytics_event_count",
+        "failure_event_count",
+      ]),
+    );
+    expect(columnNames(columns.get("analytics_notification_volume"))).toEqual(
+      expect.arrayContaining(["utc_date", "eligible_count", "reporting_installation_count"]),
+    );
     expect(columnNames(columns.get("idempotency_records"))).toEqual(
       expect.arrayContaining([
         "id",
@@ -188,7 +234,17 @@ describePostgres("initial PostgreSQL schema migration", () => {
       ]),
     );
     expect(columnNames(columns.get("job_runs"))).toEqual(
-      expect.arrayContaining(["id", "job_name", "status", "started_at", "finished_at"]),
+      expect.arrayContaining([
+        "id",
+        "job_name",
+        "status",
+        "started_at",
+        "finished_at",
+        "checkpoint",
+        "failure_code",
+        "lease_owner",
+        "lease_expires_at",
+      ]),
     );
     expect(columnNames(columns.get("schema_metadata"))).toEqual(
       expect.arrayContaining(["id", "metadata_key", "metadata_value", "created_at", "updated_at"]),
@@ -204,7 +260,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
     expect(typeByColumn.get("daily_notification_aggregates.local_date")).toBe("date");
     expect(typeByColumn.get("daily_notification_aggregates.category_counts")).toBe("jsonb");
     expect(typeByColumn.get("auth_refresh_tokens.expires_at")).toBe("timestamp with time zone");
-  });
+  }, 30_000);
 
   it("enforces ownership, bounded idempotency, aggregate revision, and synthetic-build constraints", async () => {
     const constraints = await migrator<
@@ -235,9 +291,23 @@ describePostgres("initial PostgreSQL schema migration", () => {
       ),
     );
 
+    const tablesWithCompositePrimaryKeys = new Set([
+      "analytics_consent_coverage",
+      "analytics_daily_global",
+      "analytics_daily_installation",
+      "analytics_notification_volume",
+      "analytics_release_health",
+    ]);
     for (const table of requiredTables) {
-      expect(signatures).toContain(`${table}:PRIMARY KEY:id`);
+      if (!tablesWithCompositePrimaryKeys.has(table)) {
+        expect(signatures).toContain(`${table}:PRIMARY KEY:id`);
+      }
     }
+    expect(signatures).toContain("analytics_consent_coverage:PRIMARY KEY:observed_date");
+    expect(signatures).toContain("analytics_daily_global:PRIMARY KEY:local_date");
+    expect(signatures).toContain("analytics_daily_installation:PRIMARY KEY:installation_id");
+    expect(signatures).toContain("analytics_notification_volume:PRIMARY KEY:utc_date");
+    expect(signatures).toContain("analytics_release_health:PRIMARY KEY:received_date");
     expect(signatures).toContain("installations:FOREIGN KEY:user_id");
     expect(signatures).toContain("auth_refresh_tokens:FOREIGN KEY:installation_id");
     expect(signatures).toContain("consent_records:FOREIGN KEY:installation_id");
@@ -435,7 +505,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "2", hash: expect.any(String) });
+    expect(before).toEqual({ count: "3", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });
