@@ -422,18 +422,20 @@ describePostgres("initial PostgreSQL schema migration", () => {
     }
   });
 
-  it("reapplies as a no-op with one stable migration-history record", async () => {
+  it("reapplies as a no-op with stable migration-history records", async () => {
     const [before] = await migrator<Readonly<{ count: string; hash: string | null }>[]>`
-      SELECT count(*)::text AS count, max(hash) AS hash
-      FROM drizzle.__drizzle_migrations
+      SELECT
+        (SELECT count(*)::text FROM drizzle.__drizzle_migrations) AS count,
+        (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
     const rerun = await migrateDatabase(harness.migrationDatabaseUrl);
     const [after] = await migrator<Readonly<{ count: string; hash: string | null }>[]>`
-      SELECT count(*)::text AS count, max(hash) AS hash
-      FROM drizzle.__drizzle_migrations
+      SELECT
+        (SELECT count(*)::text FROM drizzle.__drizzle_migrations) AS count,
+        (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "1", hash: expect.any(String) });
+    expect(before).toEqual({ count: "2", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });

@@ -19,6 +19,8 @@ const configSchema = z.object({
 
 export type ServerConfig = Readonly<{
   nodeEnv: "development" | "test" | "production";
+  buildChannel: "dev" | "prod";
+  tokenAudience: "afterchime-dev" | "afterchime-prod";
   host: string;
   port: number;
   logLevel: "fatal" | "error" | "warn" | "info" | "debug" | "trace" | "silent";
@@ -34,8 +36,11 @@ export type ServerConfig = Readonly<{
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ServerConfig {
   const value = configSchema.parse(environment);
+  const buildChannel = value.NODE_ENV === "production" ? "prod" : "dev";
   return {
     nodeEnv: value.NODE_ENV,
+    buildChannel,
+    tokenAudience: buildChannel === "prod" ? "afterchime-prod" : "afterchime-dev",
     host: value.HOST,
     port: value.PORT,
     logLevel: value.LOG_LEVEL,

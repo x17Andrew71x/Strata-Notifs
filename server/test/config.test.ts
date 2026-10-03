@@ -16,8 +16,17 @@ describe("loadConfig", () => {
     });
 
     expect(config.port).toBe(3000);
+    expect(config.buildChannel).toBe("dev");
+    expect(config.tokenAudience).toBe("afterchime-dev");
     expect(config.allowDevAuth).toBe(false);
     expect(config.corsOrigins).toEqual(["https://one.example", "https://two.example"]);
+  });
+
+  it("derives the token audience from server environment rather than client input", () => {
+    const config = loadConfig({ ...validEnvironment, NODE_ENV: "production" });
+
+    expect(config.buildChannel).toBe("prod");
+    expect(config.tokenAudience).toBe("afterchime-prod");
   });
 
   it("rejects weak secrets", () => {

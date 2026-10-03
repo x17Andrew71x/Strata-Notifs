@@ -8,6 +8,13 @@
       "when": 1790996704213,
       "tag": "0000_fair_harpoon",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791008976237,
+      "tag": "0001_session_functions",
+      "breakpoints": true
     }
   ]
 }

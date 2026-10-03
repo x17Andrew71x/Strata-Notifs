@@ -2,6 +2,8 @@ import type { ServerConfig } from "../src/config.js";
 
 export const testConfig: ServerConfig = {
   nodeEnv: "test",
+  buildChannel: "dev",
+  tokenAudience: "afterchime-dev",
   host: "127.0.0.1",
   port: 3000,
   logLevel: "silent",
