@@ -1,0 +1,30 @@
+{
+  "local_secret_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "summary": {
+    "local_date": "2026-10-03",
+    "observation_completeness": "OBSERVED",
+    "true_notification_count": 0,
+    "game_pressure": 0,
+    "hourly_counts": {},
+    "category_counts": {},
+    "source_diversity": 0,
+    "day_duration_minutes": 1440,
+    "longest_observed_quiet_interval_minutes": 1440,
+    "peak_hourly_count": 0,
+    "max_events_in_fifteen_minute_window": 0,
+    "day_notification_count": 0,
+    "night_notification_count": 0
+  },
+  "expected": {
+    "status": "generated",
+    "family": "TRACE_PLATE",
+    "tier": "COMMON",
+    "visual": {
+      "hue_degrees": 184,
+      "strata_count": 4,
+      "inclusion_density_percent": 1,
+      "relief_percent": 64,
+      "rotation_degrees": 106
+    }
+  }
+}

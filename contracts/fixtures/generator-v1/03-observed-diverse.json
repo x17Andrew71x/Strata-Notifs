@@ -1,0 +1,37 @@
+{
+  "local_secret_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "summary": {
+    "local_date": "2026-10-05",
+    "observation_completeness": "OBSERVED",
+    "true_notification_count": 6,
+    "game_pressure": 6,
+    "hourly_counts": { "1": 1, "8": 1, "12": 1, "16": 1, "20": 1, "23": 1 },
+    "category_counts": {
+      "ALARM": 1,
+      "EMAIL": 1,
+      "EVENT": 1,
+      "MESSAGE": 1,
+      "NAVIGATION": 1,
+      "SOCIAL": 1
+    },
+    "source_diversity": 6,
+    "day_duration_minutes": 1440,
+    "longest_observed_quiet_interval_minutes": 240,
+    "peak_hourly_count": 1,
+    "max_events_in_fifteen_minute_window": 1,
+    "day_notification_count": 4,
+    "night_notification_count": 2
+  },
+  "expected": {
+    "status": "generated",
+    "family": "FERN_IMPRINT",
+    "tier": "UNCOMMON",
+    "visual": {
+      "hue_degrees": 49,
+      "strata_count": 6,
+      "inclusion_density_percent": 28,
+      "relief_percent": 76,
+      "rotation_degrees": 55
+    }
+  }
+}

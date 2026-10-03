@@ -1,0 +1,21 @@
+{
+  "local_secret_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "summary": {
+    "local_date": "2026-10-06",
+    "observation_completeness": "UNOBSERVED",
+    "true_notification_count": 1,
+    "game_pressure": 1,
+    "hourly_counts": { "10": 1 },
+    "category_counts": { "MESSAGE": 1 },
+    "source_diversity": 1,
+    "day_duration_minutes": 1440,
+    "longest_observed_quiet_interval_minutes": 0,
+    "peak_hourly_count": 1,
+    "max_events_in_fifteen_minute_window": 1,
+    "day_notification_count": 1,
+    "night_notification_count": 0
+  },
+  "expected": {
+    "status": "unobserved"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "local_secret_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+  "summary": {
+    "local_date": "2026-10-04",
+    "observation_completeness": "OBSERVED",
+    "true_notification_count": 8,
+    "game_pressure": 8,
+    "hourly_counts": { "10": 6, "21": 2 },
+    "category_counts": { "MESSAGE": 5, "SOCIAL": 3 },
+    "source_diversity": 4,
+    "day_duration_minutes": 1440,
+    "longest_observed_quiet_interval_minutes": 700,
+    "peak_hourly_count": 6,
+    "max_events_in_fifteen_minute_window": 5,
+    "day_notification_count": 8,
+    "night_notification_count": 0
+  },
+  "expected": {
+    "status": "generated",
+    "family": "AMBER",
+    "tier": "COMMON",
+    "visual": {
+      "hue_degrees": 77,
+      "strata_count": 7,
+      "inclusion_density_percent": 32,
+      "relief_percent": 93,
+      "rotation_degrees": 81
+    }
+  }
+}
