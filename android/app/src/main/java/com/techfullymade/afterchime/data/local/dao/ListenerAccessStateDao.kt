@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Query
 import androidx.room.Upsert
 import com.techfullymade.afterchime.data.local.entity.ListenerAccessStateEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ListenerAccessStateDao {
@@ -12,6 +13,9 @@ interface ListenerAccessStateDao {
 
   @Query("SELECT * FROM listener_access_states WHERE local_date = :localDate")
   suspend fun get(localDate: String): ListenerAccessStateEntity?
+
+  @Query("SELECT * FROM listener_access_states WHERE local_date = :localDate")
+  fun observe(localDate: String): Flow<ListenerAccessStateEntity?>
 
   @Query("SELECT COUNT(*) FROM listener_access_states WHERE local_date = :localDate")
   suspend fun countForLocalDate(localDate: String): Int

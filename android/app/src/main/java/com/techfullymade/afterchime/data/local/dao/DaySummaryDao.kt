@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface DaySummaryDao {
@@ -13,6 +14,9 @@ interface DaySummaryDao {
 
   @Query("SELECT * FROM day_summaries WHERE local_date = :localDate")
   suspend fun get(localDate: String): DaySummaryEntity?
+
+  @Query("SELECT * FROM day_summaries WHERE local_date = :localDate")
+  fun observe(localDate: String): Flow<DaySummaryEntity?>
 
   @Query("SELECT local_date FROM day_summaries WHERE local_date < :exclusiveLocalDate")
   suspend fun localDatesBefore(exclusiveLocalDate: String): List<String>

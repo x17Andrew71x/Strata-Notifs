@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.techfullymade.afterchime.data.local.entity.ReducedNotificationEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReducedNotificationDao {
@@ -22,6 +23,15 @@ interface ReducedNotificationDao {
     """,
   )
   suspend fun forLocalDate(localDate: String): List<ReducedNotificationEntity>
+
+  @Query(
+    """
+      SELECT * FROM reduced_notifications
+      WHERE local_date = :localDate
+      ORDER BY occurred_at_epoch_millis ASC, id ASC
+    """,
+  )
+  fun observeForLocalDate(localDate: String): Flow<List<ReducedNotificationEntity>>
 
   @Query(
     """

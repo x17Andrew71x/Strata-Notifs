@@ -4,7 +4,7 @@
 
 **Canonical product contract:** [`../PRODUCT_SPEC.md`](../PRODUCT_SPEC.md)<br>
 **Integration branch:** `dev`<br>
-**Current milestone:** `0.3.0`<br>
+**Current milestone:** `0.4.0`<br>
 **Last revised:** 2026-10-03
 
 ## Version milestones
@@ -13,7 +13,7 @@
 |---|---|---|---|
 | `0.1.0` | [00 Foundation](00-foundation.md) | Reproducible monorepo, contracts, CI and local quality gates | Complete |
 | `0.2.0` | [01 Server data foundation](01-server-data-foundation.md) | Real-PostgreSQL identity, consent, analytics ingest and safe migrations | Complete |
-| `0.3.0` | [02 Android capture and generator](02-android-capture-generator.md) | Privacy-reduced capture, day sealing and deterministic specimens work offline | In progress |
+| `0.3.0` | [02 Android capture and generator](02-android-capture-generator.md) | Privacy-reduced capture, day sealing and deterministic specimens work offline | Complete |
 | `0.4.0` | [03 Museum, worlds and UI](03-museum-worlds-ui.md) | Complete local game loop, concise Compose UI and launch renderers | Pending |
 | `0.5.0` | [04 Online sync and analytics](04-online-sync-analytics.md) | Consent-aware online identity, batching, sync and derived metrics | Pending |
 | `0.6.0` | [05 Community exhibitions](05-community-exhibitions.md) | Donations, seasonal mosaics, World Formation and awards survive replay/restart | Pending |
@@ -44,6 +44,8 @@
 - **2026-10-03 — Android capture and generator Task 6:** Added the local transactional sealing state machine, Room v3 specimen-output persistence, and WorkManager retry boundary. Completed known days seal in deterministic order; observed days persist exactly one canonical generator output, unobserved/revoked days remain specimen-free, missed days catch up, and summary/specimen/output writes roll back together. Date-key idempotency survives duplicate workers, clock rollback and timezone changes; persisted days are excluded before secret loading so retries do not regenerate history. Focused sealing tests, the device-test APK compilation, and `bash scripts/check.sh` passed. Physical migration execution remains open because this host has neither an attached Android device nor an installed AVD. Task 7 (preferences and Keystore-backed local secret/runtime activation) is next; no Railway service is required or authorised.
 
 - **2026-10-03 — Android capture and generator Task 7:** Added DataStore-backed local preferences with all online/optional-consent scopes disabled by default, plus non-exportable Android Keystore HMAC material and AES-GCM-wrapped generator material. Existing envelope or alias loss fails closed without changing local identities; replacement is available only after an explicit local-history deletion. Capture and sealing now share that protected material and remain inactive if it is unavailable. Focused recovery, preference, and runtime tests; the device-test APK compilation; and `bash scripts/check.sh` passed. Physical Android Keystore execution remains open because this host has neither an attached Android device nor an installed AVD. Task 8 (local repository API) is next; no Railway service is required or authorised.
+- **2026-10-03 — Android capture and generator Task 8:** Added Room-backed formation and museum repository APIs that expose only renderer-safe domain snapshots and flows. Live layers retain coarse category, local hour and source colour without a source token; sealed specimens map from atomic output joins; reveal is an idempotent local transaction; and UI fakes model the same contract. Focused Android validation and the isolated full gate passed with notification privacy checks intact. No network or analytics dependency was introduced.
+- **2026-10-03 — Android capture and generator phase exit:** Re-ran the isolated full quality gate: Gradle gateway guard, lockfile verification, privacy tests/scanner, format, lint/typecheck, 13 pure server tests, server build, and Android dev unit tests/lint/APK assembly all passed. The committed Room schema remains reduced-only; generator, observation, sealing and local-repository contracts are exercised in JVM tests. `0.3.0` is complete. Physical Android Keystore and Room-migration execution remains a device/AVD acceptance boundary, not an unverified claim.
 
 Patch versions are used whenever a phase requires fixes after its coherent capability lands. Milestone numbers express ordering, not a target to reach artificially.
 
