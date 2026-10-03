@@ -10,6 +10,7 @@ import {
 import type { ServerConfig } from "./config.js";
 import { createSqlClient, type DatabaseClient } from "./db/client.js";
 import { attestRuntimeRole, type RuntimeDatabaseAttestation } from "./db/runtime-attestation.js";
+import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
 import { registerConsentRoutes } from "./modules/consent/routes.js";
 import { registerIdentityRoutes } from "./modules/identity/routes.js";
 import { registerHealthRoutes } from "./routes/health.js";
@@ -30,7 +31,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   const app = Fastify({
     logger: options.logger ?? false,
     trustProxy: true,
-    bodyLimit: 256 * 1024,
+    bodyLimit: 128 * 1024,
     requestIdHeader: "x-request-id",
   }).withTypeProvider<ZodTypeProvider>();
 
@@ -72,6 +73,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   if (options.database) {
     await registerIdentityRoutes(app, options.config, options.database);
     await registerConsentRoutes(app, options.config, options.database);
+    await registerAnalyticsRoutes(app, options.config, options.database);
   }
   return app;
 }
