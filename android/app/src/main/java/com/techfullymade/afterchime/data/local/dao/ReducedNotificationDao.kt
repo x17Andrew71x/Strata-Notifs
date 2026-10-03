@@ -11,6 +11,9 @@ interface ReducedNotificationDao {
   @Insert(onConflict = OnConflictStrategy.ABORT)
   suspend fun insert(notification: ReducedNotificationEntity)
 
+  @Insert(onConflict = OnConflictStrategy.IGNORE)
+  suspend fun insertIfAbsent(notification: ReducedNotificationEntity): Long
+
   @Query(
     """
       SELECT * FROM reduced_notifications

@@ -77,6 +77,17 @@ class AfterchimeDatabaseTest {
     )
     assertEquals(
       setOf(
+        "active_at_epoch_millis",
+        "disconnected_at_epoch_millis",
+        "latest_state",
+        "local_date",
+        "revoked_at_epoch_millis",
+        "updated_at_epoch_millis",
+      ),
+      database.columnsFor("listener_access_states"),
+    )
+    assertEquals(
+      setOf(
         "anchored_local_date",
         "created_at_epoch_millis",
         "generator_version",
