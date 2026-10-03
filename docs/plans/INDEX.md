@@ -4,14 +4,14 @@
 
 **Canonical product contract:** [`../PRODUCT_SPEC.md`](../PRODUCT_SPEC.md)<br>
 **Integration branch:** `dev`<br>
-**Current milestone:** `0.1.0`<br>
+**Current milestone:** `0.2.0`<br>
 **Last revised:** 2026-10-02
 
 ## Version milestones
 
 | Version | Plan | Exit condition | Status |
 |---|---|---|---|
-| `0.1.0` | [00 Foundation](00-foundation.md) | Reproducible monorepo, contracts, CI and local quality gates | In progress |
+| `0.1.0` | [00 Foundation](00-foundation.md) | Reproducible monorepo, contracts, CI and local quality gates | Complete |
 | `0.2.0` | [01 Server data foundation](01-server-data-foundation.md) | Real-PostgreSQL identity, consent, analytics ingest and safe migrations | Pending |
 | `0.3.0` | [02 Android capture and generator](02-android-capture-generator.md) | Privacy-reduced capture, day sealing and deterministic specimens work offline | Pending |
 | `0.4.0` | [03 Museum, worlds and UI](03-museum-worlds-ui.md) | Complete local game loop, concise Compose UI and launch renderers | Pending |
@@ -23,7 +23,7 @@
 ## Verified progress
 
 - **2026-10-02 — Foundation Task 5:** Replaced the broad analytics schema with closed v1 lifecycle/onboarding contracts, shared valid/invalid fixtures, server and Android fixture validation, OpenAPI batch bounds, and the data dictionary. `bash scripts/check.sh` passed.
-- **2026-10-02 — Foundation Task 6 (local configuration):** Added development-only GitHub Actions quality gates, trusted-run test/APK artifacts, pinned action revisions, supported dependency review, and Dependabot coverage for the pnpm workspace, Gradle, and Actions. `corepack pnpm --dir server check`, JUnit report generation, actionlint, and `./scripts/check.sh` passed locally; the first GitHub Actions run on `dev` remains required before this phase can exit.
+- **2026-10-02 — Foundation Task 6 and phase exit:** Added development-only GitHub Actions quality gates, trusted-run test/APK artifacts, pinned action revisions, supported dependency review, and Dependabot coverage for the pnpm workspace, Gradle, and Actions. Local server checks, JUnit report generation, actionlint, and `./scripts/check.sh` passed. GitHub CI run #1 for `c03d9027be3bd4c144953b6e428674e7bdf3f358` completed successfully on `dev`: Quality gates passed, Dependency review correctly skipped outside its supported event/capability boundary, and non-empty trusted-run test-report and dev-debug APK artifacts were retained. A fresh remote clone also passed `./scripts/check.sh` with the explicitly supplied host Android SDK prerequisite. Foundation is complete; no APK was delivered.
 
 Patch versions are used whenever a phase requires fixes after its coherent capability lands. Milestone numbers express ordering, not a target to reach artificially.
 
