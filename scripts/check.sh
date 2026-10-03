@@ -5,6 +5,7 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+./scripts/test_gradle_gateway_guard.sh
 corepack pnpm install --frozen-lockfile
 corepack pnpm privacy:test
 corepack pnpm privacy:check

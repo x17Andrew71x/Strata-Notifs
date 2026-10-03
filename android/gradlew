@@ -64,6 +64,15 @@
 #
 ##############################################################################
 
+# Running Gradle inside Alfred's gateway service can starve its event loop and
+# sever Discord. Heavy Android work belongs on the isolated build runner.
+cgroup_file=${AFTERCHIME_CGROUP_FILE:-/proc/self/cgroup}
+if [ -r "$cgroup_file" ] && grep -q 'hermes-gateway\.service' "$cgroup_file"; then
+    echo "Refusing to run Gradle inside hermes-gateway.service; use the isolated Afterchime builder." >&2
+    exit 75
+fi
+unset cgroup_file
+
 # Attempt to set APP_HOME
 
 # Resolve links: $0 may be a link
