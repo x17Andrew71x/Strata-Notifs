@@ -156,9 +156,10 @@ export class PostgresTestHarness {
 
     const databaseUrl = roleDatabaseUrl(this.adminDatabaseUrl, options.name, this.unsafePassword);
     if (options.protectedObject) {
+      const testDatabase = createSqlClient(testDatabaseAdminUrl(this.adminDatabaseUrl));
       const connection = createSqlClient(databaseUrl);
-      await this.admin.unsafe(`GRANT CREATE ON SCHEMA public TO ${role}`);
       try {
+        await testDatabase.unsafe(`GRANT CREATE ON SCHEMA public TO ${role}`);
         if (options.protectedObject === "schema") {
           const schema = quoteIdentifier(`${options.name}_schema`);
           await this.admin.unsafe(`GRANT CREATE ON DATABASE "${TEST_DATABASE}" TO ${role}`);
@@ -174,6 +175,7 @@ export class PostgresTestHarness {
         }
       } finally {
         await connection.end({ timeout: 5 });
+        await testDatabase.end({ timeout: 5 });
       }
     }
 
