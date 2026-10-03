@@ -15,4 +15,22 @@ interface ListenerAccessStateDao {
 
   @Query("SELECT COUNT(*) FROM listener_access_states WHERE local_date = :localDate")
   suspend fun countForLocalDate(localDate: String): Int
+
+  @Query(
+    """
+      SELECT MIN(local_date) FROM listener_access_states
+      WHERE local_date < :exclusiveLocalDate
+    """,
+  )
+  suspend fun earliestLocalDateBefore(exclusiveLocalDate: String): String?
+
+  @Query(
+    """
+      SELECT * FROM listener_access_states
+      WHERE local_date <= :localDate
+      ORDER BY local_date DESC
+      LIMIT 1
+    """,
+  )
+  suspend fun latestOnOrBefore(localDate: String): ListenerAccessStateEntity?
 }

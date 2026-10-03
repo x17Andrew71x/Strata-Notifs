@@ -13,4 +13,7 @@ interface SpecimenDao {
 
   @Query("SELECT * FROM specimens WHERE anchored_local_date = :localDate")
   suspend fun getByAnchoredLocalDate(localDate: String): SpecimenEntity?
+
+  @Query("SELECT anchored_local_date FROM specimens WHERE anchored_local_date < :exclusiveLocalDate")
+  suspend fun anchoredLocalDatesBefore(exclusiveLocalDate: String): List<String>
 }

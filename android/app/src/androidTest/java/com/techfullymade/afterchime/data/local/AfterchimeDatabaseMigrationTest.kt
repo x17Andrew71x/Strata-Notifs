@@ -13,10 +13,24 @@ class AfterchimeDatabaseMigrationTest {
   )
 
   @Test
-  fun versionOneExportedSchemaMigratesToVersionTwoWithoutDestructiveFallback() {
-    val name = "afterchime-v1-to-v2-migration"
+  fun versionOneExportedSchemaMigratesToVersionThreeWithoutDestructiveFallback() {
+    val name = "afterchime-v1-to-v3-migration"
 
     migrationHelper.createDatabase(name, 1).close()
-    migrationHelper.runMigrationsAndValidate(name, 2, true, AfterchimeDatabase.MIGRATION_1_2).close()
+    migrationHelper.runMigrationsAndValidate(
+      name,
+      3,
+      true,
+      AfterchimeDatabase.MIGRATION_1_2,
+      AfterchimeDatabase.MIGRATION_2_3,
+    ).close()
+  }
+
+  @Test
+  fun versionTwoExportedSchemaMigratesToVersionThreeWithoutDestructiveFallback() {
+    val name = "afterchime-v2-to-v3-migration"
+
+    migrationHelper.createDatabase(name, 2).close()
+    migrationHelper.runMigrationsAndValidate(name, 3, true, AfterchimeDatabase.MIGRATION_2_3).close()
   }
 }

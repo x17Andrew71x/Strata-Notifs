@@ -13,4 +13,7 @@ interface DaySummaryDao {
 
   @Query("SELECT * FROM day_summaries WHERE local_date = :localDate")
   suspend fun get(localDate: String): DaySummaryEntity?
+
+  @Query("SELECT local_date FROM day_summaries WHERE local_date < :exclusiveLocalDate")
+  suspend fun localDatesBefore(exclusiveLocalDate: String): List<String>
 }

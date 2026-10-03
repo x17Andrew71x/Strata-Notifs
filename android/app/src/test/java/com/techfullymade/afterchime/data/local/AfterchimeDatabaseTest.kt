@@ -8,6 +8,9 @@ import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
 import com.techfullymade.afterchime.data.local.entity.ObservationState
 import com.techfullymade.afterchime.data.local.entity.ReducedNotificationEntity
 import com.techfullymade.afterchime.data.local.entity.SpecimenEntity
+import com.techfullymade.afterchime.data.local.entity.SpecimenOutputEntity
+import com.techfullymade.afterchime.generation.Family
+import com.techfullymade.afterchime.generation.Tier
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -45,14 +48,17 @@ class AfterchimeDatabaseTest {
     val notification = reducedNotification(id = "event-1")
     val summary = daySummary()
     val specimen = specimen()
+    val specimenOutput = specimenOutput(specimen)
 
     database.reducedNotificationDao().insert(notification)
     database.daySummaryDao().insert(summary)
     database.specimenDao().insert(specimen)
+    database.specimenOutputDao().insert(specimenOutput)
 
     assertEquals(listOf(notification), database.reducedNotificationDao().forLocalDate(summary.localDate))
     assertEquals(summary, database.daySummaryDao().get(summary.localDate))
     assertEquals(specimen, database.specimenDao().getByAnchoredLocalDate(summary.localDate))
+    assertEquals(specimenOutput, database.specimenOutputDao().getBySpecimenId(specimen.specimenId))
     assertEquals(
       setOf(
         "category",
@@ -95,6 +101,19 @@ class AfterchimeDatabaseTest {
         "specimen_id",
       ),
       database.columnsFor("specimens"),
+    )
+    assertEquals(
+      setOf(
+        "family",
+        "hue_degrees",
+        "inclusion_density_percent",
+        "relief_percent",
+        "rotation_degrees",
+        "specimen_id",
+        "strata_count",
+        "tier",
+      ),
+      database.columnsFor("specimen_outputs"),
     )
   }
 
@@ -163,6 +182,17 @@ class AfterchimeDatabaseTest {
     generatorVersion = 1,
     createdAtEpochMillis = 1_759_593_600_000L,
     revealedAtEpochMillis = null,
+  )
+
+  private fun specimenOutput(specimen: SpecimenEntity) = SpecimenOutputEntity(
+    specimenId = specimen.specimenId,
+    family = Family.GEODE,
+    tier = Tier.EXCEPTIONAL,
+    hueDegrees = 143,
+    strataCount = 11,
+    inclusionDensityPercent = 72,
+    reliefPercent = 63,
+    rotationDegrees = 217,
   )
 
   private fun AfterchimeDatabase.columnsFor(table: String): Set<String> =

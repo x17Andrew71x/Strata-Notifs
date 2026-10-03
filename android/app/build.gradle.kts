@@ -107,6 +107,7 @@ dependencies {
   implementation(libs.androidx.compose.material3)
   implementation(libs.room.runtime)
   implementation(libs.room.ktx)
+  implementation(libs.androidx.work.runtime.ktx)
   ksp(libs.room.compiler)
 
   testImplementation(libs.junit4)

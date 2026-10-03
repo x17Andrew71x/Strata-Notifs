@@ -22,4 +22,12 @@ interface ReducedNotificationDao {
     """,
   )
   suspend fun forLocalDate(localDate: String): List<ReducedNotificationEntity>
+
+  @Query(
+    """
+      SELECT MIN(local_date) FROM reduced_notifications
+      WHERE local_date < :exclusiveLocalDate
+    """,
+  )
+  suspend fun earliestLocalDateBefore(exclusiveLocalDate: String): String?
 }

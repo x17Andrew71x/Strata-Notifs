@@ -9,10 +9,12 @@ import com.techfullymade.afterchime.data.local.dao.DaySummaryDao
 import com.techfullymade.afterchime.data.local.dao.ListenerAccessStateDao
 import com.techfullymade.afterchime.data.local.dao.ReducedNotificationDao
 import com.techfullymade.afterchime.data.local.dao.SpecimenDao
+import com.techfullymade.afterchime.data.local.dao.SpecimenOutputDao
 import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
 import com.techfullymade.afterchime.data.local.entity.ListenerAccessStateEntity
 import com.techfullymade.afterchime.data.local.entity.ReducedNotificationEntity
 import com.techfullymade.afterchime.data.local.entity.SpecimenEntity
+import com.techfullymade.afterchime.data.local.entity.SpecimenOutputEntity
 
 @Database(
   entities = [
@@ -20,9 +22,10 @@ import com.techfullymade.afterchime.data.local.entity.SpecimenEntity
     DaySummaryEntity::class,
     ListenerAccessStateEntity::class,
     SpecimenEntity::class,
+    SpecimenOutputEntity::class,
   ],
   exportSchema = true,
-  version = 2,
+  version = 3,
 )
 @TypeConverters(AfterchimeTypeConverters::class)
 abstract class AfterchimeDatabase : RoomDatabase() {
@@ -33,6 +36,8 @@ abstract class AfterchimeDatabase : RoomDatabase() {
   abstract fun listenerAccessStateDao(): ListenerAccessStateDao
 
   abstract fun specimenDao(): SpecimenDao
+
+  abstract fun specimenOutputDao(): SpecimenOutputDao
 
   companion object {
     val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -47,6 +52,27 @@ abstract class AfterchimeDatabase : RoomDatabase() {
             `latest_state` TEXT NOT NULL,
             `updated_at_epoch_millis` INTEGER NOT NULL,
             PRIMARY KEY(`local_date`)
+          )
+          """.trimIndent(),
+        )
+      }
+    }
+
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+          """
+          CREATE TABLE IF NOT EXISTS `specimen_outputs` (
+            `specimen_id` TEXT NOT NULL,
+            `family` TEXT NOT NULL,
+            `tier` TEXT NOT NULL,
+            `hue_degrees` INTEGER NOT NULL,
+            `strata_count` INTEGER NOT NULL,
+            `inclusion_density_percent` INTEGER NOT NULL,
+            `relief_percent` INTEGER NOT NULL,
+            `rotation_degrees` INTEGER NOT NULL,
+            PRIMARY KEY(`specimen_id`),
+            FOREIGN KEY(`specimen_id`) REFERENCES `specimens`(`specimen_id`) ON UPDATE NO ACTION ON DELETE CASCADE
           )
           """.trimIndent(),
         )

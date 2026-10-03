@@ -10,7 +10,7 @@ import java.time.ZoneId
 class AfterchimeApplication : Application() {
   private val database: AfterchimeDatabase by lazy {
     Room.databaseBuilder(this, AfterchimeDatabase::class.java, DATABASE_NAME)
-      .addMigrations(AfterchimeDatabase.MIGRATION_1_2)
+      .addMigrations(AfterchimeDatabase.MIGRATION_1_2, AfterchimeDatabase.MIGRATION_2_3)
       .build()
   }
 
