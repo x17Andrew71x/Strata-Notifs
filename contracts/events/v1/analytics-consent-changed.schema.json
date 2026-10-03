@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://stratawake.invalid/contracts/events/v1/analytics-consent-changed.schema.json",
-  "title": "Stratawake Analytics Event v1: analytics_consent_changed",
+  "$id": "https://afterchime.invalid/contracts/events/v1/analytics-consent-changed.schema.json",
+  "title": "Afterchime Analytics Event v1: analytics_consent_changed",
   "allOf": [
     {
       "$ref": "base.schema.json"

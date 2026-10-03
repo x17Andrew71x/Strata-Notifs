@@ -5,7 +5,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY server/package.json server/package.json
 RUN pnpm install --frozen-lockfile
 COPY server server
-RUN pnpm --filter @stratawake/server build && pnpm deploy --filter @stratawake/server --prod /out
+RUN pnpm --filter @afterchime/server build && pnpm deploy --filter @afterchime/server --prod /out
 
 FROM node:22.22.3-alpine AS runtime
 ENV NODE_ENV=production

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://stratawake.invalid/contracts/events/v1/app-backgrounded.schema.json",
-  "title": "Stratawake Analytics Event v1: app_backgrounded",
+  "$id": "https://afterchime.invalid/contracts/events/v1/app-backgrounded.schema.json",
+  "title": "Afterchime Analytics Event v1: app_backgrounded",
   "allOf": [
     {
       "$ref": "base.schema.json"

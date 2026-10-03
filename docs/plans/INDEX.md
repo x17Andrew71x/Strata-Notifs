@@ -1,4 +1,4 @@
-# Stratawake implementation plans
+# Afterchime implementation plans
 
 > **For Hermes:** Execute these plans in order. Each phase uses test-first slices, independent review of delegated work, real command output, and coherent commits. Production is forbidden until Andrew approves it.
 

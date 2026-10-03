@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://stratawake.invalid/contracts/events/v1/installation-created.schema.json",
-  "title": "Stratawake Analytics Event v1: installation_created",
+  "$id": "https://afterchime.invalid/contracts/events/v1/installation-created.schema.json",
+  "title": "Afterchime Analytics Event v1: installation_created",
   "allOf": [
     {
       "$ref": "base.schema.json"

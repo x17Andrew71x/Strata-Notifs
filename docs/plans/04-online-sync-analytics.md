@@ -13,7 +13,7 @@
 ## Task 1: Typed Android API boundary
 
 **Files:**
-- Create: `android/app/src/main/java/.../network/StratawakeApi.kt`
+- Create: `android/app/src/main/java/.../network/AfterchimeApi.kt`
 - Create: `.../network/ApiModels.kt`
 - Create: `.../network/NetworkModule.kt`
 - Create: `android/app/src/test/.../network/ContractTest.kt`

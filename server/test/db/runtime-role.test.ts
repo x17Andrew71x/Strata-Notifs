@@ -34,18 +34,18 @@ describePostgres("runtime database-role attestation", () => {
     const runtime = createSqlClient(harness.runtimeDatabaseUrl);
 
     await expect(attestRuntimeRole(runtime)).resolves.toMatchObject({
-      database: "stratawake_test",
+      database: "afterchime_test",
       migrationHead: null,
-      role: "stratawake_runtime",
+      role: "afterchime_runtime",
     });
 
     await runtime.end({ timeout: 5 });
   });
 
-  it("records the PostgreSQL version and null pre-migration head through the migrator", async () => {
+  it("records the PostgreSQL version and applied migration head through the migrator", async () => {
     await expect(migrateDatabase(harness.migrationDatabaseUrl)).resolves.toMatchObject({
-      database: "stratawake_test",
-      migrationHead: null,
+      database: "afterchime_test",
+      migrationHead: expect.stringMatching(/^[a-f0-9]{64}$/),
       postgresVersion: expect.stringMatching(/^\d+\./),
     });
   });
@@ -72,7 +72,7 @@ describePostgres("runtime database-role attestation", () => {
 
   it("rejects a privileged session that has SET ROLE to the runtime role", async () => {
     const admin = createSqlClient(harness.adminDatabaseUrl);
-    await admin.unsafe('SET ROLE "stratawake_runtime"');
+    await admin.unsafe('SET ROLE "afterchime_runtime"');
 
     try {
       await expect(attestRuntimeRole(admin)).rejects.toMatchObject({
@@ -101,20 +101,20 @@ describePostgres("runtime database-role attestation", () => {
 
   it("rejects BYPASSRLS and administrative runtime roles", async () => {
     const cases = [
-      { code: "runtime_role_bypassrls", name: "stratawake_unsafe_bypass", bypassRls: true },
+      { code: "runtime_role_bypassrls", name: "afterchime_unsafe_bypass", bypassRls: true },
       {
         code: "runtime_role_administrative",
-        name: "stratawake_unsafe_createrole",
+        name: "afterchime_unsafe_createrole",
         createRole: true,
       },
       {
         code: "runtime_role_administrative",
-        name: "stratawake_unsafe_createdb",
+        name: "afterchime_unsafe_createdb",
         createDatabase: true,
       },
       {
         code: "runtime_role_administrative",
-        name: "stratawake_unsafe_replication",
+        name: "afterchime_unsafe_replication",
         replication: true,
       },
     ] as const;
@@ -133,17 +133,17 @@ describePostgres("runtime database-role attestation", () => {
     const cases = [
       {
         code: "runtime_role_schema_owner",
-        name: "stratawake_unsafe_schema",
+        name: "afterchime_unsafe_schema",
         protectedObject: "schema",
       },
       {
         code: "runtime_role_relation_owner",
-        name: "stratawake_unsafe_relation",
+        name: "afterchime_unsafe_relation",
         protectedObject: "relation",
       },
       {
         code: "runtime_role_security_definer_owner",
-        name: "stratawake_unsafe_function",
+        name: "afterchime_unsafe_function",
         protectedObject: "security-definer",
       },
     ] as const;
@@ -160,11 +160,11 @@ describePostgres("runtime database-role attestation", () => {
 
   it("rejects a runtime role that can assume a privileged role", async () => {
     const unsafe = await harness.createUnsafeRole({
-      name: "stratawake_unsafe_assumable",
+      name: "afterchime_unsafe_assumable",
       bypassRls: true,
     });
     const member = await harness.createUnsafeRole({
-      name: "stratawake_unsafe_member",
+      name: "afterchime_unsafe_member",
       memberOf: unsafe.name,
     });
     const connection = createSqlClient(member.databaseUrl);
@@ -182,11 +182,11 @@ describePostgres("runtime database-role attestation", () => {
     }
 
     const unsafe = await harness.createUnsafeRole({
-      name: "stratawake_unsafe_not_assumable",
+      name: "afterchime_unsafe_not_assumable",
       bypassRls: true,
     });
     const member = await harness.createUnsafeRole({
-      name: "stratawake_unsafe_no_set",
+      name: "afterchime_unsafe_no_set",
       memberOf: unsafe.name,
       setRole: false,
     });

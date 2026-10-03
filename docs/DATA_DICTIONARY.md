@@ -1,4 +1,4 @@
-# Stratawake data dictionary
+# Afterchime data dictionary
 
 This foundation records the approved analytics contract only. Physical PostgreSQL tables, retention enforcement, consent checks and ingestion persistence are owned by **01 Server data foundation**; this document does not authorise collection beyond the product specification.
 

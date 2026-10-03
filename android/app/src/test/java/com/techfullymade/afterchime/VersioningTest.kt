@@ -1,4 +1,4 @@
-package com.techfullymade.stratawake
+package com.techfullymade.afterchime
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://stratawake.invalid/contracts/events/v1/onboarding-step-viewed.schema.json",
-  "title": "Stratawake Analytics Event v1: onboarding_step_viewed",
+  "$id": "https://afterchime.invalid/contracts/events/v1/onboarding-step-viewed.schema.json",
+  "title": "Afterchime Analytics Event v1: onboarding_step_viewed",
   "allOf": [
     {
       "$ref": "base.schema.json"

@@ -1,4 +1,4 @@
-package com.techfullymade.stratawake.ui
+package com.techfullymade.afterchime.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -25,13 +25,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.techfullymade.stratawake.R
-import com.techfullymade.stratawake.ui.theme.Basalt
-import com.techfullymade.stratawake.ui.theme.FossilMint
-import com.techfullymade.stratawake.ui.theme.Sand
+import com.techfullymade.afterchime.R
+import com.techfullymade.afterchime.ui.theme.Basalt
+import com.techfullymade.afterchime.ui.theme.FossilMint
+import com.techfullymade.afterchime.ui.theme.Sand
 
 @Composable
-fun StratawakeApp() {
+fun AfterchimeApp() {
   Scaffold(containerColor = Basalt) { insets ->
     Column(
       modifier = Modifier

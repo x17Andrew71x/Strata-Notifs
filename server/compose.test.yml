@@ -3,7 +3,7 @@ services:
     image: postgres:17.6-alpine
     environment:
       POSTGRES_DB: postgres
-      POSTGRES_PASSWORD: ${STRATAWAKE_TEST_POSTGRES_PASSWORD:?set an ignored local test password}
+      POSTGRES_PASSWORD: ${AFTERCHIME_TEST_POSTGRES_PASSWORD:?set an ignored local test password}
       POSTGRES_USER: postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready --username=postgres --dbname=postgres"]

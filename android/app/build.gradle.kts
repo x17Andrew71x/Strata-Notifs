@@ -5,11 +5,11 @@ plugins {
   alias(libs.plugins.kotlin.compose)
 }
 
-val devApiBaseUrl = providers.gradleProperty("stratawake.devApiBaseUrl")
+val devApiBaseUrl = providers.gradleProperty("afterchime.devApiBaseUrl")
   .orElse("http://10.0.2.2:3000")
 
 android {
-  namespace = "com.techfullymade.stratawake"
+  namespace = "com.techfullymade.afterchime"
   compileSdk {
     version = release(37) {
       minorApiLevel = 2
@@ -17,7 +17,7 @@ android {
   }
 
   defaultConfig {
-    applicationId = "com.techfullymade.stratawake"
+    applicationId = "com.techfullymade.afterchime"
     minSdk = 26
     targetSdk = 36
     versionCode = 1000
@@ -33,13 +33,13 @@ android {
       versionNameSuffix = "-dev"
       buildConfigField("String", "API_BASE_URL", "\"${devApiBaseUrl.get()}\"")
       buildConfigField("boolean", "PRODUCTION_ENABLED", "false")
-      resValue("string", "app_name", "Stratawake Dev")
+      resValue("string", "app_name", "Afterchime Dev")
     }
     create("prod") {
       dimension = "environment"
       buildConfigField("String", "API_BASE_URL", "\"https://production-disabled.invalid\"")
       buildConfigField("boolean", "PRODUCTION_ENABLED", "false")
-      resValue("string", "app_name", "Stratawake")
+      resValue("string", "app_name", "Afterchime")
     }
   }
 

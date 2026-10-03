@@ -79,8 +79,8 @@
 - Create: `android/gradlew`, `android/gradlew.bat`, `android/gradle/wrapper/*`
 - Create: `android/app/build.gradle.kts`
 - Create: `android/app/src/main/AndroidManifest.xml`
-- Create: `android/app/src/main/java/com/techfullymade/stratawake/StratawakeApp.kt`
-- Create: `android/app/src/main/java/com/techfullymade/stratawake/MainActivity.kt`
+- Create: `android/app/src/main/java/com/techfullymade/afterchime/AfterchimeApp.kt`
+- Create: `android/app/src/main/java/com/techfullymade/afterchime/MainActivity.kt`
 - Create: `android/app/src/test/.../VersionTest.kt`
 
 **Steps:**
@@ -98,7 +98,7 @@
 **Files:**
 - Create: `contracts/events/v1/envelope.schema.json`
 - Create: `contracts/events/v1/*.schema.json`
-- Create: `contracts/openapi/stratawake-v1.yaml`
+- Create: `contracts/openapi/afterchime-v1.yaml`
 - Create: `contracts/fixtures/valid/*`
 - Create: `contracts/fixtures/invalid/*`
 - Create: `server/test/contracts.test.ts`

@@ -1,10 +1,10 @@
-package com.techfullymade.stratawake.ui.theme
+package com.techfullymade.afterchime.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
-private val StratawakeColors = darkColorScheme(
+private val AfterchimeColors = darkColorScheme(
   primary = FossilMint,
   onPrimary = Basalt,
   primaryContainer = FossilMintDark,
@@ -20,9 +20,9 @@ private val StratawakeColors = darkColorScheme(
 )
 
 @Composable
-fun StratawakeTheme(content: @Composable () -> Unit) {
+fun AfterchimeTheme(content: @Composable () -> Unit) {
   MaterialTheme(
-    colorScheme = StratawakeColors,
+    colorScheme = AfterchimeColors,
     content = content,
   )
 }

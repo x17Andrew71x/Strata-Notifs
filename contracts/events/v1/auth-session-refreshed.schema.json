@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://stratawake.invalid/contracts/events/v1/auth-session-refreshed.schema.json",
-  "title": "Stratawake Analytics Event v1: auth_session_refreshed",
+  "$id": "https://afterchime.invalid/contracts/events/v1/auth-session-refreshed.schema.json",
+  "title": "Afterchime Analytics Event v1: auth_session_refreshed",
   "allOf": [
     {
       "$ref": "base.schema.json"

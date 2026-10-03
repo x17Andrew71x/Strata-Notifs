@@ -3,10 +3,10 @@ services:
     image: postgres:17.6-alpine
     environment:
       POSTGRES_DB: postgres
-      POSTGRES_PASSWORD: ${STRATAWAKE_DEV_POSTGRES_PASSWORD:?set STRATAWAKE_DEV_POSTGRES_PASSWORD in ignored .env}
+      POSTGRES_PASSWORD: ${AFTERCHIME_DEV_POSTGRES_PASSWORD:?set AFTERCHIME_DEV_POSTGRES_PASSWORD in ignored .env}
       POSTGRES_USER: postgres
-      STRATAWAKE_DEV_MIGRATOR_PASSWORD: ${STRATAWAKE_DEV_MIGRATOR_PASSWORD:?set STRATAWAKE_DEV_MIGRATOR_PASSWORD in ignored .env}
-      STRATAWAKE_DEV_RUNTIME_PASSWORD: ${STRATAWAKE_DEV_RUNTIME_PASSWORD:?set STRATAWAKE_DEV_RUNTIME_PASSWORD in ignored .env}
+      AFTERCHIME_DEV_MIGRATOR_PASSWORD: ${AFTERCHIME_DEV_MIGRATOR_PASSWORD:?set AFTERCHIME_DEV_MIGRATOR_PASSWORD in ignored .env}
+      AFTERCHIME_DEV_RUNTIME_PASSWORD: ${AFTERCHIME_DEV_RUNTIME_PASSWORD:?set AFTERCHIME_DEV_RUNTIME_PASSWORD in ignored .env}
     ports:
       - "127.0.0.1:54329:5432"
     healthcheck:
@@ -17,4 +17,4 @@ services:
     tmpfs:
       - /var/lib/postgresql/data
     volumes:
-      - ./server/scripts/init-dev-postgres.sh:/docker-entrypoint-initdb.d/10-stratawake-roles.sh:ro
+      - ./server/scripts/init-dev-postgres.sh:/docker-entrypoint-initdb.d/10-afterchime-roles.sh:ro

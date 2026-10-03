@@ -1,4 +1,4 @@
-# Stratawake — Product, Game, Data and System Specification
+# Afterchime — Product, Game, Data and System Specification
 
 **Status:** Canonical pre-beta specification<br>
 **Product owner:** Andrew<br>
@@ -13,7 +13,7 @@
 
 ## 1. Executive summary
 
-Stratawake is a small, distinctly Android collection game that turns the rhythm of a person's notifications into calm generative artefacts. It never reads, retains or uploads notification text. Each local day becomes a geological layer; at midnight the day seals into one deterministic specimen. The user reveals it, keeps it in a private museum, restores duplicates, changes how the same history appears through cosmetic worlds, and may donate specimens to collaborative seasonal artworks.
+Afterchime is a small, distinctly Android collection game that turns the rhythm of a person's notifications into calm generative artefacts. It never reads, retains or uploads notification text. Each local day becomes a geological layer; at midnight the day seals into one deterministic specimen. The user reveals it, keeps it in a private museum, restores duplicates, changes how the same history appears through cosmetic worlds, and may donate specimens to collaborative seasonal artworks.
 
 The product is intentionally restrained. The primary experience is a beautiful daily object, not a dashboard full of charts and not another notification-management utility. It should feel like a quiet game: tactile, collectible and lightly mysterious, with no punishment for inactivity and no incentive to generate more notifications.
 
@@ -68,7 +68,7 @@ Every notification adds a mineral-thin layer to today's live formation. Bursts b
 
 ### 3.3 Positioning
 
-Stratawake is an ambient collection game, not a productivity application. Store language may mention digital rhythm but should not promise behaviour change, diagnosis or wellbeing outcomes.
+Afterchime is an ambient collection game, not a productivity application. Store language may mention digital rhythm but should not promise behaviour change, diagnosis or wellbeing outcomes.
 
 ### 3.4 Deliberate non-goals
 
@@ -87,23 +87,23 @@ Stratawake is an ambient collection game, not a productivity application. Store 
 
 ### 4.1 Name
 
-**Stratawake** is the working product name. It evokes layers recording the wake left by a day’s signals, reads like a game title, and remains broad enough for the non-geological cosmetic worlds.
+**Afterchime** is the working product name. It describes what remains after the day’s notifications have passed: their rhythm preserved as a quiet collectible. It reads naturally, avoids geological jargon, and remains broad enough for every visual world.
 
 A preliminary exact-name screen on 2026-10-02 found:
 
-- no `STRATAWAKE` live or dead records in the official USPTO wordmark search;
-- no exact-name result in the reviewed Google Play or Apple App Store searches;
-- no material exact-name software, game or company result in a general web search; and
-- `stratawake.com` and `stratawake.app` returning RDAP `404` responses, which suggests they were unregistered at that moment but does not reserve them.
+- no `AFTERCHIME` live or dead records in the official USPTO wordmark search;
+- no exact-name app in the reviewed Google Play or Apple App Store searches;
+- at least two music tracks named “Afterchime,” but no material exact-name software, game or company result in the reviewed general web search; and
+- `afterchime.com` registered, while `afterchime.app` returned an RDAP `404`, suggesting the `.app` domain was unregistered at that moment but not reserving it.
 
 This is a preliminary screen, not legal clearance or a domain purchase. A broader confusing-similarity and international trademark review remains required before public release. The repository name may remain `Strata-Notifs`.
 
 ### 4.2 Android identities
 
-- Production application ID: `com.techfullymade.stratawake`
-- Development application ID: `com.techfullymade.stratawake.dev`
-- Development display name: `Stratawake Dev`
-- Production display name: `Stratawake`
+- Production application ID: `com.techfullymade.afterchime`
+- Development application ID: `com.techfullymade.afterchime.dev`
+- Development display name: `Afterchime Dev`
+- Production display name: `Afterchime`
 
 Development and production builds must be installable together and use different API base URLs, icons and signing material.
 
@@ -128,7 +128,7 @@ Copy is short, calm and concrete. Prefer “Seal today’s layer” to “Embark
 
 ### 5.2 No-notification and missing days
 
-A day with no eligible notifications remains valid and can create a trace fossil or clean mineral plate. A day when the service lacked permission is marked **unobserved**, not interpreted as quiet. The app never breaks a streak because Stratawake has no punitive streak.
+A day with no eligible notifications remains valid and can create a trace fossil or clean mineral plate. A day when the service lacked permission is marked **unobserved**, not interpreted as quiet. The app never breaks a streak because Afterchime has no punitive streak.
 
 ### 5.3 Day boundaries
 
@@ -408,7 +408,7 @@ Game character comes from reveal choreography, collection shelves, restoration a
 
 ### 10.6 Sharing
 
-Users may export a specimen, diorama or completed community artwork as an image. Exports contain no notification counts, dates or account identifiers unless the user explicitly enables a date label. A discreet Stratawake signature may be included and can be removed for owned premium worlds.
+Users may export a specimen, diorama or completed community artwork as an image. Exports contain no notification counts, dates or account identifiers unless the user explicitly enables a date label. A discreet Afterchime signature may be included and can be removed for owned premium worlds.
 
 ---
 
@@ -700,7 +700,7 @@ scripts/                  Deterministic local and CI helpers
 ### 14.2 Android stack
 
 - Kotlin
-- Jetpack Compose and Material 3 foundations with a bespoke Stratawake design system
+- Jetpack Compose and Material 3 foundations with a bespoke Afterchime design system
 - Room for local event summaries, museum, outbox and sync state
 - WorkManager for sealing, upload and reconciliation
 - DataStore for preferences and consent state
@@ -778,8 +778,8 @@ One Railway project contains isolated **development** and **production** environ
 
 Development contains:
 
-- `stratawake-api-dev`
-- `stratawake-worker-dev`
+- `afterchime-api-dev`
+- `afterchime-worker-dev`
 - managed PostgreSQL
 
 Production is created but remains undeployed/inert until Andrew approves promotion. It must not share database credentials, signing material, tokens or public domains with development.

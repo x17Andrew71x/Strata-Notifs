@@ -1,5 +1,5 @@
 {
-  "name": "stratawake",
+  "name": "afterchime",
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@12.8.1",
@@ -16,9 +16,9 @@
     "test:coverage": "cd server && ./node_modules/.bin/vitest run --coverage --pool=threads --maxWorkers=1 --no-file-parallelism",
     "build": "cd server && ./node_modules/.bin/tsc --project tsconfig.build.json",
     "check": "./scripts/check.sh",
-    "dev": "pnpm --filter @stratawake/server dev",
-    "db:generate": "pnpm --filter @stratawake/server db:generate",
-    "db:migrate": "pnpm --filter @stratawake/server db:migrate"
+    "dev": "pnpm --filter @afterchime/server dev",
+    "db:generate": "pnpm --filter @afterchime/server db:generate",
+    "db:migrate": "pnpm --filter @afterchime/server db:migrate"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15"

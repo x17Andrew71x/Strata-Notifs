@@ -1,4 +1,4 @@
-package com.techfullymade.stratawake.ui.theme
+package com.techfullymade.afterchime.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

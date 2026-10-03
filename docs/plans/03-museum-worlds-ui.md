@@ -10,7 +10,7 @@
 
 ---
 
-## Task 1: Stratawake design system
+## Task 1: Afterchime design system
 
 **Files:**
 - Create: `android/app/src/main/java/.../ui/theme/Color.kt`
@@ -25,7 +25,7 @@ Define basalt surfaces, mineral neutrals, copper and restrained mint accents; se
 ## Task 2: App shell and navigation
 
 **Files:**
-- Create: `.../ui/navigation/StratawakeNavGraph.kt`
+- Create: `.../ui/navigation/AfterchimeNavGraph.kt`
 - Create: `.../ui/navigation/RootDestination.kt`
 - Modify: `MainActivity.kt`
 - Create: `.../ui/navigation/NavigationTest.kt`

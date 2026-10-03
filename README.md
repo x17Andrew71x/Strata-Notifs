@@ -1,6 +1,6 @@
-# Stratawake
+# Afterchime
 
-Stratawake is an Android collection game that turns notification rhythm—not notification content—into private generative specimens and cooperative seasonal artworks.
+Afterchime is an Android collection game that turns notification rhythm—not notification content—into private generative specimens and cooperative seasonal artworks.
 
 The repository is in development. The canonical product and data contract is [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md); ordered implementation work begins at [`docs/plans/INDEX.md`](docs/plans/INDEX.md).
 

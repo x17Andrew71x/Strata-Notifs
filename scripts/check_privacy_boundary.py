@@ -12,7 +12,7 @@ from pathlib import Path
 SOURCE_ROOTS = ("android/app/src/main", "server/src", "contracts", ".github")
 TEXT_EXTENSIONS = {".cjs", ".js", ".json", ".kts", ".kt", ".mjs", ".properties", ".py", ".sh", ".ts", ".tsx", ".xml", ".yaml", ".yml"}
 REDUCER_ALLOWLIST = Path(
-    "android/app/src/main/java/com/techfullymade/stratawake/capture/NotificationReducer.kt"
+    "android/app/src/main/java/com/techfullymade/afterchime/capture/NotificationReducer.kt"
 )
 
 

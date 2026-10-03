@@ -68,7 +68,7 @@ class PrivacyBoundaryScannerTest(unittest.TestCase):
             )
             self.write_source(
                 root,
-                "android/app/src/main/java/com/techfullymade/stratawake/capture/NotificationReducer.kt",
+                "android/app/src/main/java/com/techfullymade/afterchime/capture/NotificationReducer.kt",
                 "val source = sbn.packageName\n",
             )
 

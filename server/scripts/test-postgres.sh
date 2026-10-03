@@ -13,11 +13,11 @@ else
   exit 1
 fi
 
-project="stratawake-test-${RANDOM}${RANDOM}"
+project="afterchime-test-${RANDOM}${RANDOM}"
 env_file="$(mktemp)"
 password="$(openssl rand -hex 32)"
 chmod 600 "$env_file"
-printf 'STRATAWAKE_TEST_POSTGRES_PASSWORD=%s\n' "$password" > "$env_file"
+printf 'AFTERCHIME_TEST_POSTGRES_PASSWORD=%s\n' "$password" > "$env_file"
 
 cleanup() {
   "${compose[@]}" --env-file "$env_file" -f compose.test.yml -p "$project" down --volumes --remove-orphans >/dev/null 2>&1 || true
@@ -55,6 +55,6 @@ case "$port" in
     ;;
 esac
 
-export STRATAWAKE_TEST_ADMIN_DATABASE_URL="postgresql://postgres:${password}@127.0.0.1:${port}/postgres"
-export STRATAWAKE_TEST_CLUSTER_OWNED=true
+export AFTERCHIME_TEST_ADMIN_DATABASE_URL="postgresql://postgres:${password}@127.0.0.1:${port}/postgres"
+export AFTERCHIME_TEST_CLUSTER_OWNED=true
 pnpm exec vitest run test/db/runtime-role.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism

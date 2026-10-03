@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.1",
   "info": {
-    "title": "Stratawake API",
+    "title": "Afterchime API",
     "version": "1.0.0",
     "description": "Development contract only; no production deployment is authorized."
   },

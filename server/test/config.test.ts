@@ -3,7 +3,7 @@ import { loadConfig } from "../src/config.js";
 
 const validEnvironment = {
   NODE_ENV: "development",
-  DATABASE_URL: "postgresql://stratawake:replace-me@127.0.0.1:54329/stratawake",
+  DATABASE_URL: "postgresql://afterchime:replace-me@127.0.0.1:54329/afterchime",
   ACCESS_TOKEN_SECRET: "an-access-secret-that-is-definitely-long-enough",
   REFRESH_TOKEN_PEPPER: "a-refresh-pepper-that-is-definitely-long-enough",
 };

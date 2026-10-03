@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://stratawake.invalid/contracts/events/v1/notification-access-result.schema.json",
-  "title": "Stratawake Analytics Event v1: notification_access_result",
+  "$id": "https://afterchime.invalid/contracts/events/v1/notification-access-result.schema.json",
+  "title": "Afterchime Analytics Event v1: notification_access_result",
   "allOf": [
     {
       "$ref": "base.schema.json"

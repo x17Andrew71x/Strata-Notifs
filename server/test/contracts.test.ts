@@ -11,7 +11,7 @@ const addFormats = require("ajv-formats").default;
 const here = dirname(fileURLToPath(import.meta.url));
 const contractsRoot = join(here, "../../contracts");
 const eventsRoot = join(contractsRoot, "events/v1");
-const envelopeSchemaId = "https://stratawake.invalid/contracts/events/v1/envelope.schema.json";
+const envelopeSchemaId = "https://afterchime.invalid/contracts/events/v1/envelope.schema.json";
 
 const initialEventNames = [
   "installation_created",
@@ -75,7 +75,7 @@ describe("analytics contract v1", () => {
   });
 
   it("links the bounded analytics batch request to the canonical v1 envelope", async () => {
-    const openapi = await readJson(join(contractsRoot, "openapi", "stratawake-v1.yaml"));
+    const openapi = await readJson(join(contractsRoot, "openapi", "afterchime-v1.yaml"));
 
     expect(openapi).toMatchObject({
       openapi: "3.1.1",

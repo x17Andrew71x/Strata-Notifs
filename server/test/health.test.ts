@@ -18,7 +18,7 @@ describe("GET /health/live", () => {
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
       status: "ok",
-      service: "stratawake-api",
+      service: "afterchime-api",
       version: "0.1.0",
       environment: "test",
     });

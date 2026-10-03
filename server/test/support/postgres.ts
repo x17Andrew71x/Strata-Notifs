@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { createSqlClient, type DatabaseClient } from "../../src/db/client.js";
 
-const ADMIN_URL_KEY = "STRATAWAKE_TEST_ADMIN_DATABASE_URL";
-const OWNED_CLUSTER_KEY = "STRATAWAKE_TEST_CLUSTER_OWNED";
-const TEST_DATABASE = "stratawake_test";
-const MIGRATION_ROLE = "stratawake_migrator";
-const RUNTIME_ROLE = "stratawake_runtime";
+const ADMIN_URL_KEY = "AFTERCHIME_TEST_ADMIN_DATABASE_URL";
+const OWNED_CLUSTER_KEY = "AFTERCHIME_TEST_CLUSTER_OWNED";
+const TEST_DATABASE = "afterchime_test";
+const MIGRATION_ROLE = "afterchime_migrator";
+const RUNTIME_ROLE = "afterchime_runtime";
 
 export type PostgresTestConfig = Readonly<{
   adminDatabaseUrl: string;
@@ -59,8 +59,8 @@ export function loadPostgresTestConfig(
 }
 
 function quoteIdentifier(identifier: string): string {
-  if (!/^stratawake_[a-z_]+$/.test(identifier)) {
-    throw new Error("test role name must use the stratawake_ prefix");
+  if (!/^afterchime_[a-z_]+$/.test(identifier)) {
+    throw new Error("test role name must use the afterchime_ prefix");
   }
   return `"${identifier}"`;
 }

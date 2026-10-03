@@ -1,4 +1,4 @@
-package com.techfullymade.stratawake.contracts
+package com.techfullymade.afterchime.contracts
 
 import java.io.File
 import java.time.Instant

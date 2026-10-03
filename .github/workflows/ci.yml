@@ -71,7 +71,7 @@ jobs:
           (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: stratawake-dev-debug-apk
+          name: afterchime-dev-debug-apk
           path: android/app/build/outputs/apk/dev/debug/*.apk
           if-no-files-found: error
           retention-days: 7

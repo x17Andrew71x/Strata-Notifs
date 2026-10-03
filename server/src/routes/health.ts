@@ -4,7 +4,7 @@ import type { ServerConfig } from "../config.js";
 
 const responseSchema = z.object({
   status: z.literal("ok"),
-  service: z.literal("stratawake-api"),
+  service: z.literal("afterchime-api"),
   version: z.string(),
   environment: z.enum(["development", "test", "production"]),
 });
@@ -24,7 +24,7 @@ export async function registerHealthRoutes(
     },
     async () => ({
       status: "ok" as const,
-      service: "stratawake-api" as const,
+      service: "afterchime-api" as const,
       version: "0.1.0",
       environment: config.nodeEnv,
     }),
