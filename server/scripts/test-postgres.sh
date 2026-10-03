@@ -60,3 +60,4 @@ export AFTERCHIME_TEST_CLUSTER_OWNED=true
 pnpm exec vitest run test/db/runtime-role.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
 pnpm exec vitest run test/db/migration.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
 pnpm exec vitest run test/api/installations.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
+pnpm exec vitest run test/api/consent.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism

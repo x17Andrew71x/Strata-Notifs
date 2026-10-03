@@ -10,6 +10,7 @@ import {
 import type { ServerConfig } from "./config.js";
 import { createSqlClient, type DatabaseClient } from "./db/client.js";
 import { attestRuntimeRole, type RuntimeDatabaseAttestation } from "./db/runtime-attestation.js";
+import { registerConsentRoutes } from "./modules/consent/routes.js";
 import { registerIdentityRoutes } from "./modules/identity/routes.js";
 import { registerHealthRoutes } from "./routes/health.js";
 
@@ -70,6 +71,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   await registerHealthRoutes(app, options.config);
   if (options.database) {
     await registerIdentityRoutes(app, options.config, options.database);
+    await registerConsentRoutes(app, options.config, options.database);
   }
   return app;
 }
