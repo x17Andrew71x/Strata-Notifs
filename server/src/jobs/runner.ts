@@ -2,6 +2,7 @@ import { loadConfig } from "../config.js";
 import { createSqlClient } from "../db/client.js";
 import { attestRuntimeRole } from "../db/runtime-attestation.js";
 import { runAnalyticsDaily } from "./analytics-daily.js";
+import { runRetention } from "./retention.js";
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -9,9 +10,16 @@ async function main(): Promise<void> {
 
   try {
     await attestRuntimeRole(database);
-    const result = await runAnalyticsDaily(database);
-    process.stdout.write(`${JSON.stringify(result)}\n`);
-    if (result.status !== "succeeded") {
+    const analyticsDaily = await runAnalyticsDaily(database);
+    if (analyticsDaily.status !== "succeeded") {
+      process.stdout.write(`${JSON.stringify({ analyticsDaily, retention: null })}\n`);
+      process.exitCode = 1;
+      return;
+    }
+
+    const retention = await runRetention(database);
+    process.stdout.write(`${JSON.stringify({ analyticsDaily, retention })}\n`);
+    if (retention.status !== "succeeded") {
       process.exitCode = 1;
     }
   } finally {

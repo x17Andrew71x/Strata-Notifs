@@ -6,16 +6,16 @@ This foundation records approved analytics and notification-aggregate contracts 
 
 | Record | Grain | Owner | Source | Sensitivity | Retention |
 |---|---|---|---|---|---|
-| Analytics event v1 | One consented client interaction | Analytics domain | Encrypted Android outbox, then authenticated analytics ingestion | Pseudonymous product telemetry | Enforceable duration pending the server retention policy; rejected payloads are never stored |
+| Analytics event v1 | One consented client interaction | Analytics domain | Encrypted Android outbox, then authenticated analytics ingestion | Pseudonymous product telemetry | Deleted in resumable bounded batches after 24 months; rejected payloads are never stored |
 | Analytics event batch | One bounded upload request, 1–50 events and at most 128 KiB | Analytics ingestion boundary | Android WorkManager | Operational transport metadata only | Not retained as a raw request |
 | Analytics rejection counter | One reason/category/window aggregate | Analytics operations | Server validator | No payload content or identifiers | Enforceable duration pending the server operations policy |
-| Daily notification aggregate | One consented installation-local day and explicit revision | Notification aggregate domain | Android aggregate uploader, then authenticated aggregate ingestion | Pseudonymous derived counts only | Product-specified 24-month target; enforcement is owned by Server data foundation Task 8 |
-| Analytics daily installation rollup | One installation-local day | Analytics worker | Security-definer daily rollup | Pseudonymous derived counts; forced-RLS, installation-scoped | Removed with the installation; raw-retention enforcement remains Task 8 |
-| Analytics daily global rollup | One local day, build channel and synthetic marker | Analytics worker | Security-definer daily rollup | Aggregate counts only | Retention policy remains Task 8 |
-| Analytics consent coverage | One observed UTC day, build channel and synthetic marker | Analytics worker | Security-definer daily rollup | Aggregate consent counts only | Retention policy remains Task 8 |
-| Analytics release health | One received UTC day and app release | Analytics worker | Security-definer daily rollup | Aggregate event/failure counts only | Retention policy remains Task 8 |
-| Analytics notification volume | One UTC day, build channel and synthetic marker | Analytics worker | Hourly notification aggregate rollup | Global counts only; no installation identifiers | Retention policy remains Task 8 |
-| Analytics daily job run | One leased worker invocation | Analytics operations | `job_runs` | Safe status, checkpoint and failure code only | Operational retention policy remains Task 8 |
+| Daily notification aggregate | One consented installation-local day and explicit revision | Notification aggregate domain | Android aggregate uploader, then authenticated aggregate ingestion | Pseudonymous derived counts only | Deleted in resumable bounded batches after 24 months |
+| Analytics daily installation rollup | One installation-local day | Analytics worker | Security-definer daily rollup | Pseudonymous derived counts; forced-RLS, installation-scoped | Deleted after 24 months and immediately with its installation |
+| Analytics daily global rollup | One local day, build channel and synthetic marker | Analytics worker | Security-definer daily rollup | Aggregate counts only | Irreversible non-reidentifiable totals are preserved after raw source expiry or account deletion |
+| Analytics consent coverage | One observed UTC day, build channel and synthetic marker | Analytics worker | Security-definer daily rollup | Aggregate consent counts only | Irreversible non-reidentifiable totals are preserved after raw source expiry or account deletion |
+| Analytics release health | One received UTC day and app release | Analytics worker | Security-definer daily rollup | Aggregate event/failure counts only | Irreversible non-reidentifiable totals are preserved after raw source expiry or account deletion |
+| Analytics notification volume | One UTC day, build channel and synthetic marker | Analytics worker | Hourly notification aggregate rollup | Global counts only; no installation identifiers | Irreversible non-reidentifiable totals are preserved after raw source expiry or account deletion |
+| Analytics worker job run | One leased daily-rollup or retention invocation | Analytics operations | `job_runs` | Safe status, checkpoint and failure code only | Operational record; checkpoints contain only category-level deletion counts or opaque source state |
 
 ## Daily notification aggregate
 
@@ -47,6 +47,7 @@ The worker reads only the approved event and notification aggregates through a n
 | `analytics_release_health` | received UTC day, release/version code, build/synthetic marker, event and failure counts | Coarse release-health evidence only. |
 | `analytics_notification_volume` | UTC day, build/synthetic marker, eligible notification and reporting-installation counts | True global UTC notification volume is reconstructed from approved hourly buckets. |
 | `job_runs` analytics-daily record | job name, status, start/finish, opaque source checkpoint, bounded lease owner/expiry and safe failure code | An advisory lock permits one rollup at a time. A stable-source mismatch is recorded as `rollup_drift` and never silently repaired. |
+| `job_runs` retention record | job name, status, start/finish, bounded lease owner/expiry and category-level deletion counts | An advisory lock permits one bounded batch at a time. Repeating a completed run only processes the next eligible rows; no notification payload or identity enters the record. |
 
 ## Analytics event v1 envelope
 
