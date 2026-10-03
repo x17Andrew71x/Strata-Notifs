@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality gates
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 12.8.1
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Set up Java
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install locked dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Run server checks
+        run: corepack pnpm --dir server check
+
+      - name: Write server test report
+        run: corepack pnpm --dir server test:ci
+
+      - name: Run repository checks
+        run: ./scripts/check.sh
+
+      - name: Upload test reports
+        if: >-
+          success() &&
+          (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-reports
+          path: |
+            server/reports/junit.xml
+            android/app/build/reports/tests/testDevDebugUnitTest/
+            android/app/build/reports/lint-results-devDebug.html
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload development APK
+        if: >-
+          success() &&
+          (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: stratawake-dev-debug-apk
+          path: android/app/build/outputs/apk/dev/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  dependency-review:
+    name: Dependency review
+    if: >-
+      github.event_name == 'pull_request' &&
+      (github.event.repository.private == false ||
+      github.event.repository.security_and_analysis.advanced_security.status == 'enabled')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Review dependency changes
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0

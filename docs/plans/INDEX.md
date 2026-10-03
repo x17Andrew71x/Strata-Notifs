@@ -22,7 +22,8 @@
 
 ## Verified progress
 
-- **2026-10-02 — Foundation Task 5:** Replaced the broad analytics schema with closed v1 lifecycle/onboarding contracts, shared valid/invalid fixtures, server and Android fixture validation, OpenAPI batch bounds, and the data dictionary. `bash scripts/check.sh` passed; Task 6 CI remains next.
+- **2026-10-02 — Foundation Task 5:** Replaced the broad analytics schema with closed v1 lifecycle/onboarding contracts, shared valid/invalid fixtures, server and Android fixture validation, OpenAPI batch bounds, and the data dictionary. `bash scripts/check.sh` passed.
+- **2026-10-02 — Foundation Task 6 (local configuration):** Added development-only GitHub Actions quality gates, trusted-run test/APK artifacts, pinned action revisions, supported dependency review, and Dependabot coverage for the pnpm workspace, Gradle, and Actions. `corepack pnpm --dir server check`, JUnit report generation, actionlint, and `./scripts/check.sh` passed locally; the first GitHub Actions run on `dev` remains required before this phase can exit.
 
 Patch versions are used whenever a phase requires fixes after its coherent capability lands. Milestone numbers express ordering, not a target to reach artificially.
 
