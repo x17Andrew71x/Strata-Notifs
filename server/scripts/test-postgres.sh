@@ -40,15 +40,21 @@ if [ "${health:-}" != "healthy" ]; then
   exit 1
 fi
 
+binding_host="$(docker inspect --format '{{(index (index .NetworkSettings.Ports "5432/tcp") 0).HostIp}}' "$container")"
+if [ "$binding_host" != "127.0.0.1" ]; then
+  printf '%s\n' 'PostgreSQL test endpoint was not loopback.' >&2
+  exit 1
+fi
+
 endpoint="$("${compose[@]}" --env-file "$env_file" -f compose.test.yml -p "$project" port postgres 5432)"
-case "$endpoint" in
-  127.0.0.1:*) ;;
-  *)
-    printf '%s\n' 'PostgreSQL test endpoint was not loopback.' >&2
+port="${endpoint##*:}"
+case "$port" in
+  '' | *[!0-9]*)
+    printf '%s\n' 'PostgreSQL test endpoint did not contain a valid port.' >&2
     exit 1
     ;;
 esac
 
-export STRATAWAKE_TEST_ADMIN_DATABASE_URL="postgresql://postgres:${password}@${endpoint}/postgres"
+export STRATAWAKE_TEST_ADMIN_DATABASE_URL="postgresql://postgres:${password}@127.0.0.1:${port}/postgres"
 export STRATAWAKE_TEST_CLUSTER_OWNED=true
 pnpm exec vitest run test/db/runtime-role.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
