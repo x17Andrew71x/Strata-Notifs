@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${STRATAWAKE_TEST_POSTGRES_PASSWORD:?set an ignored local test password}
+      POSTGRES_USER: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username=postgres --dbname=postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 2s
+    ports:
+      - "127.0.0.1::5432"
+    restart: "no"
+    tmpfs:
+      - /var/lib/postgresql/data

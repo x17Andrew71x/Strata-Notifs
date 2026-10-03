@@ -12,6 +12,7 @@
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:db": "./scripts/test-postgres.sh",
     "test:ci": "vitest run --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml",
     "test:coverage": "vitest run --coverage",
     "check": "pnpm typecheck && pnpm test && pnpm build",

@@ -8,11 +8,19 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import type { ServerConfig } from "./config.js";
+import { createSqlClient, type DatabaseClient } from "./db/client.js";
+import { attestRuntimeRole, type RuntimeDatabaseAttestation } from "./db/runtime-attestation.js";
 import { registerHealthRoutes } from "./routes/health.js";
 
 export type BuildAppOptions = Readonly<{
   config: ServerConfig;
   logger?: FastifyServerOptions["logger"];
+}>;
+
+export type AttestedApp = Readonly<{
+  app: FastifyInstance;
+  database: DatabaseClient;
+  runtimeAttestation: RuntimeDatabaseAttestation;
 }>;
 
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
@@ -49,4 +57,19 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
 
   await registerHealthRoutes(app, options.config);
   return app;
+}
+
+export async function buildAttestedApp(options: BuildAppOptions): Promise<AttestedApp> {
+  const database = createSqlClient(options.config.databaseUrl);
+  let app: FastifyInstance | undefined;
+
+  try {
+    const runtimeAttestation = await attestRuntimeRole(database);
+    app = await buildApp(options);
+    return { app, database, runtimeAttestation };
+  } catch (error) {
+    await app?.close();
+    await database.end({ timeout: 5 });
+    throw error;
+  }
 }

@@ -1,15 +1,17 @@
 import { defineConfig } from "drizzle-kit";
 
-if (!process.env["DATABASE_URL"]) {
-  throw new Error("DATABASE_URL is required for Drizzle commands");
+// biome-ignore lint/complexity/useLiteralKeys: Node's environment index signature requires bracket access.
+const databaseUrl = process.env["DATABASE_MIGRATOR_URL"];
+if (!databaseUrl) {
+  throw new Error("DATABASE_MIGRATOR_URL is required for Drizzle commands");
 }
 
 export default defineConfig({
   dialect: "postgresql",
-  schema: "./src/db/schema.ts",
-  out: "./drizzle",
+  schema: "./src/db/schema/**/*.ts",
+  out: "./migrations",
   dbCredentials: {
-    url: process.env["DATABASE_URL"],
+    url: databaseUrl,
   },
   strict: true,
   verbose: true,

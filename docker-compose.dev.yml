@@ -2,15 +2,19 @@ services:
   postgres:
     image: postgres:17.6-alpine
     environment:
-      POSTGRES_DB: stratawake
-      POSTGRES_USER: stratawake_owner
+      POSTGRES_DB: postgres
       POSTGRES_PASSWORD: ${STRATAWAKE_DEV_POSTGRES_PASSWORD:?set STRATAWAKE_DEV_POSTGRES_PASSWORD in ignored .env}
+      POSTGRES_USER: postgres
+      STRATAWAKE_DEV_MIGRATOR_PASSWORD: ${STRATAWAKE_DEV_MIGRATOR_PASSWORD:?set STRATAWAKE_DEV_MIGRATOR_PASSWORD in ignored .env}
+      STRATAWAKE_DEV_RUNTIME_PASSWORD: ${STRATAWAKE_DEV_RUNTIME_PASSWORD:?set STRATAWAKE_DEV_RUNTIME_PASSWORD in ignored .env}
     ports:
       - "127.0.0.1:54329:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U stratawake_owner -d stratawake"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
       interval: 2s
       timeout: 3s
       retries: 20
     tmpfs:
       - /var/lib/postgresql/data
+    volumes:
+      - ./server/scripts/init-dev-postgres.sh:/docker-entrypoint-initdb.d/10-stratawake-roles.sh:ro
