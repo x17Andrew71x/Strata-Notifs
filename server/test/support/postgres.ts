@@ -18,6 +18,7 @@ export type UnsafeRoleOptions = Readonly<{
   memberOf?: string;
   name: string;
   protectedObject?: "schema" | "relation" | "security-definer";
+  readMigrationMetadata?: boolean;
   replication?: boolean;
   setRole?: boolean;
 }>;
@@ -152,6 +153,16 @@ export class PostgresTestHarness {
         ? ` WITH SET ${options.setRole === false ? "FALSE" : "TRUE"}`
         : "";
       await this.admin.unsafe(`GRANT ${membership} TO ${role}${setRole}`);
+    }
+
+    if (options.readMigrationMetadata) {
+      const testDatabase = createSqlClient(testDatabaseAdminUrl(this.adminDatabaseUrl));
+      try {
+        await testDatabase.unsafe(`GRANT USAGE ON SCHEMA drizzle TO ${role}`);
+        await testDatabase.unsafe(`GRANT SELECT ON TABLE drizzle.__drizzle_migrations TO ${role}`);
+      } finally {
+        await testDatabase.end({ timeout: 5 });
+      }
     }
 
     const databaseUrl = roleDatabaseUrl(this.adminDatabaseUrl, options.name, this.unsafePassword);

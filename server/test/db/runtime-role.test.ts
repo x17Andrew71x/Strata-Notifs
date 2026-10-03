@@ -188,6 +188,7 @@ describePostgres("runtime database-role attestation", () => {
     const member = await harness.createUnsafeRole({
       name: "afterchime_unsafe_no_set",
       memberOf: unsafe.name,
+      readMigrationMetadata: true,
       setRole: false,
     });
     const connection = createSqlClient(member.databaseUrl);

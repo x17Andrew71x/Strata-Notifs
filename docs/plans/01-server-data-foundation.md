@@ -34,7 +34,7 @@
 - Create: `server/src/db/schema/analytics.ts`
 - Create: `server/src/db/schema/operations.ts`
 - Create: `server/drizzle.config.ts`
-- Create: `server/migrations/0001_*.sql`
+- Create: `server/migrations/0000_*.sql`
 - Create: `server/test/db/migration.test.ts`
 
 **Tables:** users, installations, auth refresh tokens, consent records, analytics events, daily notification aggregates, idempotency records, outbox jobs, job runs and schema metadata.
