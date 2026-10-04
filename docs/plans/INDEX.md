@@ -5,7 +5,7 @@
 **Canonical product contract:** [`../PRODUCT_SPEC.md`](../PRODUCT_SPEC.md)<br>
 **Integration branch:** `dev`<br>
 **Current milestone:** `0.4.0`<br>
-**Last revised:** 2026-10-03
+**Last revised:** 2026-10-04
 
 ## Version milestones
 
@@ -21,6 +21,8 @@
 | `0.8.0` | [07 Beta hardening and delivery](07-beta-hardening-delivery.md) | Review findings fixed; installable verified APK delivered; prod inert | Pending |
 
 ## Verified progress
+
+- **2026-10-04 — Development web shell:** Replaced the Vite 7 dependency path that stalled at production `transforming...` with the locked Vite/Rolldown 8 toolchain, aligned the declared web Node range with its `>=22.12` requirement, and verified the exact source through locked install, privacy checks, formatting, lint/typecheck, 41 server/web tests and production builds. The isolated Afterchime-Builder also passed Android dev unit tests, lint and APK assembly against the development HTTPS shell origin. GitHub CI and Railway deployed application commit `576f9ae9f07a301f74e4b89d52e4647c1f7beb10` successfully to development; live metadata, strict privacy/CSP headers, cache policy and emitted CSS/JS hashes matched the verified build. The service worker was activated in desktop and 360×800 browser checks; its last-known-good/offline behaviour is covered by web tests, while physical Android offline/device execution remains open because no device or AVD is available. Production still has no trigger or deployment.
 
 - **2026-10-02 — Foundation Task 5:** Replaced the broad analytics schema with closed v1 lifecycle/onboarding contracts, shared valid/invalid fixtures, server and Android fixture validation, OpenAPI batch bounds, and the data dictionary. `bash scripts/check.sh` passed.
 - **2026-10-02 — Foundation Task 6 and phase exit:** Added development-only GitHub Actions quality gates, trusted-run test/APK artifacts, pinned action revisions, supported dependency review, and Dependabot coverage for the pnpm workspace, Gradle, and Actions. Local server checks, JUnit report generation, actionlint, and `./scripts/check.sh` passed. GitHub CI run #1 for `c03d9027be3bd4c144953b6e428674e7bdf3f358` completed successfully on `dev`: Quality gates passed, Dependency review correctly skipped outside its supported event/capability boundary, and non-empty trusted-run test-report and dev-debug APK artifacts were retained. A fresh remote clone also passed `./scripts/check.sh` with the explicitly supplied host Android SDK prerequisite. Foundation is complete; no APK was delivered.
