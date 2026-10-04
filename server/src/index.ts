@@ -1,5 +1,6 @@
 import { buildAttestedApp } from "./app.js";
 import { loadConfig } from "./config.js";
+import { startupFailureCode } from "./startup-failure.js";
 
 const config = loadConfig();
 const logger = {
@@ -46,11 +47,11 @@ try {
     "database runtime role attested",
   );
   await started.app.listen({ host: config.host, port: config.port });
-} catch (_error) {
+} catch (error) {
   if (started) {
     await started.app.close();
     await started.database.end({ timeout: 5 });
   }
-  process.stderr.write("server failed to start\n");
+  process.stderr.write(`server failed to start: ${startupFailureCode(error)}\n`);
   process.exit(1);
 }
