@@ -8,10 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,6 +22,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.techfullymade.afterchime.R
+import com.techfullymade.afterchime.ui.components.AfterchimePrimaryButton
+import com.techfullymade.afterchime.ui.components.AfterchimeSurface
+import com.techfullymade.afterchime.ui.theme.AfterchimeElevation
+import com.techfullymade.afterchime.ui.theme.AfterchimeSpacing
 import com.techfullymade.afterchime.ui.theme.Basalt
 import com.techfullymade.afterchime.ui.theme.FossilMint
 import com.techfullymade.afterchime.ui.theme.Sand
@@ -37,8 +37,11 @@ fun AfterchimeApp(onEnableNotificationAccess: () -> Unit) {
       modifier = Modifier
         .fillMaxSize()
         .padding(insets)
-        .padding(horizontal = 20.dp, vertical = 16.dp),
-      verticalArrangement = Arrangement.spacedBy(16.dp),
+        .padding(
+          horizontal = AfterchimeSpacing.screenHorizontal,
+          vertical = AfterchimeSpacing.screenVertical,
+        ),
+      verticalArrangement = Arrangement.spacedBy(AfterchimeSpacing.content),
     ) {
       Text(
         text = stringResource(R.string.today_title),
@@ -57,7 +60,7 @@ fun AfterchimeApp(onEnableNotificationAccess: () -> Unit) {
         style = MaterialTheme.typography.bodyMedium,
       )
       Spacer(modifier = Modifier.weight(1f))
-      Button(
+      AfterchimePrimaryButton(
         onClick = onEnableNotificationAccess,
         modifier = Modifier.fillMaxWidth(),
       ) {
@@ -70,10 +73,9 @@ fun AfterchimeApp(onEnableNotificationAccess: () -> Unit) {
 @Composable
 private fun SpecimenPreview() {
   val description = stringResource(R.string.specimen_preview_description)
-  Card(
+  AfterchimeSurface(
     modifier = Modifier.fillMaxWidth(),
-    shape = RoundedCornerShape(24.dp),
-    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    tonalElevation = AfterchimeElevation.raised,
   ) {
     Canvas(
       modifier = Modifier
