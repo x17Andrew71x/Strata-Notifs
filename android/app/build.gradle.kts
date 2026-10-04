@@ -1,3 +1,4 @@
+import java.net.URI
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -8,6 +9,12 @@ plugins {
 
 val devApiBaseUrl = providers.gradleProperty("afterchime.devApiBaseUrl")
   .orElse("http://10.0.2.2:3000")
+val devShellUrl = providers.gradleProperty("afterchime.devShellUrl")
+  .orElse("https://shell-disabled.invalid/")
+val shellUrl = URI(devShellUrl.get())
+require(shellUrl.scheme == "https" && !shellUrl.host.isNullOrBlank() && shellUrl.userInfo == null) {
+  "afterchime.devShellUrl must be an HTTPS URL without userinfo"
+}
 
 android {
   namespace = "com.techfullymade.afterchime"
@@ -39,12 +46,14 @@ android {
       applicationIdSuffix = ".dev"
       versionNameSuffix = "-dev"
       buildConfigField("String", "API_BASE_URL", "\"${devApiBaseUrl.get()}\"")
+      buildConfigField("String", "SHELL_URL", "\"${shellUrl}\"")
       buildConfigField("boolean", "PRODUCTION_ENABLED", "false")
       resValue("string", "app_name", "Afterchime Dev")
     }
     create("prod") {
       dimension = "environment"
       buildConfigField("String", "API_BASE_URL", "\"https://production-disabled.invalid\"")
+      buildConfigField("String", "SHELL_URL", "\"https://production-disabled.invalid/\"")
       buildConfigField("boolean", "PRODUCTION_ENABLED", "false")
       resValue("string", "app_name", "Afterchime")
     }
@@ -108,12 +117,15 @@ dependencies {
   implementation(libs.room.runtime)
   implementation(libs.room.ktx)
   implementation(libs.androidx.work.runtime.ktx)
+  implementation(libs.androidx.webkit)
   implementation(libs.androidx.datastore.preferences)
   ksp(libs.room.compiler)
 
   testImplementation(libs.junit4)
   testImplementation(libs.org.json)
   testImplementation(libs.robolectric)
+  testImplementation(libs.androidx.test.ext.junit)
+  testImplementation(libs.androidx.compose.ui.test.junit4)
 
   androidTestImplementation(libs.androidx.test.ext.junit)
   androidTestImplementation(libs.androidx.test.espresso.core)

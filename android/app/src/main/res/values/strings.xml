@@ -1,8 +1,8 @@
 <resources>
   <string name="app_name">Afterchime</string>
-  <string name="today_title">Today’s strata</string>
-  <string name="today_subtitle">Your day settles here, one quiet layer at a time.</string>
-  <string name="permission_explanation">Notification text never enters the collection. Afterchime keeps only coarse timing and category signals on this device.</string>
-  <string name="enable_notification_access">Enable notification access</string>
-  <string name="strata_preview_description">A dark layered stone preview with a small fossil at its centre</string>
+  <string name="today_title">Begin your collection</string>
+  <string name="today_subtitle">Turn the rhythm of your day into one-of-a-kind specimens.</string>
+  <string name="permission_explanation">Afterchime never reads your messages or notification text. It only uses when notifications arrive and their general type to grow your collection. Everything stays on this device.</string>
+  <string name="enable_notification_access">Start collecting</string>
+  <string name="specimen_preview_description">A preview of a specimen waiting to be discovered</string>
 </resources>

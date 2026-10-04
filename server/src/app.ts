@@ -1,7 +1,13 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
-import Fastify, { type FastifyInstance, type FastifyServerOptions } from "fastify";
+import Fastify, {
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyServerOptions,
+} from "fastify";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -21,6 +27,7 @@ export type BuildAppOptions = Readonly<{
   config: ServerConfig;
   database?: DatabaseClient;
   logger?: FastifyServerOptions["logger"];
+  webRoot?: string;
 }>;
 
 export type AttestedApp = Readonly<{
@@ -71,6 +78,12 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     return reply.code(500).send({ error: "internal_server_error" });
   });
 
+  await registerShellRoutes(
+    app,
+    options.webRoot ??
+      process.env["AFTERCHIME_WEB_ROOT"] ??
+      path.resolve(process.cwd(), "../web/dist"),
+  );
   await registerHealthRoutes(app, options.config);
   if (options.database) {
     await registerIdentityRoutes(app, options.config, options.database);
@@ -80,6 +93,66 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     await registerNotificationAggregateRoutes(app, options.config, options.database);
   }
   return app;
+}
+
+function setShellHeaders(reply: FastifyReply, cache: string): void {
+  reply.header(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+  );
+  reply.header("X-Content-Type-Options", "nosniff");
+  reply.header("Referrer-Policy", "no-referrer");
+  reply.header("Cache-Control", cache);
+}
+
+async function registerShellRoutes(app: FastifyInstance, webRoot: string): Promise<void> {
+  app.get("/shell/health", async (_request, reply) => {
+    setShellHeaders(reply, "no-store");
+    return reply.send({ status: "ok", shell: true });
+  });
+  app.get("/shell/metadata", async (_request, reply) => {
+    setShellHeaders(reply, "no-cache, must-revalidate");
+    return reply.send({ shellVersion: 1, bridgeVersion: 1, entry: "/" });
+  });
+  app.get("/service-worker.js", async (_request, reply) => {
+    setShellHeaders(reply, "no-cache, must-revalidate");
+    try {
+      const script = await readFile(path.join(webRoot, "service-worker.js"));
+      return reply.type("text/javascript; charset=utf-8").send(script);
+    } catch {
+      return reply.code(404).type("text/plain; charset=utf-8").send("Not found");
+    }
+  });
+  app.get("/", async (_request, reply) => {
+    setShellHeaders(reply, "no-cache, must-revalidate");
+    try {
+      const html = await readFile(path.join(webRoot, "index.html"));
+      return reply.type("text/html; charset=utf-8").send(html);
+    } catch {
+      return reply
+        .code(503)
+        .type("text/plain; charset=utf-8")
+        .send("Afterchime web shell is not built. Use the bundled app shell or build web assets.");
+    }
+  });
+  app.get<{ Params: { asset: string } }>("/assets/:asset", async (request, reply) => {
+    const filename = request.params.asset;
+    if (!/^[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$/.test(filename)) {
+      setShellHeaders(reply, "no-store");
+      return reply.code(404).send({ error: "not_found" });
+    }
+    try {
+      const data = await readFile(path.join(webRoot, "assets", filename));
+      const contentType = filename.endsWith(".js")
+        ? "text/javascript; charset=utf-8"
+        : "text/css; charset=utf-8";
+      setShellHeaders(reply, "public, max-age=31536000, immutable");
+      return reply.type(contentType).send(data);
+    } catch {
+      setShellHeaders(reply, "no-store");
+      return reply.code(404).send({ error: "not_found" });
+    }
+  });
 }
 
 function isClientError(error: unknown): error is Readonly<{ statusCode: number }> {

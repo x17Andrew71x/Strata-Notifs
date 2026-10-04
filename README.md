@@ -13,11 +13,14 @@ The repository is in development. The canonical product and data contract is [`d
 
 ## Planned layout
 
-- `android/` — native Kotlin/Compose app
-- `server/` — Fastify/TypeScript API and workers
+- `android/` — native Kotlin shell, notification capture, local persistence, generators, and device capabilities
+- `web/` — remotely updateable React/Vite onboarding and game presentation shell
+- `server/` — Fastify/TypeScript API and Railway web-asset hosting
 - `contracts/` — versioned schemas and shared fixtures
 - `docs/` — canonical product, data and operational documentation
 - `scripts/` — deterministic verification helpers
+
+See [`docs/architecture/WEB_SHELL.md`](docs/architecture/WEB_SHELL.md) for the WebView bridge/privacy boundary, development host configuration, offline fallback/cache, and update/rollback responsibilities.
 
 ## Versioning
 

@@ -1,6 +1,7 @@
 packages:
   - "server"
   - "contracts"
+  - "web"
 
 allowBuilds:
   esbuild: true

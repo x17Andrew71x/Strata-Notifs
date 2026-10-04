@@ -42,6 +42,9 @@ jobs:
       - name: Run PostgreSQL role-attestation integration suite
         run: corepack pnpm --dir server test:db
 
+      - name: Run web shell tests and production build
+        run: corepack pnpm --filter @afterchime/web test && corepack pnpm --filter @afterchime/web build
+
       - name: Run server checks
         run: corepack pnpm --dir server check
 

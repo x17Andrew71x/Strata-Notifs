@@ -31,7 +31,7 @@ import com.techfullymade.afterchime.ui.theme.FossilMint
 import com.techfullymade.afterchime.ui.theme.Sand
 
 @Composable
-fun AfterchimeApp() {
+fun AfterchimeApp(onEnableNotificationAccess: () -> Unit) {
   Scaffold(containerColor = Basalt) { insets ->
     Column(
       modifier = Modifier
@@ -50,7 +50,7 @@ fun AfterchimeApp() {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         style = MaterialTheme.typography.bodyLarge,
       )
-      StrataPreview()
+      SpecimenPreview()
       Text(
         text = stringResource(R.string.permission_explanation),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -58,7 +58,7 @@ fun AfterchimeApp() {
       )
       Spacer(modifier = Modifier.weight(1f))
       Button(
-        onClick = {},
+        onClick = onEnableNotificationAccess,
         modifier = Modifier.fillMaxWidth(),
       ) {
         Text(stringResource(R.string.enable_notification_access))
@@ -68,8 +68,8 @@ fun AfterchimeApp() {
 }
 
 @Composable
-private fun StrataPreview() {
-  val description = stringResource(R.string.strata_preview_description)
+private fun SpecimenPreview() {
+  val description = stringResource(R.string.specimen_preview_description)
   Card(
     modifier = Modifier.fillMaxWidth(),
     shape = RoundedCornerShape(24.dp),
