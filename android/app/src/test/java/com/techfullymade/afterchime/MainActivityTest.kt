@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class MainActivityTest {
   @Test
-  fun `hosts a hardened WebView and starts from the bundled shell when remote is disabled`() {
+  fun `hosts a hardened WebView and starts from the configured shell or bundled disabled fallback`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
     val content = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
     val webView = content.getChildAt(0) as WebView
@@ -28,7 +28,16 @@ class MainActivityTest {
     assertFalse(webView.settings.javaScriptCanOpenWindowsAutomatically)
     assertTrue(webView.settings.domStorageEnabled)
     assertEquals(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW, webView.settings.mixedContentMode)
-    assertEquals(LOCAL_ENTRY_URL, shadowOf(webView).lastLoadedUrl)
+    val configuredShell = Uri.parse(BuildConfig.SHELL_URL)
+    val expectedEntry = if (
+      configuredShell.host == "shell-disabled.invalid" ||
+        configuredShell.host == "production-disabled.invalid"
+    ) {
+      LOCAL_ENTRY_URL
+    } else {
+      BuildConfig.SHELL_URL
+    }
+    assertEquals(expectedEntry, shadowOf(webView).lastLoadedUrl)
   }
 
   @Test

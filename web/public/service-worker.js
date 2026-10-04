@@ -1,24 +1,39 @@
-const CACHE_NAME = "afterchime-shell-v4";
+const CACHE_NAME = "afterchime-shell-v5";
+const LEGACY_CACHE_NAMES = ["afterchime-shell-v4"];
 const ENTRY = "/";
 const STATE_KEY = "/.afterchime/current";
 const ASSET_PATTERN = /^\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$/;
 
-self.addEventListener("install", (event) => event.waitUntil(self.skipWaiting()));
+self.addEventListener("install", (event) => event.waitUntil(installWorker()));
 self.addEventListener("activate", (event) => event.waitUntil(activateWorker()));
 
-async function activateWorker() {
-  await self.clients.claim();
+async function installWorker() {
   const cache = await caches.open(CACHE_NAME);
   try {
-    const response = await fetch(ENTRY, {
-      cache: "no-cache",
-      credentials: "same-origin",
-      redirect: "error",
-    });
-    await promoteCompleteShell(response, cache);
+    if (await fetchAndPromoteShell(cache)) await self.skipWaiting();
+  } catch (_) {
+    // Keep the prior controller until this worker has a complete verified shell.
+  }
+}
+
+async function activateWorker() {
+  const cache = await caches.open(CACHE_NAME);
+  let promoted = false;
+  try {
+    promoted = await fetchAndPromoteShell(cache);
   } catch (_) {
     // An offline first launch falls through to Android's bundled shell.
   }
+  if (promoted || (await hasCompleteCurrentShell(cache))) await self.clients.claim();
+}
+
+async function fetchAndPromoteShell(cache) {
+  const response = await fetch(ENTRY, {
+    cache: "no-cache",
+    credentials: "same-origin",
+    redirect: "error",
+  });
+  return promoteCompleteShell(response, cache);
 }
 
 self.addEventListener("fetch", (event) => {
@@ -44,13 +59,7 @@ async function entryWithLastKnownGood(request) {
   } catch (_) {
     // Use only the last entry whose complete script/style set was cached and verified.
   }
-  const state = await readCurrentState(cache);
-  if (!state) return Response.error();
-  const entry = await cache.match(state.entryKey);
-  if (!entry || (await sha256(await entry.clone().arrayBuffer())) !== state.entryDigest) {
-    return Response.error();
-  }
-  return entry;
+  return (await cachedEntry()) || Response.error();
 }
 
 async function promoteCompleteShell(response, cache) {
@@ -102,26 +111,75 @@ async function promoteCompleteShell(response, cache) {
 }
 
 async function assetWithOfflineFallback(request) {
+  const cached = await cachedAsset(request.url);
   try {
     const response = await fetch(request, { credentials: "same-origin", redirect: "error" });
-    if (response.ok && response.type === "basic") return response;
-    return (await cachedAsset(request.url)) || response;
+    if (cached && (await isExpectedAsset(response, cached.digest))) return response;
+    return cached?.response || Response.error();
   } catch (_) {
-    return (await cachedAsset(request.url)) || Response.error();
+    return cached?.response || Response.error();
   }
 }
 
-async function cachedAsset(assetUrl) {
-  const cache = await caches.open(CACHE_NAME);
+async function cachedEntry() {
+  for (const { cache, state } of await validCacheStates()) {
+    const entry = await cache.match(state.entryKey);
+    if (entry && (await sha256(await entry.clone().arrayBuffer())) === state.entryDigest)
+      return entry;
+  }
+  return null;
+}
+
+async function hasCompleteCurrentShell(cache) {
   const state = await readCurrentState(cache);
-  if (!state) return null;
-  const record = state.assets.find(
-    (asset) => new URL(asset.pathname, self.location.origin).href === assetUrl,
-  );
-  if (!record) return null;
-  const cached = await cache.match(versionedKey(record.pathname, record.digest));
-  if (!cached || (await sha256(await cached.clone().arrayBuffer())) !== record.digest) return null;
-  return cached;
+  if (!state) return false;
+  const entry = await cache.match(state.entryKey);
+  if (!entry || (await sha256(await entry.clone().arrayBuffer())) !== state.entryDigest)
+    return false;
+  for (const asset of state.assets) {
+    const response = await cache.match(versionedKey(asset.pathname, asset.digest));
+    if (!response || (await sha256(await response.clone().arrayBuffer())) !== asset.digest)
+      return false;
+  }
+  return true;
+}
+
+async function cachedAsset(assetUrl) {
+  for (const { cache, state } of await validCacheStates()) {
+    const record = state.assets.find(
+      (asset) => new URL(asset.pathname, self.location.origin).href === assetUrl,
+    );
+    if (!record) continue;
+    const response = await cache.match(versionedKey(record.pathname, record.digest));
+    if (response && (await sha256(await response.clone().arrayBuffer())) === record.digest) {
+      return { response, digest: record.digest };
+    }
+  }
+  return null;
+}
+
+async function validCacheStates() {
+  const states = [];
+  const names = new Set([CACHE_NAME, ...LEGACY_CACHE_NAMES]);
+  for (const name of names) {
+    const cache = await caches.open(name);
+    const state = await readCurrentState(cache);
+    if (state) states.push({ cache, state });
+  }
+  return states;
+}
+
+async function isExpectedAsset(response, digest) {
+  const contentType = response.headers.get("content-type") || "";
+  if (
+    !response.ok ||
+    response.type !== "basic" ||
+    !["text/javascript", "application/javascript", "text/css"].some((type) =>
+      contentType.startsWith(type),
+    )
+  )
+    return false;
+  return (await sha256(await response.clone().arrayBuffer())) === digest;
 }
 
 async function readCurrentState(cache) {
