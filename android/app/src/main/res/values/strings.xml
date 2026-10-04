@@ -1,6 +1,11 @@
 <resources>
   <string name="app_name">Afterchime</string>
   <string name="today_title">Begin your collection</string>
+  <string name="museum_title">Museum</string>
+  <string name="community_title">Community</string>
+  <string name="more_title">More</string>
+  <string name="back">Back</string>
+  <string name="detail_title">Detail</string>
   <string name="today_subtitle">Turn the rhythm of your day into one-of-a-kind specimens.</string>
   <string name="permission_explanation">Afterchime never reads your messages or notification text. It only uses when notifications arrive and their general type to grow your collection. Everything stays on this device.</string>
   <string name="enable_notification_access">Start collecting</string>

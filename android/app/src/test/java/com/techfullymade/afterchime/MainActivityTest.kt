@@ -19,10 +19,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class MainActivityTest {
   @Test
-  fun `hosts a hardened WebView and starts from the configured shell or bundled disabled fallback`() {
+  fun `hosts a hardened WebView within the native app shell and starts from the configured shell or bundled disabled fallback`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
-    val content = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
-    val webView = content.getChildAt(0) as WebView
+    val webView = findWebView(activity.findViewById(android.R.id.content))
     assertFalse(webView.settings.allowFileAccess)
     assertFalse(webView.settings.allowContentAccess)
     assertFalse(webView.settings.javaScriptCanOpenWindowsAutomatically)
@@ -43,8 +42,7 @@ class MainActivityTest {
   @Test
   fun `blocks off-origin requests and permits only configured shell origins`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
-    val webView = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
-      .getChildAt(0) as WebView
+    val webView = findWebView(activity.findViewById(android.R.id.content))
 
     val blocked = webView.webViewClient.shouldInterceptRequest(
       webView,
@@ -104,6 +102,24 @@ class MainActivityTest {
     assertEquals("Start collecting", resources.getString(R.string.enable_notification_access))
     val bundledPage = activity.assets.open("web/index.html").bufferedReader().use { it.readText() }
     assertFalse(bundledPage.contains("strata", ignoreCase = true))
+  }
+
+  private fun findWebView(view: android.view.View): WebView = when (view) {
+    is WebView -> view
+    is android.view.ViewGroup -> {
+      requireNotNull((0 until view.childCount).firstNotNullOfOrNull { index ->
+        findWebViewOrNull(view.getChildAt(index))
+      })
+    }
+    else -> error("WebView not found in native app shell")
+  }
+
+  private fun findWebViewOrNull(view: android.view.View): WebView? = when (view) {
+    is WebView -> view
+    is android.view.ViewGroup -> (0 until view.childCount).firstNotNullOfOrNull { index ->
+      findWebViewOrNull(view.getChildAt(index))
+    }
+    else -> null
   }
 
   private fun request(url: String, mainFrame: Boolean = false): WebResourceRequest =

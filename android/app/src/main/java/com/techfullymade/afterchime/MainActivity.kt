@@ -15,11 +15,17 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.JavaScriptReplyProxy
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
+import com.techfullymade.afterchime.ui.AfterchimeApp
+import com.techfullymade.afterchime.ui.theme.AfterchimeTheme
 import org.json.JSONObject
 
 private const val BRIDGE_NAME = "AfterchimeBridge"
@@ -78,7 +84,19 @@ class MainActivity : ComponentActivity() {
       ViewGroup.LayoutParams.MATCH_PARENT,
     )
     configureWebView()
-    setContentView(shell)
+    setContent {
+      AfterchimeTheme {
+        AfterchimeApp(
+          onEnableNotificationAccess = { openNotificationAccessSettings() },
+          todayContent = {
+            AndroidView(
+              factory = { shell },
+              modifier = Modifier.fillMaxSize(),
+            )
+          },
+        )
+      }
+    }
     if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
       WebViewCompat.addWebMessageListener(
         shell,
