@@ -51,12 +51,17 @@ describe("web shell routes", () => {
     });
   });
 
-  it("caches only versioned asset names immutably and rejects path traversal", async () => {
-    const app = await buildApp({ config: testConfig, webRoot: await shellRoot() });
+  it("reserves immutable caching for hashed build assets and rejects unsafe paths", async () => {
+    const root = await shellRoot();
+    await writeFile(path.join(root, "assets", "unhashed.js"), "not content addressed");
+    const app = await buildApp({ config: testConfig, webRoot: root });
     apps.push(app);
     const asset = await app.inject({ method: "GET", url: "/assets/main-AbCdEf123456.js" });
     expect(asset.statusCode).toBe(200);
     expect(asset.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
+    const unhashed = await app.inject({ method: "GET", url: "/assets/unhashed.js" });
+    expect(unhashed.statusCode).toBe(404);
+    expect(unhashed.headers["cache-control"]).not.toContain("immutable");
     expect(
       (await app.inject({ method: "GET", url: "/assets/%2e%2e%2findex.html" })).statusCode,
     ).toBe(404);

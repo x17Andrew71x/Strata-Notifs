@@ -1,35 +1,25 @@
-const CACHE_NAME = "afterchime-shell-v3";
+const CACHE_NAME = "afterchime-shell-v4";
 const ENTRY = "/";
-const ASSET = /^\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$/;
+const STATE_KEY = "/.afterchime/current";
+const ASSET_PATTERN = /^\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$/;
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    (async () => {
-      try {
-        const cache = await caches.open(CACHE_NAME);
-        const response = await fetch(ENTRY, {
-          cache: "no-cache",
-          credentials: "same-origin",
-          redirect: "error",
-        });
-        await cacheCompleteShell(response, cache);
-      } catch (_) {
-        // The bundled Android shell remains available when first-install caching cannot complete.
-      }
-      await self.skipWaiting();
-    })(),
-  );
-});
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    (async () => {
-      for (const key of await caches.keys()) {
-        if (key.startsWith("afterchime-shell-") && key !== CACHE_NAME) await caches.delete(key);
-      }
-      await self.clients.claim();
-    })(),
-  );
-});
+self.addEventListener("install", (event) => event.waitUntil(self.skipWaiting()));
+self.addEventListener("activate", (event) => event.waitUntil(activateWorker()));
+
+async function activateWorker() {
+  await self.clients.claim();
+  const cache = await caches.open(CACHE_NAME);
+  try {
+    const response = await fetch(ENTRY, {
+      cache: "no-cache",
+      credentials: "same-origin",
+      redirect: "error",
+    });
+    await promoteCompleteShell(response, cache);
+  } catch (_) {
+    // An offline first launch falls through to Android's bundled shell.
+  }
+}
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
@@ -37,7 +27,7 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
   if (url.pathname === ENTRY && request.mode === "navigate") {
     event.respondWith(entryWithLastKnownGood(request));
-  } else if (ASSET.test(url.pathname)) {
+  } else if (ASSET_PATTERN.test(url.pathname)) {
     event.respondWith(assetWithOfflineFallback(request));
   }
 });
@@ -50,14 +40,20 @@ async function entryWithLastKnownGood(request) {
       credentials: "same-origin",
       redirect: "error",
     });
-    if (await cacheCompleteShell(response.clone(), cache)) return response;
+    if (await promoteCompleteShell(response.clone(), cache)) return response;
   } catch (_) {
-    // Use only the last entry whose complete script/style set was cached.
+    // Use only the last entry whose complete script/style set was cached and verified.
   }
-  return (await cache.match(new URL(ENTRY, self.location.origin))) || Response.error();
+  const state = await readCurrentState(cache);
+  if (!state) return Response.error();
+  const entry = await cache.match(state.entryKey);
+  if (!entry || (await sha256(await entry.clone().arrayBuffer())) !== state.entryDigest) {
+    return Response.error();
+  }
+  return entry;
 }
 
-async function cacheCompleteShell(response, cache) {
+async function promoteCompleteShell(response, cache) {
   if (!response.ok || !/^text\/html\b/i.test(response.headers.get("content-type") || ""))
     return false;
   const html = await response.clone().text();
@@ -68,49 +64,94 @@ async function cacheCompleteShell(response, cache) {
     ),
   ].map((match) => match[1]);
   if (references.length === 0 || references.length > 32) return false;
-  const pending = [];
-  for (const path of new Set(references)) {
-    const assetUrl = new URL(path, self.location.origin);
-    const cached = await cache.match(assetUrl);
-    if (cached) continue;
+
+  const assets = [];
+  for (const pathname of new Set(references)) {
+    const assetUrl = new URL(pathname, self.location.origin);
     const asset = await fetch(assetUrl, { credentials: "same-origin", redirect: "error" });
+    const contentType = asset.headers.get("content-type") || "";
     if (
       !asset.ok ||
+      asset.type !== "basic" ||
       !["text/javascript", "application/javascript", "text/css"].some((type) =>
-        (asset.headers.get("content-type") || "").startsWith(type),
+        contentType.startsWith(type),
       )
     )
       return false;
-    pending.push([path, await responseForCache(asset)]);
+    const bytes = await asset.clone().arrayBuffer();
+    assets.push({ pathname, response: asset, digest: await sha256(bytes) });
   }
-  for (const [assetPath, asset] of pending)
-    await cache.put(new URL(assetPath, self.location.origin), asset);
-  await cache.put(new URL(ENTRY, self.location.origin), await responseForCache(response));
+
+  const entryBytes = await response.clone().arrayBuffer();
+  const entryDigest = await sha256(entryBytes);
+  const entryKey = versionedKey("entry", entryDigest);
+  const assetState = assets.map(({ pathname, digest }) => ({ pathname, digest }));
+
+  // Store complete, digest-addressed content before atomically advancing the current pointer.
+  for (const asset of assets) {
+    await cache.put(versionedKey(asset.pathname, asset.digest), asset.response.clone());
+  }
+  await cache.put(entryKey, response.clone());
+  await cache.put(
+    STATE_KEY,
+    new Response(JSON.stringify({ entryKey, entryDigest, assets: assetState }), {
+      headers: { "content-type": "application/json" },
+    }),
+  );
   return true;
 }
 
 async function assetWithOfflineFallback(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-  if (cached) return cached;
   try {
     const response = await fetch(request, { credentials: "same-origin", redirect: "error" });
-    if (response.ok && response.type === "basic") {
-      await cache.put(request, await responseForCache(response.clone()));
-    }
-    return response;
+    if (response.ok && response.type === "basic") return response;
+    return (await cachedAsset(request.url)) || response;
   } catch (_) {
-    return Response.error();
+    return (await cachedAsset(request.url)) || Response.error();
   }
 }
 
-async function responseForCache(response) {
-  const headers = new Headers(response.headers);
-  headers.delete("content-encoding");
-  headers.delete("content-length");
-  return new Response(await response.arrayBuffer(), {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+async function cachedAsset(assetUrl) {
+  const cache = await caches.open(CACHE_NAME);
+  const state = await readCurrentState(cache);
+  if (!state) return null;
+  const record = state.assets.find(
+    (asset) => new URL(asset.pathname, self.location.origin).href === assetUrl,
+  );
+  if (!record) return null;
+  const cached = await cache.match(versionedKey(record.pathname, record.digest));
+  if (!cached || (await sha256(await cached.clone().arrayBuffer())) !== record.digest) return null;
+  return cached;
+}
+
+async function readCurrentState(cache) {
+  const response = await cache.match(STATE_KEY);
+  if (!response) return null;
+  try {
+    const state = await response.json();
+    if (
+      typeof state.entryKey === "string" &&
+      state.entryKey.startsWith(`${self.location.origin}/.afterchime/`) &&
+      /^[a-f0-9]{64}$/.test(state.entryDigest) &&
+      Array.isArray(state.assets) &&
+      state.assets.length > 0 &&
+      state.assets.length <= 32 &&
+      state.assets.every(
+        (asset) => ASSET_PATTERN.test(asset.pathname) && /^[a-f0-9]{64}$/.test(asset.digest),
+      )
+    )
+      return state;
+  } catch (_) {
+    // Invalid state cannot authorize cache reads.
+  }
+  return null;
+}
+
+function versionedKey(pathname, digest) {
+  return new URL(`/.afterchime/${digest}/${encodeURIComponent(pathname)}`, self.location.origin);
+}
+
+async function sha256(bytes) {
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }

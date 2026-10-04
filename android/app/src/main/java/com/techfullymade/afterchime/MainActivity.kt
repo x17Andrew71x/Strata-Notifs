@@ -25,8 +25,36 @@ import org.json.JSONObject
 private const val BRIDGE_NAME = "AfterchimeBridge"
 private const val BRIDGE_VERSION = 1
 private const val MAX_BRIDGE_MESSAGE = 1024
-private const val LOCAL_ORIGIN = "https://appassets.androidplatform.net"
+internal const val LOCAL_ORIGIN = "https://appassets.androidplatform.net"
+internal const val LOCAL_ENTRY_URL = "$LOCAL_ORIGIN/assets/web/index.html"
 private const val REMOTE_READY_TIMEOUT_MS = 3_000L
+
+internal data class BridgeRequest(val id: String, val type: String)
+
+internal fun parseBridgeRequest(raw: String?): BridgeRequest? {
+  if (raw == null || raw.length > MAX_BRIDGE_MESSAGE) return null
+  val request = try {
+    JSONObject(raw)
+  } catch (_: org.json.JSONException) {
+    return null
+  }
+  if (request.length() != 3 || request.opt("version") != BRIDGE_VERSION) return null
+  val id = request.opt("id") as? String ?: return null
+  val type = request.opt("type") as? String ?: return null
+  if (!id.matches(Regex("[A-Za-z0-9_-]{1,64}"))) return null
+  if (type != "capabilities.get" && type != "notificationAccess.openSettings") return null
+  return BridgeRequest(id, type)
+}
+
+internal fun isAllowedShellUri(uri: Uri, remoteUri: Uri): Boolean =
+  (uri.scheme == "https" && uri.host == remoteUri.host && uri.port == remoteUri.port) ||
+    (uri.scheme == "https" && uri.host == "appassets.androidplatform.net" && uri.port == -1)
+
+internal fun shouldFallbackFromHttpError(
+  isMainFrame: Boolean,
+  statusCode: Int,
+  usingLocalShell: Boolean,
+): Boolean = isMainFrame && statusCode >= 400 && !usingLocalShell
 
 class MainActivity : ComponentActivity() {
   private lateinit var shell: WebView
@@ -150,7 +178,9 @@ class MainActivity : ComponentActivity() {
         request: WebResourceRequest,
         errorResponse: android.webkit.WebResourceResponse,
       ) {
-        if (request.isForMainFrame && errorResponse.statusCode >= 400 && !usingLocalShell) loadBundledShell()
+        if (shouldFallbackFromHttpError(request.isForMainFrame, errorResponse.statusCode, usingLocalShell)) {
+          loadBundledShell()
+        }
       }
     }
   }
@@ -170,7 +200,7 @@ class MainActivity : ComponentActivity() {
     if (usingLocalShell && shell.url?.startsWith(LOCAL_ORIGIN) == true) return
     shell.removeCallbacks(remoteReadyWatchdog)
     usingLocalShell = true
-    shell.loadUrl("$LOCAL_ORIGIN/assets/web/index.html")
+    shell.loadUrl(LOCAL_ENTRY_URL)
   }
 
   private fun remoteOriginRule(): String = "https://${remoteUri.host}${if (remoteUri.port != -1) ":${remoteUri.port}" else ""}"
@@ -179,24 +209,13 @@ class MainActivity : ComponentActivity() {
     origin.toString() == LOCAL_ORIGIN ||
       (origin.scheme == "https" && origin.host == remoteUri.host && origin.port == remoteUri.port)
 
-  private fun isAllowedUrl(uri: Uri): Boolean =
-    (uri.scheme == "https" && uri.host == remoteUri.host && uri.port == remoteUri.port) ||
-      (uri.scheme == "https" && uri.host == "appassets.androidplatform.net" && uri.port == -1)
+  private fun isAllowedUrl(uri: Uri): Boolean = isAllowedShellUri(uri, remoteUri)
 
   private fun handleBridgeMessage(raw: String?, proxy: JavaScriptReplyProxy): Boolean {
-    if (raw == null || raw.length > MAX_BRIDGE_MESSAGE) return false
-    val request = try {
-      JSONObject(raw)
-    } catch (_: org.json.JSONException) {
-      return false
-    }
-    if (request.length() != 3 || request.opt("version") != BRIDGE_VERSION) return false
-    val id = request.opt("id") as? String ?: return false
-    val type = request.opt("type") as? String ?: return false
-    if (!id.matches(Regex("[A-Za-z0-9_-]{1,64}"))) return false
-    val response = when (type) {
-      "capabilities.get" -> capabilitiesResponse(id)
-      "notificationAccess.openSettings" -> settingsResponse(id)
+    val request = parseBridgeRequest(raw) ?: return false
+    val response = when (request.type) {
+      "capabilities.get" -> capabilitiesResponse(request.id)
+      "notificationAccess.openSettings" -> settingsResponse(request.id)
       else -> return false
     }
     proxy.postMessage(response.toString())

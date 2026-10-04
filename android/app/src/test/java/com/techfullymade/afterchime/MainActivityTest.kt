@@ -1,13 +1,17 @@
 package com.techfullymade.afterchime
 
+import android.net.Uri
 import android.provider.Settings
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
@@ -15,7 +19,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class MainActivityTest {
   @Test
-  fun `hosts a hardened WebView instead of the native onboarding screen`() {
+  fun `hosts a hardened WebView and starts from the bundled shell when remote is disabled`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
     val content = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
     val webView = content.getChildAt(0) as WebView
@@ -24,9 +28,50 @@ class MainActivityTest {
     assertFalse(webView.settings.javaScriptCanOpenWindowsAutomatically)
     assertTrue(webView.settings.domStorageEnabled)
     assertEquals(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW, webView.settings.mixedContentMode)
+    assertEquals(LOCAL_ENTRY_URL, shadowOf(webView).lastLoadedUrl)
+  }
+
+  @Test
+  fun `blocks off-origin requests and permits only configured shell origins`() {
+    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    val webView = activity.findViewById<android.view.ViewGroup>(android.R.id.content)
+      .getChildAt(0) as WebView
+
+    val blocked = webView.webViewClient.shouldInterceptRequest(
+      webView,
+      request("https://example.invalid/private.js"),
+    )
+    assertEquals(403, blocked?.statusCode)
+    assertNull(
+      webView.webViewClient.shouldInterceptRequest(webView, request(BuildConfig.SHELL_URL)),
+    )
+    assertTrue(isAllowedShellUri(Uri.parse(LOCAL_ENTRY_URL), Uri.parse(BuildConfig.SHELL_URL)))
+    assertFalse(
+      isAllowedShellUri(Uri.parse("https://example.invalid/"), Uri.parse(BuildConfig.SHELL_URL)),
+    )
+  }
+
+  @Test
+  fun `remote main-frame HTTP errors trigger the bundled fallback policy`() {
+    assertTrue(shouldFallbackFromHttpError(isMainFrame = true, statusCode = 503, usingLocalShell = false))
+    assertFalse(shouldFallbackFromHttpError(isMainFrame = false, statusCode = 503, usingLocalShell = false))
+    assertFalse(shouldFallbackFromHttpError(isMainFrame = true, statusCode = 399, usingLocalShell = false))
+    assertFalse(shouldFallbackFromHttpError(isMainFrame = true, statusCode = 503, usingLocalShell = true))
+  }
+
+  @Test
+  fun `native bridge parser rejects malformed unknown and expanded messages`() {
+    assertNull(parseBridgeRequest(null))
+    assertNull(parseBridgeRequest("{"))
+    assertNull(parseBridgeRequest("""{"version":1,"id":"req","type":"notification.read"}"""))
+    assertNull(
+      parseBridgeRequest(
+        """{"version":1,"id":"req","type":"capabilities.get","body":"private"}""",
+      ),
+    )
     assertEquals(
-      "https://appassets.androidplatform.net/assets/web/index.html",
-      shadowOf(webView).lastLoadedUrl,
+      BridgeRequest("req_1", "capabilities.get"),
+      parseBridgeRequest("""{"version":1,"id":"req_1","type":"capabilities.get"}"""),
     )
   }
 
@@ -34,7 +79,7 @@ class MainActivityTest {
   fun `notification settings action opens Android listener settings`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
     assertTrue(activity.openNotificationAccessSettings())
-    val startedIntent = shadowOf(activity).nextStartedActivity
+    val startedIntent = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
     assertEquals(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS, startedIntent?.action)
   }
 
@@ -51,4 +96,14 @@ class MainActivityTest {
     val bundledPage = activity.assets.open("web/index.html").bufferedReader().use { it.readText() }
     assertFalse(bundledPage.contains("strata", ignoreCase = true))
   }
+
+  private fun request(url: String, mainFrame: Boolean = false): WebResourceRequest =
+    object : WebResourceRequest {
+      override fun getUrl(): Uri = Uri.parse(url)
+      override fun isForMainFrame(): Boolean = mainFrame
+      override fun isRedirect(): Boolean = false
+      override fun hasGesture(): Boolean = false
+      override fun getMethod(): String = "GET"
+      override fun getRequestHeaders(): MutableMap<String, String> = mutableMapOf()
+    }
 }

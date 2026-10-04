@@ -1,16 +1,32 @@
 import { useEffect, useState } from "react";
 import { installResponseListener, type NativeResponse, sendNativeRequest } from "./bridge";
 
+type ShellWorkerRegistrar = {
+  register(scriptURL: string, options?: RegistrationOptions): Promise<unknown>;
+};
+
+export async function registerShellWorker(
+  isProduction: boolean,
+  registrar: ShellWorkerRegistrar | undefined = typeof navigator !== "undefined" &&
+  "serviceWorker" in navigator
+    ? navigator.serviceWorker
+    : undefined,
+): Promise<void> {
+  if (!isProduction || !registrar) return;
+  try {
+    await registrar.register("/service-worker.js", { scope: "/" });
+  } catch {
+    // Android falls back to its bundled shell when the remote worker is unavailable.
+  }
+}
+
 function App() {
   const [access, setAccess] = useState<boolean | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    if ("serviceWorker" in navigator)
-      void navigator.serviceWorker
-        .register("/service-worker.js", { scope: "/" })
-        .catch(() => undefined);
+    void registerShellWorker(import.meta.env.PROD);
     const updateNetwork = () => setOnline(navigator.onLine);
     window.addEventListener("online", updateNetwork);
     window.addEventListener("offline", updateNetwork);
