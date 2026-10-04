@@ -27,4 +27,10 @@ describe("safe startup failure code", () => {
       "startup_failed",
     );
   });
+
+  it("exposes only an allowlisted machine code for an unknown startup failure", () => {
+    expect(
+      startupFailureCode({ code: "ECONNREFUSED", message: "postgresql://private:secret" }),
+    ).toBe("startup_econnrefused");
+  });
 });
