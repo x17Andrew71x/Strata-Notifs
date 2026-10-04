@@ -3,6 +3,7 @@ WORKDIR /workspace
 RUN corepack enable
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY server/package.json server/package.json
+COPY contracts/package.json contracts/package.json
 COPY web/package.json web/package.json
 RUN pnpm install --frozen-lockfile
 COPY server server
