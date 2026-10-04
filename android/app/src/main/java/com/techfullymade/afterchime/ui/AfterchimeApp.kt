@@ -1,14 +1,11 @@
 package com.techfullymade.afterchime.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -23,25 +20,21 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.techfullymade.afterchime.R
-import com.techfullymade.afterchime.ui.components.AfterchimePrimaryButton
-import com.techfullymade.afterchime.ui.components.AfterchimeSurface
+import com.techfullymade.afterchime.domain.FormationObservation
+import com.techfullymade.afterchime.domain.FormationSnapshot
 import com.techfullymade.afterchime.ui.navigation.AfterchimeNavGraph
 import com.techfullymade.afterchime.ui.navigation.RootDestination
-import com.techfullymade.afterchime.ui.theme.AfterchimeElevation
 import com.techfullymade.afterchime.ui.theme.AfterchimeSpacing
 import com.techfullymade.afterchime.ui.theme.Basalt
-import com.techfullymade.afterchime.ui.theme.FossilMint
-import com.techfullymade.afterchime.ui.theme.Sand
+import com.techfullymade.afterchime.ui.today.TodayScreen
+import com.techfullymade.afterchime.ui.today.TodayUiState
+import java.time.LocalDate
 
 private val afterchimeNavGraphSaver = Saver<AfterchimeNavGraph, List<String>>(
   save = { graph ->
@@ -151,40 +144,19 @@ private fun TodayRoot(
   modifier: Modifier,
   onEnableNotificationAccess: () -> Unit,
 ) {
-  Column(
-    modifier = modifier
-      .fillMaxSize()
-      .testTag("root-content-today")
-      .padding(
-        horizontal = AfterchimeSpacing.screenHorizontal,
-        vertical = AfterchimeSpacing.screenVertical,
+  TodayScreen(
+    state = TodayUiState.from(
+      FormationSnapshot(
+        localDate = LocalDate.now(),
+        observation = FormationObservation.AwaitingAccess,
+        layers = emptyList(),
+        sealedSpecimen = null,
       ),
-    verticalArrangement = Arrangement.spacedBy(AfterchimeSpacing.content),
-  ) {
-    Text(
-      text = stringResource(R.string.today_title),
-      style = MaterialTheme.typography.headlineLarge,
-      fontWeight = FontWeight.SemiBold,
-    )
-    Text(
-      text = stringResource(R.string.today_subtitle),
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      style = MaterialTheme.typography.bodyLarge,
-    )
-    SpecimenPreview()
-    Text(
-      text = stringResource(R.string.permission_explanation),
-      color = MaterialTheme.colorScheme.onSurfaceVariant,
-      style = MaterialTheme.typography.bodyMedium,
-    )
-    Spacer(modifier = Modifier.weight(1f))
-    AfterchimePrimaryButton(
-      onClick = onEnableNotificationAccess,
-      modifier = Modifier.fillMaxWidth(),
-    ) {
-      Text(stringResource(R.string.enable_notification_access))
-    }
-  }
+    ),
+    onEnableNotificationAccess = onEnableNotificationAccess,
+    onReveal = {},
+    modifier = modifier.testTag("root-content-today"),
+  )
 }
 
 @Composable
@@ -240,57 +212,5 @@ private fun NestedPlaceholder(
       style = MaterialTheme.typography.headlineLarge,
       fontWeight = FontWeight.SemiBold,
     )
-  }
-}
-
-@Composable
-private fun SpecimenPreview() {
-  val description = stringResource(R.string.specimen_preview_description)
-  AfterchimeSurface(
-    modifier = Modifier.fillMaxWidth(),
-    tonalElevation = AfterchimeElevation.raised,
-  ) {
-    Canvas(
-      modifier = Modifier
-        .fillMaxWidth()
-        .height(300.dp)
-        .padding(24.dp)
-        .semantics { contentDescription = description },
-    ) {
-      val bandHeight = size.height / 8f
-      val bands = listOf(
-        Color(0xFF1D2421),
-        Color(0xFF25302B),
-        Color(0xFF314039),
-        Color(0xFF3A4942),
-        Color(0xFF29332F),
-        Color(0xFF38463F),
-        Color(0xFF202824),
-        Color(0xFF161B19),
-      )
-      bands.forEachIndexed { index, color ->
-        drawRoundRect(
-          color = color,
-          topLeft = Offset(0f, index * bandHeight),
-          size = Size(size.width, bandHeight + 2f),
-          cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f, 10f),
-        )
-      }
-      drawCircle(
-        color = Sand,
-        radius = size.minDimension * 0.16f,
-        center = center,
-      )
-      drawCircle(
-        color = Basalt,
-        radius = size.minDimension * 0.095f,
-        center = center,
-      )
-      drawCircle(
-        color = FossilMint,
-        radius = size.minDimension * 0.035f,
-        center = center,
-      )
-    }
   }
 }
