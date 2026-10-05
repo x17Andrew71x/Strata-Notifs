@@ -13,39 +13,55 @@ class AfterchimeDatabaseMigrationTest {
   )
 
   @Test
-  fun versionOneExportedSchemaMigratesToVersionFourWithoutDestructiveFallback() {
-    val name = "afterchime-v1-to-v4-migration"
+  fun versionOneExportedSchemaMigratesToVersionFiveWithoutDestructiveFallback() {
+    val name = "afterchime-v1-to-v5-migration"
 
     migrationHelper.createDatabase(name, 1).close()
     migrationHelper.runMigrationsAndValidate(
       name,
-      4,
+      5,
       true,
       AfterchimeDatabase.MIGRATION_1_2,
       AfterchimeDatabase.MIGRATION_2_3,
       AfterchimeDatabase.MIGRATION_3_4,
+      AfterchimeDatabase.MIGRATION_4_5,
     ).close()
   }
 
   @Test
-  fun versionTwoExportedSchemaMigratesToVersionFourWithoutDestructiveFallback() {
-    val name = "afterchime-v2-to-v4-migration"
+  fun versionTwoExportedSchemaMigratesToVersionFiveWithoutDestructiveFallback() {
+    val name = "afterchime-v2-to-v5-migration"
 
     migrationHelper.createDatabase(name, 2).close()
     migrationHelper.runMigrationsAndValidate(
       name,
-      4,
+      5,
       true,
       AfterchimeDatabase.MIGRATION_2_3,
       AfterchimeDatabase.MIGRATION_3_4,
+      AfterchimeDatabase.MIGRATION_4_5,
     ).close()
   }
 
   @Test
-  fun versionThreeExportedSchemaMigratesToVersionFourWithoutDestructiveFallback() {
-    val name = "afterchime-v3-to-v4-migration"
+  fun versionThreeExportedSchemaMigratesToVersionFiveWithoutDestructiveFallback() {
+    val name = "afterchime-v3-to-v5-migration"
 
     migrationHelper.createDatabase(name, 3).close()
-    migrationHelper.runMigrationsAndValidate(name, 4, true, AfterchimeDatabase.MIGRATION_3_4).close()
+    migrationHelper.runMigrationsAndValidate(
+      name,
+      5,
+      true,
+      AfterchimeDatabase.MIGRATION_3_4,
+      AfterchimeDatabase.MIGRATION_4_5,
+    ).close()
+  }
+
+  @Test
+  fun versionFourExportedSchemaMigratesToVersionFiveWithoutDestructiveFallback() {
+    val name = "afterchime-v4-to-v5-migration"
+
+    migrationHelper.createDatabase(name, 4).close()
+    migrationHelper.runMigrationsAndValidate(name, 5, true, AfterchimeDatabase.MIGRATION_4_5).close()
   }
 }

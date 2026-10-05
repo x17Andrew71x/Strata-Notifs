@@ -3,7 +3,9 @@ package com.techfullymade.afterchime.sealing
 import androidx.room.withTransaction
 import com.techfullymade.afterchime.capture.ReducedNotification
 import com.techfullymade.afterchime.data.local.AfterchimeDatabase
+import com.techfullymade.afterchime.data.local.entity.InventoryItemEntity
 import com.techfullymade.afterchime.data.local.entity.ListenerAccessState
+import com.techfullymade.afterchime.domain.CollectibleState
 import java.time.LocalDate
 
 /** Room adapter that keeps the summary and optional specimen in one SQLite transaction. */
@@ -72,6 +74,27 @@ class RoomSealDayStore(
     if (specimen != null) {
       database.specimenDao().insert(specimen.record)
       database.specimenOutputDao().insert(specimen.output)
+      database.inventoryItemDao().insert(
+        InventoryItemEntity(
+          itemId = specimen.record.specimenId,
+          sourceSpecimenId = specimen.record.specimenId,
+          anchoredLocalDate = specimen.record.anchoredLocalDate,
+          generatorVersion = specimen.record.generatorVersion,
+          createdAtEpochMillis = specimen.record.createdAtEpochMillis,
+          revealedAtEpochMillis = specimen.record.revealedAtEpochMillis,
+          isLocked = specimen.record.isLocked,
+          collectibleState = CollectibleState.ORDINARY,
+          provenanceCount = 1,
+          family = specimen.output.family,
+          tier = specimen.output.tier,
+          hueDegrees = specimen.output.hueDegrees,
+          strataCount = specimen.output.strataCount,
+          inclusionDensityPercent = specimen.output.inclusionDensityPercent,
+          reliefPercent = specimen.output.reliefPercent,
+          rotationDegrees = specimen.output.rotationDegrees,
+          consumedByMutationId = null,
+        ),
+      )
     }
     SealDayPersistence.Persisted
   }

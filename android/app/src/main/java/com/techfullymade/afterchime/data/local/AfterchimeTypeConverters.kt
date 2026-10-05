@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import com.techfullymade.afterchime.capture.CoarseNotificationCategory
 import com.techfullymade.afterchime.data.local.entity.ListenerAccessState
 import com.techfullymade.afterchime.data.local.entity.ObservationState
+import com.techfullymade.afterchime.domain.CollectibleState
 import com.techfullymade.afterchime.generation.Family
 import com.techfullymade.afterchime.generation.Tier
 
@@ -38,4 +39,10 @@ class AfterchimeTypeConverters {
 
   @TypeConverter
   fun tierFromDatabase(value: String): Tier = Tier.valueOf(value)
+
+  @TypeConverter
+  fun collectibleStateToDatabase(value: CollectibleState): String = value.name
+
+  @TypeConverter
+  fun collectibleStateFromDatabase(value: String): CollectibleState = CollectibleState.valueOf(value)
 }

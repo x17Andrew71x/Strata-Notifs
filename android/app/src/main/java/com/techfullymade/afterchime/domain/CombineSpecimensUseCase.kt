@@ -13,6 +13,34 @@ data class CombineCandidate(
   val state: CollectibleState,
 )
 
+/** A client-generated, locally idempotent request for one irreversible restoration mutation. */
+data class CombineRequest(
+  val mutationId: String,
+  val outputItemId: String,
+  val inputItemIds: List<String>,
+  val createdAtEpochMillis: Long,
+) {
+  init {
+    require(mutationId.isNotBlank())
+    require(outputItemId.isNotBlank())
+    require(inputItemIds.all(String::isNotBlank))
+    require(createdAtEpochMillis >= 0)
+  }
+}
+
+/** Durable result of a local combine request; retries never create a second output. */
+sealed interface CombineResult {
+  data class Combined(val outputItemId: String) : CombineResult
+
+  data class AlreadyCombined(val outputItemId: String) : CombineResult
+
+  data class Ineligible(val reason: CombineEligibility) : CombineResult
+
+  data object MutationConflict : CombineResult
+
+  data object OutputConflict : CombineResult
+}
+
 /** A side-effect-free combine decision; persistence owns consumption and output creation in a later transaction. */
 sealed interface CombineEligibility {
   data class Eligible(val outputState: CollectibleState) : CombineEligibility
@@ -28,6 +56,8 @@ sealed interface CombineEligibility {
   data object NonIdenticalInput : CombineEligibility
 
   data object CentrePieceInput : CombineEligibility
+
+  data object UnavailableInput : CombineEligibility
 }
 
 /**

@@ -5,12 +5,14 @@ import androidx.room.withTransaction
 import androidx.sqlite.db.SimpleSQLiteQuery
 import com.techfullymade.afterchime.capture.CoarseNotificationCategory
 import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
+import com.techfullymade.afterchime.data.local.entity.InventoryItemEntity
 import com.techfullymade.afterchime.data.local.entity.ObservationState
 import com.techfullymade.afterchime.data.local.entity.ReducedNotificationEntity
 import com.techfullymade.afterchime.data.local.entity.SpecimenEntity
 import com.techfullymade.afterchime.data.local.entity.SpecimenOutputEntity
 import com.techfullymade.afterchime.generation.Family
 import com.techfullymade.afterchime.generation.Tier
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -54,11 +56,16 @@ class AfterchimeDatabaseTest {
     database.daySummaryDao().insert(summary)
     database.specimenDao().insert(specimen)
     database.specimenOutputDao().insert(specimenOutput)
+    database.inventoryItemDao().insert(inventoryItem(specimen, specimenOutput))
 
     assertEquals(listOf(notification), database.reducedNotificationDao().forLocalDate(summary.localDate))
     assertEquals(summary, database.daySummaryDao().get(summary.localDate))
     assertEquals(specimen, database.specimenDao().getByAnchoredLocalDate(summary.localDate))
     assertEquals(specimenOutput, database.specimenOutputDao().getBySpecimenId(specimen.specimenId))
+    assertEquals(
+      listOf(inventoryItem(specimen, specimenOutput)),
+      database.inventoryItemDao().observeAllActive().first(),
+    )
     assertEquals(
       setOf(
         "category",
@@ -115,6 +122,39 @@ class AfterchimeDatabaseTest {
         "tier",
       ),
       database.columnsFor("specimen_outputs"),
+    )
+    assertEquals(
+      setOf(
+        "anchored_local_date",
+        "collectible_state",
+        "consumed_by_mutation_id",
+        "created_at_epoch_millis",
+        "family",
+        "generator_version",
+        "hue_degrees",
+        "inclusion_density_percent",
+        "is_locked",
+        "item_id",
+        "provenance_count",
+        "relief_percent",
+        "revealed_at_epoch_millis",
+        "rotation_degrees",
+        "source_specimen_id",
+        "strata_count",
+        "tier",
+      ),
+      database.columnsFor("inventory_items"),
+    )
+    assertEquals(
+      setOf(
+        "created_at_epoch_millis",
+        "first_input_item_id",
+        "mutation_id",
+        "output_item_id",
+        "second_input_item_id",
+        "third_input_item_id",
+      ),
+      database.columnsFor("inventory_mutations"),
     )
   }
 
@@ -194,6 +234,28 @@ class AfterchimeDatabaseTest {
     inclusionDensityPercent = 72,
     reliefPercent = 63,
     rotationDegrees = 217,
+  )
+
+  private fun inventoryItem(
+    specimen: SpecimenEntity,
+    output: SpecimenOutputEntity,
+  ) = InventoryItemEntity(
+    itemId = specimen.specimenId,
+    sourceSpecimenId = specimen.specimenId,
+    anchoredLocalDate = specimen.anchoredLocalDate,
+    generatorVersion = specimen.generatorVersion,
+    createdAtEpochMillis = specimen.createdAtEpochMillis,
+    revealedAtEpochMillis = specimen.revealedAtEpochMillis,
+    collectibleState = com.techfullymade.afterchime.domain.CollectibleState.ORDINARY,
+    provenanceCount = 1,
+    family = output.family,
+    tier = output.tier,
+    hueDegrees = output.hueDegrees,
+    strataCount = output.strataCount,
+    inclusionDensityPercent = output.inclusionDensityPercent,
+    reliefPercent = output.reliefPercent,
+    rotationDegrees = output.rotationDegrees,
+    consumedByMutationId = null,
   )
 
   private fun AfterchimeDatabase.columnsFor(table: String): Set<String> =

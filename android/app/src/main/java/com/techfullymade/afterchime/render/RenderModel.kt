@@ -51,7 +51,7 @@ fun MuseumSpecimen.toRenderModel(): RenderModel {
   val safeVisual = visual
   val canonicalOutput = listOf(
     generatorVersion,
-    anchoredLocalDate,
+    anchoredLocalDate ?: id,
     family.name,
     tier.name,
     safeVisual.hueDegrees,

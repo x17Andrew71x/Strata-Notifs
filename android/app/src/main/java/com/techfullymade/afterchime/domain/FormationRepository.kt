@@ -111,6 +111,11 @@ class LocalFormationRepository(
       require(revealedAtEpochMillis >= current.createdAtEpochMillis)
 
       if (specimenDao.markRevealedIfUnrevealed(specimenId, revealedAtEpochMillis) == 1) {
+        if (
+          database.inventoryItemDao().markSourceRevealedIfUnrevealed(specimenId, revealedAtEpochMillis) != 1
+        ) {
+          error("A local museum item was missing when its sealed specimen was revealed")
+        }
         RevealResult.Revealed(revealedAtEpochMillis)
       } else {
         val afterConcurrentReveal = specimenDao.getBySpecimenId(specimenId)?.revealedAtEpochMillis

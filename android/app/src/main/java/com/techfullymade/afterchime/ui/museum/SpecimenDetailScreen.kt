@@ -43,8 +43,8 @@ fun SpecimenDetailScreen(
 ) {
   val family = specimen.family.displayName()
   val tier = specimen.tier.displayName()
-  val sealedDate = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
-    .format(specimen.anchoredLocalDate)
+  val sealedDate = specimen.anchoredLocalDate
+    ?.let(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)::format)
   val screenDescription = stringResource(R.string.specimen_detail_description)
 
   Column(
@@ -93,8 +93,10 @@ fun SpecimenDetailScreen(
           value = tier,
         )
         DetailFact(
-          label = stringResource(R.string.specimen_detail_sealed),
-          value = sealedDate,
+          label = stringResource(
+            if (sealedDate == null) R.string.specimen_detail_restored else R.string.specimen_detail_sealed,
+          ),
+          value = sealedDate ?: stringResource(R.string.museum_restored),
           modifier = Modifier.testTag("specimen-detail-sealed-date"),
         )
         if (specimen.isLocked) {

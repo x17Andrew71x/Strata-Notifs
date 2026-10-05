@@ -161,8 +161,14 @@ private fun MuseumSpecimenCard(
 ) {
   val family = specimen.family.displayName()
   val tier = specimen.tier.displayName()
-  val date = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).format(specimen.anchoredLocalDate)
-  val description = stringResource(R.string.museum_specimen_description, family, tier, date)
+  val date = specimen.anchoredLocalDate
+    ?.let(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)::format)
+    ?: stringResource(R.string.museum_restored)
+  val description = if (specimen.anchoredLocalDate == null) {
+    stringResource(R.string.museum_restored_specimen_description, family, tier)
+  } else {
+    stringResource(R.string.museum_specimen_description, family, tier, date)
+  }
   AfterchimeSurface(
     modifier = Modifier
       .widthIn(min = 152.dp)

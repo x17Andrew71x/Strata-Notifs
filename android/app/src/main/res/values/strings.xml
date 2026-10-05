@@ -8,6 +8,8 @@
   <string name="museum_filtered_empty_title">No specimens in this tier</string>
   <string name="museum_filtered_empty_body">Choose another tier to continue browsing.</string>
   <string name="museum_specimen_description">%1$s specimen, %2$s tier, sealed %3$s</string>
+  <string name="museum_restored_specimen_description">%1$s specimen, %2$s tier, restored</string>
+  <string name="museum_restored">Restored</string>
   <string name="museum_filter_all">All</string>
   <string name="tier_common">Common</string>
   <string name="tier_uncommon">Uncommon</string>
@@ -23,6 +25,7 @@
   <string name="specimen_detail_family">Family</string>
   <string name="specimen_detail_tier">Tier</string>
   <string name="specimen_detail_sealed">Sealed</string>
+  <string name="specimen_detail_restored">Restored</string>
   <string name="specimen_detail_lock">Lock specimen</string>
   <string name="specimen_detail_unlock">Unlock specimen</string>
   <string name="specimen_detail_locked">Locked</string>

@@ -4,6 +4,7 @@ import androidx.room.Room
 import com.techfullymade.afterchime.capture.CoarseNotificationCategory
 import com.techfullymade.afterchime.data.local.AfterchimeDatabase
 import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
+import com.techfullymade.afterchime.data.local.entity.InventoryItemEntity
 import com.techfullymade.afterchime.data.local.entity.ListenerAccessState
 import com.techfullymade.afterchime.data.local.entity.ListenerAccessStateEntity
 import com.techfullymade.afterchime.data.local.entity.ObservationState
@@ -129,6 +130,14 @@ class LocalRepositoryTest {
         rotationDegrees = 217,
       ),
     )
+    database.inventoryItemDao().insert(
+      inventoryItem(
+        specimenId = specimenId,
+        localDate = localDate,
+        tier = Tier.EXCEPTIONAL,
+        createdAtEpochMillis = 1_759_507_200_000L,
+      ),
+    )
 
     val initialMuseum = museumRepository.specimens.first()
     val initialFormation = formationRepository.observe(localDate).first()
@@ -179,16 +188,49 @@ class LocalRepositoryTest {
         rotationDegrees = 217,
       ),
     )
+    database.inventoryItemDao().insert(
+      inventoryItem(
+        specimenId = specimenId,
+        localDate = localDate,
+        tier = Tier.RARE,
+      ),
+    )
 
     assertEquals(SpecimenLockResult.Unrevealed, museumRepository.setLocked(specimenId, locked = true))
     assertFalse(museumRepository.specimens.first().single().isLocked)
 
     formationRepository.reveal(specimenId, 1_759_680_000_000L)
-
-    assertEquals(SpecimenLockResult.Changed(isLocked = true), museumRepository.setLocked(specimenId, locked = true))
-    assertEquals(SpecimenLockResult.AlreadySet(isLocked = true), museumRepository.setLocked(specimenId, locked = true))
+    assertEquals(SpecimenLockResult.Changed(true), museumRepository.setLocked(specimenId, locked = true))
     assertTrue(museumRepository.specimens.first().single().isLocked)
-    assertEquals(SpecimenLockResult.Changed(isLocked = false), museumRepository.setLocked(specimenId, locked = false))
+    assertTrue(database.specimenDao().getBySpecimenId(specimenId)?.isLocked == true)
+    assertEquals(SpecimenLockResult.AlreadySet(true), museumRepository.setLocked(specimenId, locked = true))
+
+    assertEquals(SpecimenLockResult.Changed(false), museumRepository.setLocked(specimenId, locked = false))
     assertFalse(museumRepository.specimens.first().single().isLocked)
+    assertFalse(database.specimenDao().getBySpecimenId(specimenId)?.isLocked == true)
   }
+
+  private fun inventoryItem(
+    specimenId: String,
+    localDate: LocalDate,
+    tier: Tier,
+    createdAtEpochMillis: Long = 1_759_593_600_000L,
+  ) = InventoryItemEntity(
+    itemId = specimenId,
+    sourceSpecimenId = specimenId,
+    anchoredLocalDate = localDate.toString(),
+    generatorVersion = 1,
+    createdAtEpochMillis = createdAtEpochMillis,
+    revealedAtEpochMillis = null,
+    collectibleState = CollectibleState.ORDINARY,
+    provenanceCount = 1,
+    family = Family.GEODE,
+    tier = tier,
+    hueDegrees = 143,
+    strataCount = 11,
+    inclusionDensityPercent = 72,
+    reliefPercent = 63,
+    rotationDegrees = 217,
+    consumedByMutationId = null,
+  )
 }

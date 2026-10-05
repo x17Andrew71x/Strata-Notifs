@@ -44,7 +44,7 @@ data class MuseumUiState(
     get() = specimens.asSequence()
       .filter { it.revealedAtEpochMillis != null }
       .filter { tierFilter.tier == null || it.tier == tierFilter.tier }
-      .sortedWith(compareByDescending<MuseumSpecimen> { it.anchoredLocalDate }.thenBy { it.id })
+      .sortedWith(compareByDescending<MuseumSpecimen> { it.createdAtEpochMillis }.thenBy { it.id })
       .toList()
 }
 
