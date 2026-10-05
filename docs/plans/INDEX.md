@@ -58,6 +58,8 @@
 
 - **2026-10-05 — Museum lock slice:** Added Room v4 local favourite locks with a forward v3→v4 migration, false-by-default schema state, revealed-only mutation guard, and idempotent local outcomes. Museum detail now exposes a deliberate accessible lock/unlock control; protection is available to the upcoming combine/donation flows without adding a network, account, analytics or notification-data dependency. Focused Room/repository/ViewModel/detail tests, the isolated full `scripts/check.sh` gate, and development Android test-APK compilation passed. Runtime migration execution remains a device/AVD acceptance boundary.
 
+- **2026-10-05 — Combine eligibility slice:** Added the side-effect-free restoration rule for exactly three distinct, revealed, unlocked, family/tier/state-identical local specimens: ordinary specimens can become Restored and Restored specimens can become Centre Pieces; Centre Pieces, duplicate selections and mixed inputs are rejected. Worlds remain cosmetic renderers rather than a separate inventory class. Four focused unit tests, privacy regression checks, and isolated Afterchime-Builder Android lint/APK assembly passed. The later transactional consumption, provenance persistence and confirmation UI remain deliberately pending.
+
 Patch versions are used whenever a phase requires fixes after its coherent capability lands. Milestone numbers express ordering, not a target to reach artificially.
 
 ## Execution order
