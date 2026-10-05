@@ -15,8 +15,11 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.JavaScriptReplyProxy
@@ -25,6 +28,8 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
 import com.techfullymade.afterchime.ui.AfterchimeApp
+import com.techfullymade.afterchime.ui.museum.MuseumScreen
+import com.techfullymade.afterchime.ui.museum.MuseumViewModel
 import com.techfullymade.afterchime.ui.theme.AfterchimeTheme
 import org.json.JSONObject
 
@@ -63,6 +68,9 @@ internal fun shouldFallbackFromHttpError(
 ): Boolean = isMainFrame && statusCode >= 400 && !usingLocalShell
 
 class MainActivity : ComponentActivity() {
+  private val museumViewModel: MuseumViewModel by viewModels {
+    MuseumViewModel.factory((application as AfterchimeApplication).museumRepository)
+  }
   private lateinit var shell: WebView
   private lateinit var assetLoader: WebViewAssetLoader
   private var replyProxy: JavaScriptReplyProxy? = null
@@ -85,6 +93,7 @@ class MainActivity : ComponentActivity() {
     )
     configureWebView()
     setContent {
+      val museumState by museumViewModel.uiState.collectAsState()
       AfterchimeTheme {
         AfterchimeApp(
           onEnableNotificationAccess = { openNotificationAccessSettings() },
@@ -92,6 +101,13 @@ class MainActivity : ComponentActivity() {
             AndroidView(
               factory = { shell },
               modifier = Modifier.fillMaxSize(),
+            )
+          },
+          museumContent = {
+            MuseumScreen(
+              state = museumState,
+              onTierFilterSelected = museumViewModel::selectTierFilter,
+              onSpecimenSelected = museumViewModel::selectSpecimen,
             )
           },
         )

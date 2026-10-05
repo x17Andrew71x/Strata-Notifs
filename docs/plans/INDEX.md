@@ -5,7 +5,7 @@
 **Canonical product contract:** [`../PRODUCT_SPEC.md`](../PRODUCT_SPEC.md)<br>
 **Integration branch:** `dev`<br>
 **Current milestone:** `0.4.0`<br>
-**Last revised:** 2026-10-04
+**Last revised:** 2026-10-05
 
 ## Version milestones
 
@@ -52,6 +52,7 @@
 - **2026-10-04 — Museum, worlds and UI Task 2:** Added the native Compose shell with exactly four ordered roots, root-only bottom navigation, validated content-free nested routes, contextual and system back handling, saved-state restoration, and explicit TalkBack labels while retaining the hardened web shell as Today content. The isolated full gate passed privacy, formatting, lint, typecheck, 24 server tests, 17 web tests, both web/server builds, 77 Android JVM tests, Android lint and development APK assembly. Task 3 (Today formation screen) is next; rendered native acceptance remains open because no device or AVD is available.
 - **2026-10-04 — Museum, worlds and UI Task 3 formation slice:** Added a privacy-reduced Compose formation renderer, state holder and reveal presentation with explicit awaiting, quiet, noisy, disconnected, unobserved, sealed, unrevealed and revealed states. The UI receives only the local `FormationSnapshot` boundary, never notification content, source tokens or package identity; a pending reveal suppresses duplicate actions and reduced/background motion remains static. The hardened remote Today shell remains the live integration from Task 2 while the native route is completed incrementally. The isolated final gate passed privacy, formatting, lint/typecheck, 41 server/web tests, 86 Android JVM tests, Android lint and development APK assembly. Physical Android/AVD visual acceptance remains open because neither is available.
 - **2026-10-04 — Museum, worlds and UI Task 4:** Added a platform-neutral, deterministic launch-world renderer contract and Compose canvas executor for Primeval Strata, Deep Space, Botanical Archive and The Abyss. Renderer input is limited to safe sealed generator output; the four worlds preserve specimen identity/tier without exposing package, source-token or count fields. Structural goldens cover phone, tablet and export targets, and Robolectric mounts every accessible world canvas. The isolated Afterchime-Builder passed renderer tests, Android lint and development APK assembly; privacy and formatting checks passed. Physical Android/AVD visual acceptance remains open because neither is available. Task 5 (museum and specimen detail) is next.
+- **2026-10-05 — Museum browsing slice:** Added the local Museum root with a lazy Primeval-rendered specimen grid, concise tier filters and accessible persistent selection. Only revealed local specimens enter the collection; queued reveal work stays out of the museum, selection survives a temporary filter and clears only when local ownership disappears. This surface accepts no network, analytics, account or notification dependency. Five focused Museum UI tests and one ViewModel test, affected shell/navigation tests, privacy checks, formatting, Android lint and development APK assembly passed on the isolated Afterchime-Builder. Task 5 detail, lock, combine/donate eligibility and sharing remains next.
 
 Patch versions are used whenever a phase requires fixes after its coherent capability lands. Milestone numbers express ordering, not a target to reach artificially.
 

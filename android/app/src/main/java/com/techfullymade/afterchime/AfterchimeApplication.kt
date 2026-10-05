@@ -8,6 +8,8 @@ import com.techfullymade.afterchime.capture.NotificationReducer
 import com.techfullymade.afterchime.capture.ObservationRepository
 import com.techfullymade.afterchime.capture.ObservationRuntimeRegistry
 import com.techfullymade.afterchime.data.local.AfterchimeDatabase
+import com.techfullymade.afterchime.domain.LocalMuseumRepository
+import com.techfullymade.afterchime.domain.MuseumRepository
 import com.techfullymade.afterchime.sealing.RoomSealDayStore
 import com.techfullymade.afterchime.sealing.SealDayRuntimeRegistry
 import com.techfullymade.afterchime.sealing.SealDayUseCase
@@ -33,6 +35,7 @@ class AfterchimeApplication : Application() {
   }
 
   internal val userPreferences: DataStoreUserPreferences by lazy { DataStoreUserPreferences(this) }
+  internal val museumRepository: MuseumRepository by lazy { LocalMuseumRepository(database) }
 
   override fun onCreate() {
     super.onCreate()

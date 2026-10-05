@@ -62,6 +62,7 @@ private val afterchimeNavGraphSaver = Saver<AfterchimeNavGraph, List<String>>(
 fun AfterchimeApp(
   onEnableNotificationAccess: () -> Unit,
   todayContent: (@Composable () -> Unit)? = null,
+  museumContent: (@Composable () -> Unit)? = null,
   initialNavigation: AfterchimeNavGraph = AfterchimeNavGraph.initial(),
 ) {
   var navigation by rememberSaveable(stateSaver = afterchimeNavGraphSaver) {
@@ -107,7 +108,24 @@ fun AfterchimeApp(
           }
         }
 
-        RootDestination.MUSEUM,
+        RootDestination.MUSEUM -> {
+          if (museumContent == null) {
+            RootPlaceholder(
+              destination = navigation.selectedRoot,
+              modifier = Modifier.padding(insets),
+            )
+          } else {
+            Box(
+              modifier = Modifier
+                .fillMaxSize()
+                .padding(insets)
+                .testTag("root-content-museum"),
+            ) {
+              museumContent()
+            }
+          }
+        }
+
         RootDestination.COMMUNITY,
         RootDestination.MORE -> RootPlaceholder(
           destination = navigation.selectedRoot,
