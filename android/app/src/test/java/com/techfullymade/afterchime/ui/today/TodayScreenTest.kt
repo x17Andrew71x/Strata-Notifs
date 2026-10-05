@@ -72,7 +72,7 @@ class TodayScreenTest {
 
     composeRule.onNodeWithText("Observation paused").assertExists()
     composeRule.onNodeWithText("Today will stay separate from a quiet day until access returns.").assertExists()
-    composeRule.onNodeWithText("Open notification settings").assertExists()
+    composeRule.onNodeWithText("Choose included apps").assertExists()
   }
 
   @Test

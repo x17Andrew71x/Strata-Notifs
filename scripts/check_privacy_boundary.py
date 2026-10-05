@@ -17,9 +17,12 @@ REDUCER_RAW_IDENTITY_ALLOWLIST = Path(
 REDUCER_RAW_IDENTITY_PATTERNS = (
     re.compile(r"^val rawPackageName = statusBarNotification\.packageName$"),
     re.compile(r"^if \(rawPackageName == ownPackageName\) \{$"),
+    re.compile(r"^if \(isBlockedSensitiveSource\(rawPackageName\)\) \{$"),
     re.compile(r"^sourceDigest = sourceDigest\(rawPackageName\),$"),
     re.compile(r"^private fun sourceDigest\(rawPackageName: String\): ByteArray \{$"),
     re.compile(r"^return mac\.doFinal\(rawPackageName\.toByteArray\(UTF_8\)\)$"),
+    re.compile(r"^private fun isBlockedSensitiveSource\(rawPackageName: String\): Boolean =$"),
+    re.compile(r"^\.digest\(rawPackageName\.toByteArray\(UTF_8\)\)$"),
 )
 
 

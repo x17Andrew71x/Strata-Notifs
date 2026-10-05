@@ -32,7 +32,7 @@
   <string name="specimen_detail_missing_title">Specimen unavailable</string>
   <string name="specimen_detail_missing_body">This specimen is no longer in your museum.</string>
   <string name="today_subtitle">Turn the rhythm of your day into one-of-a-kind specimens.</string>
-  <string name="permission_explanation">Android only offers one broad notification-access switch. Afterchime ignores message text, names, images, and actions; it keeps only arrival time and a broad category on this device.</string>
+  <string name="permission_explanation">Android shows one broad notification-access switch. Fresh installs start with no notification types selected. Conversations, silent, and ongoing notifications stay blocked; you choose which alerting apps can contribute. Common financial, password, authenticator, and VPN apps are always ignored on this device. Afterchime never keeps notification text, names, images, or actions.</string>
   <string name="enable_notification_access">Start collecting</string>
   <string name="specimen_preview_description">A preview of a specimen waiting to be discovered</string>
   <string name="today_formation_description">Today’s private formation</string>
@@ -42,7 +42,7 @@
   <string name="observation_paused_title">Observation paused</string>
   <string name="observation_paused_body">Today will stay separate from a quiet day until access returns.</string>
   <string name="observation_revoked_body">Notification access was removed. This day will stay unobserved until access returns.</string>
-  <string name="open_notification_settings">Open notification settings</string>
+  <string name="open_notification_settings">Choose included apps</string>
   <string name="unobserved_day_title">Unobserved day</string>
   <string name="unobserved_day_body">This day was not observed, so no specimen was made.</string>
   <string name="sealed_formation_title">Sealed formation</string>

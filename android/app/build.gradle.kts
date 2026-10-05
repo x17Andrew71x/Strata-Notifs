@@ -33,7 +33,7 @@ android {
 
   defaultConfig {
     applicationId = "com.techfullymade.afterchime"
-    minSdk = 26
+    minSdk = 31
     targetSdk = 36
     versionCode = 1001
     versionName = "0.1.0"

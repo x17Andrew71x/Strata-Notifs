@@ -2,6 +2,7 @@
   const state = document.getElementById("state");
   const restrictedHelp = document.getElementById("restricted-help");
   const appInfo = document.getElementById("app-info");
+  const beginLabel = document.getElementById("begin-label");
   const send = (type) => {
     const bridge = window.AfterchimeBridge;
     if (!bridge) return false;
@@ -18,10 +19,13 @@
         typeof message.notificationAccess === "boolean"
       ) {
         state.textContent = message.notificationAccess
-          ? "Notification access is on. Your first specimen is taking shape."
+          ? "Notification access is on. Review which alerting apps may contribute."
           : "Notification access is off. You can turn it on whenever you are ready.";
         restrictedHelp.hidden = message.notificationAccess;
         appInfo.hidden = message.appDetailsAction !== true;
+        beginLabel.textContent = message.notificationAccess
+          ? "Choose included apps"
+          : "Choose apps & start";
       }
       if (message.type === "action.result") {
         if (message.action === "notificationAccess.openAppDetails") {
@@ -41,7 +45,7 @@
   send("capabilities.get");
   document.getElementById("begin").addEventListener("click", () => {
     state.textContent = send("notificationAccess.openSettings")
-      ? "Opening Android notification access. If the switch is blocked, use Open app info first."
+      ? "Opening the included-app and notification-type controls."
       : "Open Android Settings and choose Notification access for Afterchime to begin.";
   });
   document.getElementById("app-info").addEventListener("click", () => {

@@ -104,20 +104,20 @@ function App() {
           <div className="privacy-note">
             <span aria-hidden="true">◈</span>
             <p>
-              Android only offers one broad notification-access switch. Afterchime ignores message
-              text, names, images, and actions; it keeps only arrival time and a broad category on
-              this device.
+              Android only offers one broad notification-access switch. On Android 12 and newer,
+              fresh installs start with no notification types selected. Conversations, silent, and
+              ongoing notifications stay blocked; you choose which alerting apps can contribute.
+              Common financial, password, authenticator, and VPN apps are always ignored on-device.
+              Afterchime never keeps notification text, names, images, or actions.
             </p>
           </div>
           <button type="button" className="primary-action" onClick={begin}>
-            <span>Start collecting</span>
-            <span className="arrow" aria-hidden="true">
-              ↗
-            </span>
+            <span>{access === true ? "Choose included apps" : "Choose apps & start"}</span>
+            <span aria-hidden="true">↗</span>
           </button>
           <p className="access-state" aria-live="polite">
             {access === true
-              ? "Notification access is on. Your first specimen is taking shape."
+              ? "Notification access is on. Review which alerting apps may contribute."
               : access === false
                 ? "Notification access is off. You can turn it on whenever you are ready."
                 : "Your collection is private, personal, and ready when you are."}

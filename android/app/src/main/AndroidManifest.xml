@@ -26,6 +26,14 @@
       <intent-filter>
         <action android:name="android.service.notification.NotificationListenerService" />
       </intent-filter>
+      <!-- Fresh installs receive nothing until the user selects a type. 1,4,8 are
+           Android's conversation, silent, and ongoing filter flags; they stay disabled. -->
+      <meta-data
+        android:name="android.service.notification.default_filter_types"
+        android:value="" />
+      <meta-data
+        android:name="android.service.notification.disabled_filter_types"
+        android:value="1,4,8" />
     </service>
   </application>
 </manifest>

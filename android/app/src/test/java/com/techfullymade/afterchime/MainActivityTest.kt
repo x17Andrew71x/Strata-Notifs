@@ -1,9 +1,13 @@
 package com.techfullymade.afterchime
 
+import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
+import android.service.notification.NotificationListenerService
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import com.techfullymade.afterchime.capture.StrataNotificationListenerService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -87,11 +91,48 @@ class MainActivityTest {
   }
 
   @Test
-  fun `notification settings action opens Android listener settings`() {
+  fun `notification settings action opens this listeners app and type filters`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
     assertTrue(activity.openNotificationAccessSettings())
     val startedIntent = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
-    assertEquals(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS, startedIntent?.action)
+    assertEquals(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS, startedIntent?.action)
+    assertEquals(
+      ComponentName(activity, StrataNotificationListenerService::class.java).flattenToString(),
+      startedIntent?.getStringExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME),
+    )
+  }
+
+  @Test
+  @Suppress("DEPRECATION")
+  fun `Android 12 listener starts closed and permanently disables sensitive notification types`() {
+    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    val serviceInfo = activity.packageManager.getServiceInfo(
+      ComponentName(activity, StrataNotificationListenerService::class.java),
+      PackageManager.GET_META_DATA,
+    )
+
+    assertEquals(31, activity.applicationInfo.minSdkVersion)
+    assertEquals(
+      "",
+      serviceInfo.metaData.getString(NotificationListenerService.META_DATA_DEFAULT_FILTER_TYPES),
+    )
+    val disabledTypes =
+      serviceInfo.metaData
+        .getString(NotificationListenerService.META_DATA_DISABLED_FILTER_TYPES)
+        ?.split(",")
+        ?.map(String::toInt)
+        ?.toSet()
+    assertEquals(
+      setOf(
+        NotificationListenerService.FLAG_FILTER_TYPE_CONVERSATIONS,
+        NotificationListenerService.FLAG_FILTER_TYPE_SILENT,
+        NotificationListenerService.FLAG_FILTER_TYPE_ONGOING,
+      ),
+      disabledTypes,
+    )
+    assertFalse(
+      disabledTypes.orEmpty().contains(NotificationListenerService.FLAG_FILTER_TYPE_ALERTING),
+    )
   }
 
   @Test
@@ -124,6 +165,10 @@ class MainActivityTest {
     val bundledPage = activity.assets.open("web/index.html").bufferedReader().use { it.readText() }
     val bundledScript = activity.assets.open("web/assets/app.js").bufferedReader().use { it.readText() }
     assertTrue(bundledPage.contains("Android only offers one broad notification-access switch"))
+    assertTrue(bundledPage.contains("fresh installs start with no notification types selected"))
+    assertTrue(bundledPage.contains("financial, password, authenticator, and VPN apps"))
+    assertTrue(bundledPage.contains("Choose apps &amp; start"))
+    assertTrue(bundledScript.contains("Choose included apps"))
     assertTrue(bundledPage.contains("Allow restricted settings"))
     assertTrue(bundledPage.contains("Open app info"))
     assertTrue(bundledScript.contains("notificationAccess.openAppDetails"))

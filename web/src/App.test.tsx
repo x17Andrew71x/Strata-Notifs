@@ -40,11 +40,15 @@ describe("onboarding shell", () => {
     expect(
       screen.getByText(/Turn the rhythm of your day into one-of-a-kind specimens/i),
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: /start collecting/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /choose apps & start/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /open app info/i })).toBeNull();
     expect(
       screen.getByText(/Android only offers one broad notification-access switch/i),
     ).toBeTruthy();
+    expect(
+      screen.getByText(/fresh installs start with no notification types selected/i),
+    ).toBeTruthy();
+    expect(screen.getByText(/financial, password, authenticator, and VPN apps/i)).toBeTruthy();
     expect(screen.getByText(/tap .*Allow restricted settings/i)).toBeTruthy();
     expect(document.body.textContent?.toLowerCase()).not.toContain("strata");
   });
@@ -68,7 +72,7 @@ describe("onboarding shell", () => {
       );
     });
     expect(screen.getByText(/Notification access is on/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /start collecting/i }));
+    fireEvent.click(screen.getByRole("button", { name: /choose included apps/i }));
     const action = native.postMessage.mock.calls[1]?.[0];
     expect(action).toBeDefined();
     expect(JSON.parse(action ?? "null")).toMatchObject({
@@ -126,7 +130,7 @@ describe("onboarding shell", () => {
   it("does not pretend a browser has native notification settings", () => {
     Object.defineProperty(window, "AfterchimeBridge", { configurable: true, value: undefined });
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /start collecting/i }));
+    fireEvent.click(screen.getByRole("button", { name: /choose apps & start/i }));
     expect(screen.getByText(/Open Android Settings/)).toBeTruthy();
   });
 });

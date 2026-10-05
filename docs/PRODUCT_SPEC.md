@@ -7,7 +7,7 @@
 **Platform:** Android / Google Play<br>
 **Current target:** Development beta; production deployment requires Andrew's later approval<br>
 **Initial version:** `0.1.0`<br>
-**Last revised:** 2026-10-02
+**Last revised:** 2026-10-05
 
 ---
 
@@ -104,6 +104,7 @@ This is a preliminary screen, not legal clearance or a domain purchase. A broade
 - Development application ID: `com.techfullymade.afterchime.dev`
 - Development display name: `Afterchime Dev`
 - Production display name: `Afterchime`
+- Minimum supported version: Android 12 / API 31, required for enforceable listener-type filters.
 
 Development and production builds must be installable together and use different API base URLs, icons and signing material.
 
@@ -117,14 +118,16 @@ Copy is short, calm and concrete. Prefer “Seal today’s layer” to “Embark
 
 ### 5.1 Daily formation
 
-1. Android's `NotificationListenerService` observes eligible notification-post events.
-2. The app immediately reduces each event to an approved local record: timestamp bucket, coarse Android category and a device-local pseudonymous source colour.
-3. Ongoing notifications, group summaries, the app's own notifications and configured exclusions do not count.
-4. Today's formation updates locally. No network is required.
-5. At local midnight, or during the next catch-up opportunity, the previous local day seals.
-6. A versioned deterministic generator converts the day's summary into one specimen.
-7. The user may reveal the specimen immediately or later; unrevealed specimens remain safely queued.
-8. The specimen enters the museum and may be displayed, combined, donated or re-rendered in another owned world.
+1. A fresh install's `NotificationListenerService` starts with no notification types selected.
+2. Android's listener controls permanently disable ongoing, conversation and silent notifications. The user explicitly enables alerting notifications and chooses which apps may contribute.
+3. A non-overridable local safety policy rejects a curated set of common financial, payment, cryptocurrency-wallet, password-manager, authenticator and VPN sources before notification fields are inspected. This is defence in depth, not an exhaustive catalogue; users can exclude any additional app in Android's system controls.
+4. The app immediately reduces each eligible event to an approved local record: timestamp bucket, coarse Android category and a device-local pseudonymous source colour.
+5. Group summaries, the app's own notifications, the built-in safety policy and user-selected system exclusions do not count.
+6. Today's formation updates locally. No network is required.
+7. At local midnight, or during the next catch-up opportunity, the previous local day seals.
+8. A versioned deterministic generator converts the day's summary into one specimen.
+9. The user may reveal the specimen immediately or later; unrevealed specimens remain safely queued.
+10. The specimen enters the museum and may be displayed, combined, donated or re-rendered in another owned world.
 
 ### 5.2 No-notification and missing days
 
@@ -416,7 +419,7 @@ Users may export a specimen, diorama or completed community artwork as an image.
 
 ### 11.1 Data minimisation boundary
 
-The notification listener may transiently see Android notification objects, but code must never persist or transmit:
+The notification listener may transiently see Android notification objects that pass the user's Android filters, but code must never persist or transmit:
 
 - title or body text;
 - sender/contact identity;
@@ -427,7 +430,7 @@ The notification listener may transiently see Android notification objects, but 
 - notification keys;
 - exact content-bearing extras.
 
-Raw package identity is used only in memory to derive a device-local salted source token and colour, then discarded.
+Raw package identity is used only inside the reducer call stack: first to compare a one-way digest against the built-in safety policy, then to derive a device-local salted source token and colour. It is immediately discarded and never logged, persisted, included in analytics or transmitted. The built-in digest catalogue contains no observed-device inventory and never leaves the application binary.
 
 ### 11.2 Local-only mode
 
@@ -449,7 +452,8 @@ Declining one scope must not silently enable another. Consent changes are themse
 - Export local museum metadata.
 - Delete online installation/account data.
 - Clear local history with confirmation.
-- Revoke notification access through an Android settings shortcut.
+- Open Afterchime's Android listener-detail screen to choose eligible alerting apps or revoke notification access.
+- Rely on the built-in sensitive-source policy even if Android's per-app filter is later broadened; the policy is not user-overridable at runtime.
 
 ### 11.5 Retention
 

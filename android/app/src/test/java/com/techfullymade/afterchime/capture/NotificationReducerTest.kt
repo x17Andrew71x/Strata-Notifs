@@ -160,6 +160,94 @@ class NotificationReducerTest {
   }
 
   @Test
+  fun `always rejects built in high sensitivity financial credential authenticator and VPN sources`() {
+    val sensitiveSources = listOf(
+      // Financial and payment apps.
+      packageName("com", "chase", "sig", "android"),
+      packageName("com", "infonow", "bofa"),
+      packageName("com", "wf", "wellsfargomobile"),
+      packageName("com", "citi", "citimobile"),
+      packageName("com", "konylabs", "capitalone"),
+      packageName("com", "usbank", "mobilebanking"),
+      packageName("com", "pnc", "ecommerce", "mobile"),
+      packageName("com", "tdbank"),
+      packageName("com", "truist", "mobile"),
+      packageName("com", "clairmail", "fth"),
+      packageName("com", "ally", "MobileBanking"),
+      packageName("com", "navyfederal", "android"),
+      packageName("com", "usaa", "mobile", "android", "usaa"),
+      packageName("com", "americanexpress", "android", "acctsvcs", "us"),
+      packageName("com", "discoverfinancial", "mobile"),
+      packageName("com", "schwab", "mobile"),
+      packageName("com", "fidelity", "android"),
+      packageName("com", "vanguard"),
+      packageName("com", "robinhood", "android"),
+      packageName("com", "coinbase", "android"),
+      packageName("com", "gemini", "android", "app"),
+      packageName("com", "kraken", "invest", "app"),
+      packageName("com", "squareup", "cash"),
+      packageName("com", "venmo"),
+      packageName("com", "paypal", "android", "p2pmobile"),
+      packageName("com", "google", "android", "apps", "walletnfcrel"),
+      packageName("com", "samsung", "android", "spay"),
+      packageName("com", "onedebit", "chime"),
+      packageName("com", "sofi", "mobile"),
+      packageName("com", "creditkarma", "mobile"),
+      packageName("io", "metamask"),
+      packageName("org", "toshi"),
+      packageName("com", "wallet", "crypto", "trustapp"),
+      packageName("exodusmovement", "exodus"),
+      packageName("app", "phantom"),
+      // Password managers and authenticators.
+      packageName("com", "onepassword", "android"),
+      packageName("com", "x8bit", "bitwarden"),
+      packageName("com", "lastpass", "lpandroid"),
+      packageName("com", "dashlane"),
+      packageName("com", "callpod", "android_apps", "keeper"),
+      packageName("proton", "android", "pass"),
+      packageName("io", "enpass", "app"),
+      packageName("com", "nordpass", "android", "app", "password", "manager"),
+      packageName("com", "siber", "roboform"),
+      packageName("com", "kunzisoft", "keepass", "free"),
+      packageName("com", "google", "android", "apps", "authenticator2"),
+      packageName("com", "azure", "authenticator"),
+      packageName("com", "authy", "authy"),
+      packageName("com", "duosecurity", "duomobile"),
+      packageName("com", "okta", "android", "auth"),
+      packageName("com", "lastpass", "authenticator"),
+      packageName("com", "beemdevelopment", "aegis"),
+      packageName("com", "yubico", "yubioath"),
+      packageName("com", "rsa", "securidapp"),
+      // VPN and private-network apps.
+      packageName("com", "nordvpn", "android"),
+      packageName("com", "expressvpn", "vpn"),
+      packageName("com", "surfshark", "vpnclient", "android"),
+      packageName("ch", "protonvpn", "android"),
+      packageName("net", "mullvad", "mullvadvpn"),
+      packageName("com", "windscribe", "vpn"),
+      packageName("com", "privateinternetaccess", "android"),
+      packageName("de", "mobileconcepts", "cyberghost"),
+      packageName("com", "tunnelbear", "android"),
+      packageName("com", "wireguard", "android"),
+      packageName("net", "openvpn", "openvpn"),
+      packageName("com", "cloudflare", "onedotonedotonedotone"),
+      packageName("com", "tailscale", "ipn"),
+      packageName("org", "mozilla", "firefox", "vpn"),
+      packageName("com", "bitdefender", "vpn"),
+      packageName("com", "symantec", "securewifi"),
+    )
+
+    assertEquals(70, sensitiveSources.size)
+    sensitiveSources.forEach { source ->
+      assertNull(
+        "Expected the built-in safety policy to reject every curated source",
+        reducer().reduce(notification(source, "email")),
+      )
+    }
+    assertTrue(reducer().reduce(notification(packageName("com", "example", "calendar"), "event")) != null)
+  }
+
+  @Test
   fun `unknown oversized category collapses to other without appearing in reduced output`() {
     val rawCategory = "opaque-" + "x".repeat(131_072)
 
@@ -179,7 +267,9 @@ class NotificationReducerTest {
     excludedRawCategories = excludedRawCategories,
   )
 
-  private fun packageName(suffix: String): String = listOf("com", "example", suffix).joinToString(".")
+  private fun packageName(suffix: String): String = packageName("com", "example", suffix)
+
+  private fun packageName(vararg segments: String): String = segments.joinToString(".")
 
   @Suppress("DEPRECATION")
   private fun notification(

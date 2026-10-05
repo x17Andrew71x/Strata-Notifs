@@ -1,6 +1,7 @@
 package com.techfullymade.afterchime
 
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -319,14 +320,24 @@ class MainActivity : ComponentActivity() {
 
   internal fun openNotificationAccessSettings(): Boolean {
     return try {
-      startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+      startActivity(
+        Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS).putExtra(
+          Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
+          ComponentName(this, StrataNotificationListenerService::class.java).flattenToString(),
+        ),
+      )
       true
     } catch (_: ActivityNotFoundException) {
       try {
-        startActivity(Intent(Settings.ACTION_SETTINGS))
+        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         true
       } catch (_: ActivityNotFoundException) {
-        false
+        try {
+          startActivity(Intent(Settings.ACTION_SETTINGS))
+          true
+        } catch (_: ActivityNotFoundException) {
+          false
+        }
       }
     }
   }
