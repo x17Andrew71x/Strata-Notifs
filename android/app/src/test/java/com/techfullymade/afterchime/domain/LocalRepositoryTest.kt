@@ -153,4 +153,42 @@ class LocalRepositoryTest {
     assertEquals(1_759_593_600_000L, revealed.revealedAtEpochMillis)
     assertTrue(MuseumSpecimen::class.java.declaredFields.none { it.type.name.contains("Entity") })
   }
+
+  @Test
+  fun `revealed specimen lock is durable, local and idempotent`() = runBlocking {
+    val localDate = LocalDate.parse("2026-10-03")
+    val specimenId = "specimen-lockable"
+    database.specimenDao().insert(
+      SpecimenEntity(
+        specimenId = specimenId,
+        anchoredLocalDate = localDate.toString(),
+        generatorVersion = 1,
+        createdAtEpochMillis = 1_759_593_600_000L,
+        revealedAtEpochMillis = null,
+      ),
+    )
+    database.specimenOutputDao().insert(
+      SpecimenOutputEntity(
+        specimenId = specimenId,
+        family = Family.GEODE,
+        tier = Tier.RARE,
+        hueDegrees = 143,
+        strataCount = 11,
+        inclusionDensityPercent = 72,
+        reliefPercent = 63,
+        rotationDegrees = 217,
+      ),
+    )
+
+    assertEquals(SpecimenLockResult.Unrevealed, museumRepository.setLocked(specimenId, locked = true))
+    assertFalse(museumRepository.specimens.first().single().isLocked)
+
+    formationRepository.reveal(specimenId, 1_759_680_000_000L)
+
+    assertEquals(SpecimenLockResult.Changed(isLocked = true), museumRepository.setLocked(specimenId, locked = true))
+    assertEquals(SpecimenLockResult.AlreadySet(isLocked = true), museumRepository.setLocked(specimenId, locked = true))
+    assertTrue(museumRepository.specimens.first().single().isLocked)
+    assertEquals(SpecimenLockResult.Changed(isLocked = false), museumRepository.setLocked(specimenId, locked = false))
+    assertFalse(museumRepository.specimens.first().single().isLocked)
+  }
 }

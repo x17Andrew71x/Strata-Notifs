@@ -97,6 +97,7 @@ class AfterchimeDatabaseTest {
         "anchored_local_date",
         "created_at_epoch_millis",
         "generator_version",
+        "is_locked",
         "revealed_at_epoch_millis",
         "specimen_id",
       ),

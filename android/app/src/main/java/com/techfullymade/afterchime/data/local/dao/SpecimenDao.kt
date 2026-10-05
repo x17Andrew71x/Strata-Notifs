@@ -22,6 +22,8 @@ data class StoredSpecimenWithOutput(
   val createdAtEpochMillis: Long,
   @ColumnInfo(name = "revealed_at_epoch_millis")
   val revealedAtEpochMillis: Long?,
+  @ColumnInfo(name = "is_locked")
+  val isLocked: Boolean,
   val family: Family,
   val tier: Tier,
   @ColumnInfo(name = "hue_degrees")
@@ -55,6 +57,7 @@ interface SpecimenDao {
         specimens.generator_version,
         specimens.created_at_epoch_millis,
         specimens.revealed_at_epoch_millis,
+        specimens.is_locked,
         specimen_outputs.family,
         specimen_outputs.tier,
         specimen_outputs.hue_degrees,
@@ -77,6 +80,7 @@ interface SpecimenDao {
         specimens.generator_version,
         specimens.created_at_epoch_millis,
         specimens.revealed_at_epoch_millis,
+        specimens.is_locked,
         specimen_outputs.family,
         specimen_outputs.tier,
         specimen_outputs.hue_degrees,
@@ -101,6 +105,17 @@ interface SpecimenDao {
     """,
   )
   suspend fun markRevealedIfUnrevealed(specimenId: String, revealedAtEpochMillis: Long): Int
+
+  @Query(
+    """
+      UPDATE specimens
+      SET is_locked = :locked
+      WHERE specimen_id = :specimenId
+        AND revealed_at_epoch_millis IS NOT NULL
+        AND is_locked != :locked
+    """,
+  )
+  suspend fun setLockedIfRevealed(specimenId: String, locked: Boolean): Int
 
   @Query("SELECT anchored_local_date FROM specimens WHERE anchored_local_date < :exclusiveLocalDate")
   suspend fun anchoredLocalDatesBefore(exclusiveLocalDate: String): List<String>

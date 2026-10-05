@@ -31,13 +31,14 @@ import java.time.format.FormatStyle
 import java.util.Locale
 
 /**
- * Read-only presentation for one revealed local specimen. Destructive collection actions are added
- * only with their transactional ownership and confirmation flows; this surface never infers them.
+ * Presentation for one revealed local specimen. Favourite protection is an explicit local action;
+ * destructive collection actions arrive only with their transactional ownership and confirmation flows.
  */
 @Composable
 fun SpecimenDetailScreen(
   specimen: MuseumSpecimen,
   onBack: () -> Unit,
+  onSetLocked: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val family = specimen.family.displayName()
@@ -96,6 +97,24 @@ fun SpecimenDetailScreen(
           value = sealedDate,
           modifier = Modifier.testTag("specimen-detail-sealed-date"),
         )
+        if (specimen.isLocked) {
+          DetailFact(
+            label = stringResource(R.string.specimen_detail_lock),
+            value = stringResource(R.string.specimen_detail_locked),
+          )
+        }
+        TextButton(
+          onClick = { onSetLocked(!specimen.isLocked) },
+          modifier = Modifier.testTag("specimen-detail-lock"),
+        ) {
+          Text(
+            if (specimen.isLocked) {
+              stringResource(R.string.specimen_detail_unlock)
+            } else {
+              stringResource(R.string.specimen_detail_lock)
+            },
+          )
+        }
       }
     }
   }

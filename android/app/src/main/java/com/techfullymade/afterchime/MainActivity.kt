@@ -126,7 +126,11 @@ class MainActivity : ComponentActivity() {
             if (specimen == null) {
               MissingSpecimenDetailScreen(onBack = onBack)
             } else {
-              SpecimenDetailScreen(specimen = specimen, onBack = onBack)
+              SpecimenDetailScreen(
+                specimen = specimen,
+                onBack = onBack,
+                onSetLocked = { locked -> museumViewModel.setSpecimenLocked(specimen.id, locked) },
+              )
             }
           },
         )

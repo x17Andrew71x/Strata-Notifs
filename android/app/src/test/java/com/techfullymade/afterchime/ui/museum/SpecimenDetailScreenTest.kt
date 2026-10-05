@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.techfullymade.afterchime.domain.MuseumSpecimen
 import com.techfullymade.afterchime.generation.Family
 import com.techfullymade.afterchime.generation.Tier
@@ -24,13 +25,15 @@ class SpecimenDetailScreenTest {
   val composeRule = createComposeRule()
 
   @Test
-  fun `detail renders only safe specimen presentation and offers contextual back`() {
+  fun `detail renders only safe specimen presentation and offers contextual back and lock`() {
     var backCount = 0
+    val lockRequests = mutableListOf<Boolean>()
     composeRule.setContent {
       AfterchimeTheme(reduceMotion = true) {
         SpecimenDetailScreen(
           specimen = specimen(),
           onBack = { backCount += 1 },
+          onSetLocked = { locked -> lockRequests.add(locked); Unit },
         )
       }
     }
@@ -42,9 +45,31 @@ class SpecimenDetailScreenTest {
     composeRule.onNodeWithText("Sealed").assertExists()
     composeRule.onNodeWithText("private-test-id").assertDoesNotExist()
 
-    composeRule.onNodeWithTag("specimen-detail-back").performClick()
+    composeRule.onNodeWithTag("specimen-detail-lock").performScrollTo().performClick()
+    composeRule.onNodeWithTag("specimen-detail-back").performScrollTo().performClick()
 
+    assertEquals(listOf(true), lockRequests)
     assertEquals(1, backCount)
+  }
+
+  @Test
+  fun `locked specimen offers an explicit unlock action`() {
+    val lockRequests = mutableListOf<Boolean>()
+    composeRule.setContent {
+      AfterchimeTheme(reduceMotion = true) {
+        SpecimenDetailScreen(
+          specimen = specimen().copy(isLocked = true),
+          onBack = {},
+          onSetLocked = { locked -> lockRequests.add(locked); Unit },
+        )
+      }
+    }
+
+    composeRule.onNodeWithText("Locked").assertExists()
+    composeRule.onNodeWithText("Unlock specimen").assertExists()
+    composeRule.onNodeWithTag("specimen-detail-lock").performScrollTo().performClick()
+
+    assertEquals(listOf(false), lockRequests)
   }
 
   private fun specimen() = MuseumSpecimen(

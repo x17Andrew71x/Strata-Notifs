@@ -43,6 +43,22 @@ class MuseumViewModelTest {
     assertNull(viewModel.await { it.specimens == listOf(rare) }.selectedSpecimenId)
   }
 
+  @Test
+  fun `revealed specimen lock updates through the local collection boundary`() = runBlocking {
+    val common = specimen(id = "common", tier = Tier.COMMON)
+    val repository = FakeMuseumRepository(specimens = listOf(common))
+    val viewModel = MuseumViewModel(repository)
+
+    viewModel.await { it.specimens == listOf(common) }
+    viewModel.setSpecimenLocked(common.id, locked = true)
+    advanceMainLooper()
+
+    assertEquals(
+      true,
+      viewModel.await { state -> state.specimens.single().isLocked }.specimens.single().isLocked,
+    )
+  }
+
   private suspend fun MuseumViewModel.await(predicate: (MuseumUiState) -> Boolean): MuseumUiState =
     withTimeout(3_000) { uiState.first(predicate) }
 

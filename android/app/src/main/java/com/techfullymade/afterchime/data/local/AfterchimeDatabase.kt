@@ -25,7 +25,7 @@ import com.techfullymade.afterchime.data.local.entity.SpecimenOutputEntity
     SpecimenOutputEntity::class,
   ],
   exportSchema = true,
-  version = 3,
+  version = 4,
 )
 @TypeConverters(AfterchimeTypeConverters::class)
 abstract class AfterchimeDatabase : RoomDatabase() {
@@ -76,6 +76,12 @@ abstract class AfterchimeDatabase : RoomDatabase() {
           )
           """.trimIndent(),
         )
+      }
+    }
+
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `specimens` ADD COLUMN `is_locked` INTEGER NOT NULL DEFAULT 0")
       }
     }
   }

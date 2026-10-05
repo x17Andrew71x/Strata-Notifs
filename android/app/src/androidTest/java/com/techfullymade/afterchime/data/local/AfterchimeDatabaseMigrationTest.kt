@@ -13,24 +13,39 @@ class AfterchimeDatabaseMigrationTest {
   )
 
   @Test
-  fun versionOneExportedSchemaMigratesToVersionThreeWithoutDestructiveFallback() {
-    val name = "afterchime-v1-to-v3-migration"
+  fun versionOneExportedSchemaMigratesToVersionFourWithoutDestructiveFallback() {
+    val name = "afterchime-v1-to-v4-migration"
 
     migrationHelper.createDatabase(name, 1).close()
     migrationHelper.runMigrationsAndValidate(
       name,
-      3,
+      4,
       true,
       AfterchimeDatabase.MIGRATION_1_2,
       AfterchimeDatabase.MIGRATION_2_3,
+      AfterchimeDatabase.MIGRATION_3_4,
     ).close()
   }
 
   @Test
-  fun versionTwoExportedSchemaMigratesToVersionThreeWithoutDestructiveFallback() {
-    val name = "afterchime-v2-to-v3-migration"
+  fun versionTwoExportedSchemaMigratesToVersionFourWithoutDestructiveFallback() {
+    val name = "afterchime-v2-to-v4-migration"
 
     migrationHelper.createDatabase(name, 2).close()
-    migrationHelper.runMigrationsAndValidate(name, 3, true, AfterchimeDatabase.MIGRATION_2_3).close()
+    migrationHelper.runMigrationsAndValidate(
+      name,
+      4,
+      true,
+      AfterchimeDatabase.MIGRATION_2_3,
+      AfterchimeDatabase.MIGRATION_3_4,
+    ).close()
+  }
+
+  @Test
+  fun versionThreeExportedSchemaMigratesToVersionFourWithoutDestructiveFallback() {
+    val name = "afterchime-v3-to-v4-migration"
+
+    migrationHelper.createDatabase(name, 3).close()
+    migrationHelper.runMigrationsAndValidate(name, 4, true, AfterchimeDatabase.MIGRATION_3_4).close()
   }
 }

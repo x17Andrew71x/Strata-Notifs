@@ -23,6 +23,9 @@
   <string name="specimen_detail_family">Family</string>
   <string name="specimen_detail_tier">Tier</string>
   <string name="specimen_detail_sealed">Sealed</string>
+  <string name="specimen_detail_lock">Lock specimen</string>
+  <string name="specimen_detail_unlock">Unlock specimen</string>
+  <string name="specimen_detail_locked">Locked</string>
   <string name="specimen_detail_missing_title">Specimen unavailable</string>
   <string name="specimen_detail_missing_body">This specimen is no longer in your museum.</string>
   <string name="today_subtitle">Turn the rhythm of your day into one-of-a-kind specimens.</string>

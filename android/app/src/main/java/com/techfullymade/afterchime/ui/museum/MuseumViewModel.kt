@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /** The only collection filters currently backed by sealed local specimen output. */
 enum class MuseumTierFilter(
@@ -82,6 +83,17 @@ class MuseumViewModel(
   fun selectSpecimen(specimenId: String) {
     if (uiState.value.visibleSpecimens.any { it.id == specimenId }) {
       selectedSpecimenId.value = specimenId
+    }
+  }
+
+  fun setSpecimenLocked(specimenId: String, locked: Boolean) {
+    val isRevealedMuseumSpecimen = uiState.value.specimens.any { specimen ->
+      specimen.id == specimenId && specimen.revealedAtEpochMillis != null
+    }
+    if (isRevealedMuseumSpecimen) {
+      viewModelScope.launch {
+        repository.setLocked(specimenId, locked)
+      }
     }
   }
 

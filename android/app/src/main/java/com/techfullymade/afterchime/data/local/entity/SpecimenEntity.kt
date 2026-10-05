@@ -22,6 +22,8 @@ data class SpecimenEntity(
   val createdAtEpochMillis: Long,
   @ColumnInfo(name = "revealed_at_epoch_millis")
   val revealedAtEpochMillis: Long?,
+  @ColumnInfo(name = "is_locked", defaultValue = "0")
+  val isLocked: Boolean = false,
 ) {
   init {
     require(specimenId.isNotBlank())
