@@ -13,9 +13,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -46,6 +48,11 @@ fun MuseumScreen(
   state: MuseumUiState,
   onTierFilterSelected: (MuseumTierFilter) -> Unit,
   onSpecimenSelected: (String) -> Unit,
+  onCombineSpecimenSelected: (String) -> Unit = {},
+  onCancelCombine: () -> Unit = {},
+  onReviewCombine: () -> Unit = {},
+  onDismissCombineConfirmation: () -> Unit = {},
+  onConfirmCombine: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   val screenDescription = stringResource(R.string.museum_collection_description)
@@ -64,6 +71,13 @@ fun MuseumScreen(
       text = stringResource(R.string.museum_title),
       style = MaterialTheme.typography.headlineLarge,
     )
+    if (state.isCombining) {
+      CombineSelectionHeader(
+        state = state,
+        onCancel = onCancelCombine,
+        onReview = onReviewCombine,
+      )
+    }
     if (!state.hasRevealedSpecimens) {
       MuseumEmptyState()
     } else {
@@ -89,12 +103,69 @@ fun MuseumScreen(
           ) { specimen ->
             MuseumSpecimenCard(
               specimen = specimen,
-              selected = specimen.id == state.selectedSpecimenId,
-              onClick = { onSpecimenSelected(specimen.id) },
+              selected = if (state.isCombining) {
+                specimen.id in state.combineSelectionIds
+              } else {
+                specimen.id == state.selectedSpecimenId
+              },
+              enabled = !state.isCombining || state.canSelectForCombine(specimen),
+              onClick = {
+                if (state.isCombining) {
+                  onCombineSpecimenSelected(specimen.id)
+                } else {
+                  onSpecimenSelected(specimen.id)
+                }
+              },
             )
           }
         }
       }
+    }
+  }
+  state.combineConfirmationOutputState?.let { outputState ->
+    CombineDialog(
+      outputState = outputState,
+      onConfirm = onConfirmCombine,
+      onDismiss = onDismissCombineConfirmation,
+    )
+  }
+}
+
+@Composable
+private fun CombineSelectionHeader(
+  state: MuseumUiState,
+  onCancel: () -> Unit,
+  onReview: () -> Unit,
+) {
+  Column(
+    verticalArrangement = Arrangement.spacedBy(AfterchimeSpacing.controlGap),
+  ) {
+    Text(
+      text = stringResource(R.string.museum_combine_selection_title),
+      style = MaterialTheme.typography.titleLarge,
+    )
+    Text(
+      text = stringResource(R.string.museum_combine_selection_body),
+      color = MaterialTheme.colorScheme.onSurfaceVariant,
+      style = MaterialTheme.typography.bodyLarge,
+    )
+    Text(
+      text = stringResource(R.string.museum_combine_selected_count, state.combineSelectionIds.size),
+      style = MaterialTheme.typography.labelLarge,
+      modifier = Modifier.testTag("museum-combine-selection-count"),
+    )
+    TextButton(
+      onClick = onCancel,
+      modifier = Modifier.testTag("museum-combine-cancel"),
+    ) {
+      Text(stringResource(R.string.museum_combine_cancel))
+    }
+    Button(
+      onClick = onReview,
+      enabled = state.combineOutputState != null && !state.isCombineSubmitting,
+      modifier = Modifier.testTag("museum-combine-review"),
+    ) {
+      Text(stringResource(R.string.museum_combine_review))
     }
   }
 }
@@ -157,6 +228,7 @@ private fun TierFilters(
 private fun MuseumSpecimenCard(
   specimen: MuseumSpecimen,
   selected: Boolean,
+  enabled: Boolean,
   onClick: () -> Unit,
 ) {
   val family = specimen.family.displayName()
@@ -177,7 +249,7 @@ private fun MuseumSpecimenCard(
         contentDescription = description
         this.selected = selected
       }
-      .clickable(role = Role.Button, onClick = onClick),
+      .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
     tonalElevation = if (selected) AfterchimeElevation.raised else AfterchimeElevation.flat,
   ) {
     Column(

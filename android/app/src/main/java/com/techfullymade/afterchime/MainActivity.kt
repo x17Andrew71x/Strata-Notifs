@@ -118,6 +118,11 @@ class MainActivity : ComponentActivity() {
                 museumViewModel.selectSpecimen(specimenId)
                 openSpecimen(specimenId)
               },
+              onCombineSpecimenSelected = museumViewModel::toggleCombineSpecimen,
+              onCancelCombine = museumViewModel::cancelCombine,
+              onReviewCombine = museumViewModel::reviewCombine,
+              onDismissCombineConfirmation = museumViewModel::dismissCombineConfirmation,
+              onConfirmCombine = museumViewModel::confirmCombine,
             )
           },
           museumDetailContent = { specimenId, onBack ->
@@ -131,6 +136,10 @@ class MainActivity : ComponentActivity() {
                 specimen = specimen,
                 onBack = onBack,
                 onSetLocked = { locked -> museumViewModel.setSpecimenLocked(specimen.id, locked) },
+                onBeginCombine = {
+                  museumViewModel.beginCombine(specimen.id)
+                  onBack()
+                },
               )
             }
           },

@@ -39,6 +39,7 @@ fun SpecimenDetailScreen(
   specimen: MuseumSpecimen,
   onBack: () -> Unit,
   onSetLocked: (Boolean) -> Unit,
+  onBeginCombine: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val family = specimen.family.displayName()
@@ -116,6 +117,18 @@ fun SpecimenDetailScreen(
               stringResource(R.string.specimen_detail_lock)
             },
           )
+        }
+        if (
+          specimen.revealedAtEpochMillis != null &&
+          !specimen.isLocked &&
+          specimen.collectibleState != com.techfullymade.afterchime.domain.CollectibleState.CENTRE_PIECE
+        ) {
+          TextButton(
+            onClick = onBeginCombine,
+            modifier = Modifier.testTag("specimen-detail-combine"),
+          ) {
+            Text(stringResource(R.string.specimen_detail_combine))
+          }
         }
       }
     }

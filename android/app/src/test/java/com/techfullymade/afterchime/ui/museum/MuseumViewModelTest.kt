@@ -1,6 +1,7 @@
 package com.techfullymade.afterchime.ui.museum
 
 import android.os.Looper
+import com.techfullymade.afterchime.domain.CollectibleState
 import com.techfullymade.afterchime.domain.MuseumSpecimen
 import com.techfullymade.afterchime.fakes.FakeMuseumRepository
 import com.techfullymade.afterchime.generation.Family
@@ -56,6 +57,79 @@ class MuseumViewModelTest {
     assertEquals(
       true,
       viewModel.await { state -> state.specimens.single().isLocked }.specimens.single().isLocked,
+    )
+  }
+
+  @Test
+  fun `eligible local selection requires an explicit confirmation before one combine request`() = runBlocking {
+    val first = specimen(id = "first", tier = Tier.RARE)
+    val second = specimen(id = "second", tier = Tier.RARE)
+    val third = specimen(id = "third", tier = Tier.RARE)
+    val repository = FakeMuseumRepository(specimens = listOf(first, second, third))
+    val viewModel = MuseumViewModel(repository)
+
+    viewModel.await { it.specimens.size == 3 }
+    viewModel.beginCombine(first.id)
+    viewModel.toggleCombineSpecimen(second.id)
+    viewModel.toggleCombineSpecimen(third.id)
+    advanceMainLooper()
+
+    val ready = viewModel.await { it.combineOutputState == CollectibleState.RESTORED }
+    assertEquals(listOf(first.id, second.id, third.id), ready.combineSelectionIds)
+    assertEquals(0, repository.combineRequests.size)
+
+    viewModel.reviewCombine()
+    assertEquals(
+      CollectibleState.RESTORED,
+      viewModel.await { it.combineConfirmationOutputState != null }.combineConfirmationOutputState,
+    )
+    assertEquals(0, repository.combineRequests.size)
+
+    viewModel.confirmCombine()
+    advanceMainLooper()
+    viewModel.await { repository.combineRequests.size == 1 && !it.isCombining }
+
+    assertEquals(setOf(first.id, second.id, third.id), repository.combineRequests.single().inputItemIds.toSet())
+    assertEquals(3, repository.combineRequests.single().inputItemIds.size)
+  }
+
+  @Test
+  fun `unknown combine delivery preserves the exact request for an explicit retry`() = runBlocking {
+    val first = specimen(id = "first", tier = Tier.RARE)
+    val second = specimen(id = "second", tier = Tier.RARE)
+    val third = specimen(id = "third", tier = Tier.RARE)
+    val repository = FakeMuseumRepository(specimens = listOf(first, second, third))
+    val viewModel = MuseumViewModel(repository)
+
+    viewModel.await { it.specimens.size == 3 }
+    viewModel.beginCombine(first.id)
+    viewModel.toggleCombineSpecimen(second.id)
+    viewModel.toggleCombineSpecimen(third.id)
+    advanceMainLooper()
+    viewModel.await { it.combineOutputState == CollectibleState.RESTORED }
+    viewModel.reviewCombine()
+    repository.failNextCombine = true
+
+    viewModel.confirmCombine()
+    val retryable = viewModel.await {
+      repository.combineRequests.size == 1 &&
+        !it.isCombineSubmitting &&
+        it.combineConfirmationOutputState == CollectibleState.RESTORED
+    }
+    assertEquals(listOf(first.id, second.id, third.id), retryable.combineSelectionIds)
+    assertEquals(1, repository.combineRequests.size)
+
+    viewModel.confirmCombine()
+    advanceMainLooper()
+    viewModel.await { repository.combineRequests.size == 2 && !it.isCombining }
+
+    assertEquals(
+      repository.combineRequests[0].mutationId,
+      repository.combineRequests[1].mutationId,
+    )
+    assertEquals(
+      repository.combineRequests[0].outputItemId,
+      repository.combineRequests[1].outputItemId,
     )
   }
 

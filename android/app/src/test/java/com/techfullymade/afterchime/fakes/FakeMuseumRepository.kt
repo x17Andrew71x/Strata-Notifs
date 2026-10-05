@@ -1,5 +1,7 @@
 package com.techfullymade.afterchime.fakes
 
+import com.techfullymade.afterchime.domain.CombineRequest
+import com.techfullymade.afterchime.domain.CombineResult
 import com.techfullymade.afterchime.domain.MuseumRepository
 import com.techfullymade.afterchime.domain.MuseumSpecimen
 import com.techfullymade.afterchime.domain.SpecimenLockResult
@@ -13,6 +15,8 @@ class FakeMuseumRepository(
   private val mutableSpecimens = MutableStateFlow(specimens)
 
   override val specimens: Flow<List<MuseumSpecimen>> = mutableSpecimens
+  val combineRequests = mutableListOf<CombineRequest>()
+  var failNextCombine: Boolean = false
 
   override suspend fun setLocked(specimenId: String, locked: Boolean): SpecimenLockResult {
     val specimenIndex = mutableSpecimens.value.indexOfFirst { it.id == specimenId }
@@ -24,6 +28,15 @@ class FakeMuseumRepository(
       currentSpecimens[specimenIndex] = specimen.copy(isLocked = locked)
     }
     return SpecimenLockResult.Changed(locked)
+  }
+
+  override suspend fun combine(request: CombineRequest): CombineResult {
+    combineRequests += request
+    if (failNextCombine) {
+      failNextCombine = false
+      error("Simulated result-delivery failure")
+    }
+    return CombineResult.Combined(request.outputItemId)
   }
 
   fun replace(specimens: List<MuseumSpecimen>) {

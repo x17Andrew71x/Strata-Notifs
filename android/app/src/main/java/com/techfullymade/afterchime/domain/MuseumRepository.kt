@@ -18,6 +18,9 @@ interface MuseumRepository {
 
   /** Changes a revealed local specimen's protection state without leaving the device. */
   suspend fun setLocked(specimenId: String, locked: Boolean): SpecimenLockResult
+
+  /** Atomically exchanges three eligible collection items for one provenance-preserving output. */
+  suspend fun combine(request: CombineRequest): CombineResult
 }
 
 /** Idempotent outcome for a local favourite lock request. */
@@ -92,7 +95,7 @@ class LocalMuseumRepository(
    * Consumes exactly three eligible active items and creates one mature output in one transaction.
    * The mutation and output identifiers are client-generated so a timeout may be retried safely.
    */
-  suspend fun combine(request: CombineRequest): CombineResult = try {
+  override suspend fun combine(request: CombineRequest): CombineResult = try {
     database.withTransaction {
       val itemDao = database.inventoryItemDao()
       val mutationDao = database.inventoryMutationDao()
