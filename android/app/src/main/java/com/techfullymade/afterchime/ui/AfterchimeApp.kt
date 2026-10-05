@@ -58,11 +58,15 @@ private val afterchimeNavGraphSaver = Saver<AfterchimeNavGraph, List<String>>(
   },
 )
 
+private const val MUSEUM_SPECIMEN_ROUTE_PREFIX = "museum/specimen/"
+private val museumSpecimenIdPattern = Regex("[a-z0-9][a-z0-9_-]{0,110}")
+
 @Composable
 fun AfterchimeApp(
   onEnableNotificationAccess: () -> Unit,
   todayContent: (@Composable () -> Unit)? = null,
-  museumContent: (@Composable () -> Unit)? = null,
+  museumContent: (@Composable (openSpecimen: (String) -> Unit) -> Unit)? = null,
+  museumDetailContent: (@Composable (specimenId: String, onBack: () -> Unit) -> Unit)? = null,
   initialNavigation: AfterchimeNavGraph = AfterchimeNavGraph.initial(),
 ) {
   var navigation by rememberSaveable(stateSaver = afterchimeNavGraphSaver) {
@@ -84,10 +88,27 @@ fun AfterchimeApp(
     },
   ) { insets ->
     if (!navigation.isAtRoot) {
-      NestedPlaceholder(
-        modifier = Modifier.padding(insets),
-        onBack = { navigation = navigation.back() },
-      )
+      val specimenId = navigation.nestedRoute
+        ?.takeIf { it.startsWith(MUSEUM_SPECIMEN_ROUTE_PREFIX) }
+        ?.removePrefix(MUSEUM_SPECIMEN_ROUTE_PREFIX)
+        ?.takeIf { museumSpecimenIdPattern.matches(it) }
+      if (specimenId != null && museumDetailContent != null) {
+        Box(
+          modifier = Modifier
+            .fillMaxSize()
+            .padding(insets),
+        ) {
+          museumDetailContent(
+            specimenId,
+            { navigation = navigation.back() },
+          )
+        }
+      } else {
+        NestedPlaceholder(
+          modifier = Modifier.padding(insets),
+          onBack = { navigation = navigation.back() },
+        )
+      }
     } else {
       when (navigation.selectedRoot) {
         RootDestination.TODAY -> {
@@ -121,7 +142,11 @@ fun AfterchimeApp(
                 .padding(insets)
                 .testTag("root-content-museum"),
             ) {
-              museumContent()
+              museumContent { specimenId ->
+                if (museumSpecimenIdPattern.matches(specimenId)) {
+                  navigation = navigation.openNested("$MUSEUM_SPECIMEN_ROUTE_PREFIX$specimenId")
+                }
+              }
             }
           }
         }

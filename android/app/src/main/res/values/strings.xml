@@ -18,6 +18,13 @@
   <string name="more_title">More</string>
   <string name="back">Back</string>
   <string name="detail_title">Detail</string>
+  <string name="specimen_detail_description">Specimen detail</string>
+  <string name="specimen_detail_title">Specimen</string>
+  <string name="specimen_detail_family">Family</string>
+  <string name="specimen_detail_tier">Tier</string>
+  <string name="specimen_detail_sealed">Sealed</string>
+  <string name="specimen_detail_missing_title">Specimen unavailable</string>
+  <string name="specimen_detail_missing_body">This specimen is no longer in your museum.</string>
   <string name="today_subtitle">Turn the rhythm of your day into one-of-a-kind specimens.</string>
   <string name="permission_explanation">Android only offers one broad notification-access switch. Afterchime ignores message text, names, images, and actions; it keeps only arrival time and a broad category on this device.</string>
   <string name="enable_notification_access">Start collecting</string>

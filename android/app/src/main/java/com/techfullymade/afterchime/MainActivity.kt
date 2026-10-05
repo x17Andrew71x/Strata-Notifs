@@ -30,6 +30,8 @@ import com.techfullymade.afterchime.capture.StrataNotificationListenerService
 import com.techfullymade.afterchime.ui.AfterchimeApp
 import com.techfullymade.afterchime.ui.museum.MuseumScreen
 import com.techfullymade.afterchime.ui.museum.MuseumViewModel
+import com.techfullymade.afterchime.ui.museum.MissingSpecimenDetailScreen
+import com.techfullymade.afterchime.ui.museum.SpecimenDetailScreen
 import com.techfullymade.afterchime.ui.theme.AfterchimeTheme
 import org.json.JSONObject
 
@@ -107,12 +109,25 @@ class MainActivity : ComponentActivity() {
               modifier = Modifier.fillMaxSize(),
             )
           },
-          museumContent = {
+          museumContent = { openSpecimen ->
             MuseumScreen(
               state = museumState,
               onTierFilterSelected = museumViewModel::selectTierFilter,
-              onSpecimenSelected = museumViewModel::selectSpecimen,
+              onSpecimenSelected = { specimenId ->
+                museumViewModel.selectSpecimen(specimenId)
+                openSpecimen(specimenId)
+              },
             )
+          },
+          museumDetailContent = { specimenId, onBack ->
+            val specimen = museumState.specimens.firstOrNull { candidate ->
+              candidate.id == specimenId && candidate.revealedAtEpochMillis != null
+            }
+            if (specimen == null) {
+              MissingSpecimenDetailScreen(onBack = onBack)
+            } else {
+              SpecimenDetailScreen(specimen = specimen, onBack = onBack)
+            }
           },
         )
       }
