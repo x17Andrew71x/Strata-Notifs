@@ -190,6 +190,35 @@ body {
   color: #d1d89e;
   margin-top: 5px;
 }
+.restricted-help {
+  max-width: 450px;
+  margin-top: 11px;
+  color: #aeb9ae;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.restricted-help p {
+  margin: 0 0 8px;
+}
+.secondary-action {
+  min-height: 44px;
+  border: 1px solid #65796b;
+  border-radius: 3px;
+  padding: 0 15px;
+  background: transparent;
+  color: #d1d89e;
+  font:
+    600 12px "DM Sans",
+    sans-serif;
+  cursor: pointer;
+}
+.secondary-action:hover {
+  border-color: #d1d89e;
+}
+.secondary-action:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
 .offline-note {
   font-size: 10px;
   letter-spacing: 0.04em;

@@ -80,6 +80,10 @@ class MainActivityTest {
       BridgeRequest("req_1", "capabilities.get"),
       parseBridgeRequest("""{"version":1,"id":"req_1","type":"capabilities.get"}"""),
     )
+    assertEquals(
+      BridgeRequest("req_2", "notificationAccess.openAppDetails"),
+      parseBridgeRequest("""{"version":1,"id":"req_2","type":"notificationAccess.openAppDetails"}"""),
+    )
   }
 
   @Test
@@ -88,6 +92,23 @@ class MainActivityTest {
     assertTrue(activity.openNotificationAccessSettings())
     val startedIntent = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
     assertEquals(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS, startedIntent?.action)
+  }
+
+  @Test
+  fun `restricted setting recovery opens this apps info page`() {
+    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    assertTrue(activity.openAppDetailsSettings())
+    val startedIntent = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
+    assertEquals(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, startedIntent?.action)
+    assertEquals("package:${activity.packageName}", startedIntent?.data?.toString())
+  }
+
+  @Test
+  fun `capability response advertises the app info recovery action`() {
+    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    val response = activity.capabilitiesResponse("req_capabilities")
+    assertEquals("capabilities.state", response.getString("type"))
+    assertTrue(response.getBoolean("appDetailsAction"))
   }
 
   @Test
@@ -101,6 +122,12 @@ class MainActivityTest {
     )
     assertEquals("Start collecting", resources.getString(R.string.enable_notification_access))
     val bundledPage = activity.assets.open("web/index.html").bufferedReader().use { it.readText() }
+    val bundledScript = activity.assets.open("web/assets/app.js").bufferedReader().use { it.readText() }
+    assertTrue(bundledPage.contains("Android only offers one broad notification-access switch"))
+    assertTrue(bundledPage.contains("Allow restricted settings"))
+    assertTrue(bundledPage.contains("Open app info"))
+    assertTrue(bundledScript.contains("notificationAccess.openAppDetails"))
+    assertTrue(bundledScript.contains("message.appDetailsAction !== true"))
     assertFalse(bundledPage.contains("strata", ignoreCase = true))
   }
 

@@ -41,6 +41,11 @@ describe("onboarding shell", () => {
       screen.getByText(/Turn the rhythm of your day into one-of-a-kind specimens/i),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: /start collecting/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /open app info/i })).toBeNull();
+    expect(
+      screen.getByText(/Android only offers one broad notification-access switch/i),
+    ).toBeTruthy();
+    expect(screen.getByText(/tap .*Allow restricted settings/i)).toBeTruthy();
     expect(document.body.textContent?.toLowerCase()).not.toContain("strata");
   });
 
@@ -70,6 +75,52 @@ describe("onboarding shell", () => {
       version: 1,
       type: "notificationAccess.openSettings",
     });
+
+    expect(screen.queryByRole("button", { name: /open app info/i })).toBeNull();
+  });
+
+  it("offers the restricted-setting recovery path while access is off", () => {
+    render(<App />);
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            version: 1,
+            id: "capability_response",
+            type: "capabilities.state",
+            notificationAccess: false,
+            appDetailsAction: true,
+          }),
+        }),
+      );
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /open app info/i }));
+    const appInfoAction = native.postMessage.mock.calls[1]?.[0];
+    expect(appInfoAction).toBeDefined();
+    expect(JSON.parse(appInfoAction ?? "null")).toMatchObject({
+      version: 1,
+      type: "notificationAccess.openAppDetails",
+    });
+  });
+
+  it("keeps manual recovery guidance for older shells without the app-info action", () => {
+    render(<App />);
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            version: 1,
+            id: "legacy_capability_response",
+            type: "capabilities.state",
+            notificationAccess: false,
+          }),
+        }),
+      );
+    });
+
+    expect(screen.getByText(/tap .*Allow restricted settings/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /open app info/i })).toBeNull();
   });
 
   it("does not pretend a browser has native notification settings", () => {

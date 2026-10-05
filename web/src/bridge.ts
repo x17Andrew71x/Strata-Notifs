@@ -8,22 +8,33 @@ declare global {
 
 export type NativeRequest =
   | { version: 1; id: string; type: "capabilities.get" }
-  | { version: 1; id: string; type: "notificationAccess.openSettings" };
+  | { version: 1; id: string; type: "notificationAccess.openSettings" }
+  | { version: 1; id: string; type: "notificationAccess.openAppDetails" };
 
 export type NativeResponse =
-  | { version: 1; id: string; type: "capabilities.state"; notificationAccess: boolean }
+  | {
+      version: 1;
+      id: string;
+      type: "capabilities.state";
+      notificationAccess: boolean;
+      appDetailsAction?: boolean;
+    }
   | {
       version: 1;
       id: string;
       type: "action.result";
-      action: "notificationAccess.openSettings";
+      action: "notificationAccess.openSettings" | "notificationAccess.openAppDetails";
       ok: boolean;
     };
 
 export function parseNativeRequest(value: unknown): NativeRequest | null {
   if (!isRecord(value) || Object.keys(value).length !== 3) return null;
   if (value.version !== BRIDGE_VERSION || !isValidId(value.id)) return null;
-  if (value.type === "capabilities.get" || value.type === "notificationAccess.openSettings") {
+  if (
+    value.type === "capabilities.get" ||
+    value.type === "notificationAccess.openSettings" ||
+    value.type === "notificationAccess.openAppDetails"
+  ) {
     return { version: 1, id: value.id, type: value.type };
   }
   return null;
@@ -45,16 +56,20 @@ export function installResponseListener(
     try {
       const value: unknown = JSON.parse(event.data);
       if (!isRecord(value) || value.version !== BRIDGE_VERSION || !isValidId(value.id)) return;
+      const keyCount = Object.keys(value).length;
+      const hasAppDetailsAction = Object.hasOwn(value, "appDetailsAction");
       if (
         value.type === "capabilities.state" &&
-        Object.keys(value).length === 4 &&
+        ((keyCount === 4 && !hasAppDetailsAction) ||
+          (keyCount === 5 && hasAppDetailsAction && typeof value.appDetailsAction === "boolean")) &&
         typeof value.notificationAccess === "boolean"
       ) {
         onResponse(value as NativeResponse);
       } else if (
         value.type === "action.result" &&
         Object.keys(value).length === 5 &&
-        value.action === "notificationAccess.openSettings" &&
+        (value.action === "notificationAccess.openSettings" ||
+          value.action === "notificationAccess.openAppDetails") &&
         typeof value.ok === "boolean"
       ) {
         onResponse(value as NativeResponse);

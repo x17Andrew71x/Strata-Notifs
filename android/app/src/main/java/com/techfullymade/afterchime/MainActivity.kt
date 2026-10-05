@@ -53,7 +53,11 @@ internal fun parseBridgeRequest(raw: String?): BridgeRequest? {
   val id = request.opt("id") as? String ?: return null
   val type = request.opt("type") as? String ?: return null
   if (!id.matches(Regex("[A-Za-z0-9_-]{1,64}"))) return null
-  if (type != "capabilities.get" && type != "notificationAccess.openSettings") return null
+  if (
+    type != "capabilities.get" &&
+    type != "notificationAccess.openSettings" &&
+    type != "notificationAccess.openAppDetails"
+  ) return null
   return BridgeRequest(id, type)
 }
 
@@ -250,17 +254,19 @@ class MainActivity : ComponentActivity() {
     val response = when (request.type) {
       "capabilities.get" -> capabilitiesResponse(request.id)
       "notificationAccess.openSettings" -> settingsResponse(request.id)
+      "notificationAccess.openAppDetails" -> appDetailsResponse(request.id)
       else -> return false
     }
     proxy.postMessage(response.toString())
     return true
   }
 
-  private fun capabilitiesResponse(id: String) = JSONObject()
+  internal fun capabilitiesResponse(id: String) = JSONObject()
     .put("version", BRIDGE_VERSION)
     .put("id", id)
     .put("type", "capabilities.state")
     .put("notificationAccess", notificationAccessEnabled())
+    .put("appDetailsAction", true)
 
   private fun settingsResponse(id: String): JSONObject {
     val opened = openNotificationAccessSettings()
@@ -269,6 +275,16 @@ class MainActivity : ComponentActivity() {
       .put("id", id)
       .put("type", "action.result")
       .put("action", "notificationAccess.openSettings")
+      .put("ok", opened)
+  }
+
+  private fun appDetailsResponse(id: String): JSONObject {
+    val opened = openAppDetailsSettings()
+    return JSONObject()
+      .put("version", BRIDGE_VERSION)
+      .put("id", id)
+      .put("type", "action.result")
+      .put("action", "notificationAccess.openAppDetails")
       .put("ok", opened)
   }
 
@@ -289,6 +305,25 @@ class MainActivity : ComponentActivity() {
     } catch (_: ActivityNotFoundException) {
       try {
         startActivity(Intent(Settings.ACTION_SETTINGS))
+        true
+      } catch (_: ActivityNotFoundException) {
+        false
+      }
+    }
+  }
+
+  internal fun openAppDetailsSettings(): Boolean {
+    return try {
+      startActivity(
+        Intent(
+          Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+          Uri.parse("package:$packageName"),
+        ),
+      )
+      true
+    } catch (_: ActivityNotFoundException) {
+      try {
+        startActivity(Intent(Settings.ACTION_APPLICATION_SETTINGS))
         true
       } catch (_: ActivityNotFoundException) {
         false

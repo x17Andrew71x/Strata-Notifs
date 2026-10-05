@@ -82,6 +82,25 @@ button {
 button span {
   font-size: 18px;
 }
+.restricted-help {
+  max-width: 420px;
+  color: #adb9af;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.restricted-help p {
+  margin: 10px 0 8px;
+}
+#app-info {
+  width: auto;
+  min-height: 44px;
+  height: 44px;
+  border: 1px solid #65796b;
+  padding: 0 15px;
+  background: transparent;
+  color: #d1d89e;
+  font-size: 12px;
+}
 #state,
 .offline {
   font-size: 12px;

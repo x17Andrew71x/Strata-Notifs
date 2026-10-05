@@ -21,8 +21,9 @@ export async function registerShellWorker(
 }
 
 function App() {
-  const [access, setAccess] = useState<boolean | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
+  const [access, setAccess] = useState<boolean | null>(null);
+  const [appDetailsAction, setAppDetailsAction] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -31,13 +32,24 @@ function App() {
     window.addEventListener("online", updateNetwork);
     window.addEventListener("offline", updateNetwork);
     const stop = installResponseListener((response: NativeResponse) => {
-      if (response.type === "capabilities.state") setAccess(response.notificationAccess);
+      if (response.type === "capabilities.state") {
+        setAccess(response.notificationAccess);
+        setAppDetailsAction(response.appDetailsAction === true);
+      }
       if (response.type === "action.result") {
-        setMessage(
-          response.ok
-            ? "Notification access settings are open."
-            : "Settings could not be opened. You can change access in Android Settings.",
-        );
+        if (response.action === "notificationAccess.openAppDetails") {
+          setMessage(
+            response.ok
+              ? "In App info, tap ⋮, choose Allow restricted settings, then return and tap Start collecting."
+              : "App info could not be opened. Open Android Settings, then Apps, then Afterchime Dev.",
+          );
+        } else {
+          setMessage(
+            response.ok
+              ? "Notification access settings are open. If Android blocks the switch, return and use Open app info first."
+              : "Settings could not be opened. You can change access in Android Settings.",
+          );
+        }
       }
     });
     sendNativeRequest("capabilities.get");
@@ -50,10 +62,17 @@ function App() {
 
   const begin = () => {
     setMessage(
-      "Afterchime only uses notification timing and broad categories. Message content stays private on this device.",
+      "Opening Android notification access. If the switch is blocked, use Open app info first.",
     );
     if (!sendNativeRequest("notificationAccess.openSettings")) {
       setMessage("Open Android Settings and choose Notification access for Afterchime to begin.");
+    }
+  };
+
+  const openAppInfo = () => {
+    setMessage("In App info, tap ⋮, choose Allow restricted settings, then return here.");
+    if (!sendNativeRequest("notificationAccess.openAppDetails")) {
+      setMessage("Open Android Settings, then Apps, then Afterchime Dev.");
     }
   };
 
@@ -85,9 +104,9 @@ function App() {
           <div className="privacy-note">
             <span aria-hidden="true">◈</span>
             <p>
-              Afterchime never reads your messages or notification text. It only uses when
-              notifications arrive and their general type to grow your collection. Everything stays
-              on this device.
+              Android only offers one broad notification-access switch. Afterchime ignores message
+              text, names, images, and actions; it keeps only arrival time and a broad category on
+              this device.
             </p>
           </div>
           <button type="button" className="primary-action" onClick={begin}>
@@ -103,6 +122,19 @@ function App() {
                 ? "Notification access is off. You can turn it on whenever you are ready."
                 : "Your collection is private, personal, and ready when you are."}
           </p>
+          {access !== true && (
+            <div className="restricted-help">
+              <p>
+                Installed manually? If Android says Controlled by Restricted Setting, open App info,
+                tap ⋮, and choose Allow restricted settings. Then return and try again.
+              </p>
+              {appDetailsAction && (
+                <button type="button" className="secondary-action" onClick={openAppInfo}>
+                  Open app info
+                </button>
+              )}
+            </div>
+          )}
           {message && (
             <p className="action-message" role="status">
               {message}

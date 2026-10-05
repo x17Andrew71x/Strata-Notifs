@@ -19,7 +19,7 @@
   <string name="back">Back</string>
   <string name="detail_title">Detail</string>
   <string name="today_subtitle">Turn the rhythm of your day into one-of-a-kind specimens.</string>
-  <string name="permission_explanation">Afterchime never reads your messages or notification text. It only uses when notifications arrive and their general type to grow your collection. Everything stays on this device.</string>
+  <string name="permission_explanation">Android only offers one broad notification-access switch. Afterchime ignores message text, names, images, and actions; it keeps only arrival time and a broad category on this device.</string>
   <string name="enable_notification_access">Start collecting</string>
   <string name="specimen_preview_description">A preview of a specimen waiting to be discovered</string>
   <string name="today_formation_description">Today’s private formation</string>
