@@ -20,6 +20,21 @@ sealed interface AnalyticsEvent {
   data class NotificationAccessResult(val result: AccessResult) : AnalyticsEvent
   data class AnalyticsConsentChanged(val enabled: Boolean, val consentVersion: Int) : AnalyticsEvent
   data class NotificationAggregateConsentChanged(val enabled: Boolean, val consentVersion: Int) : AnalyticsEvent
+  data object ScreenViewed : AnalyticsEvent
+  data object TabSelected : AnalyticsEvent
+  data object HelpOpened : AnalyticsEvent
+  data object SettingChanged : AnalyticsEvent
+  data object ShareStarted : AnalyticsEvent
+  data object ShareCompleted : AnalyticsEvent
+  data object ShareFailed : AnalyticsEvent
+  data object FormationViewed : AnalyticsEvent
+  data object DaySealed : AnalyticsEvent
+  data object SpecimenGenerated : AnalyticsEvent
+  data object SpecimenRevealStarted : AnalyticsEvent
+  data object SpecimenRevealed : AnalyticsEvent
+  data object SpecimenLocked : AnalyticsEvent
+  data object SpecimenUnlocked : AnalyticsEvent
+  data object WeeklyDioramaCreated : AnalyticsEvent
 }
 
 enum class InstallationEntryPoint { FIRST_RUN, ONLINE_MODE_ENABLED }
@@ -68,4 +83,19 @@ internal fun AnalyticsEvent.encode(): EncodedAnalyticsEvent = when (this) {
   is AnalyticsEvent.NotificationAccessResult -> EncodedAnalyticsEvent("notification_access_result", JSONObject().put("result", when (result) { AccessResult.GRANTED -> "granted"; AccessResult.DENIED -> "denied"; AccessResult.UNAVAILABLE -> "unavailable" }))
   is AnalyticsEvent.AnalyticsConsentChanged -> EncodedAnalyticsEvent("analytics_consent_changed", JSONObject().put("enabled", enabled).put("consent_version", consentVersion))
   is AnalyticsEvent.NotificationAggregateConsentChanged -> EncodedAnalyticsEvent("notification_aggregate_consent_changed", JSONObject().put("enabled", enabled).put("consent_version", consentVersion))
+  AnalyticsEvent.ScreenViewed -> EncodedAnalyticsEvent("screen_viewed", JSONObject())
+  AnalyticsEvent.TabSelected -> EncodedAnalyticsEvent("tab_selected", JSONObject())
+  AnalyticsEvent.HelpOpened -> EncodedAnalyticsEvent("help_opened", JSONObject())
+  AnalyticsEvent.SettingChanged -> EncodedAnalyticsEvent("setting_changed", JSONObject())
+  AnalyticsEvent.ShareStarted -> EncodedAnalyticsEvent("share_started", JSONObject())
+  AnalyticsEvent.ShareCompleted -> EncodedAnalyticsEvent("share_completed", JSONObject())
+  AnalyticsEvent.ShareFailed -> EncodedAnalyticsEvent("share_failed", JSONObject())
+  AnalyticsEvent.FormationViewed -> EncodedAnalyticsEvent("formation_viewed", JSONObject())
+  AnalyticsEvent.DaySealed -> EncodedAnalyticsEvent("day_sealed", JSONObject())
+  AnalyticsEvent.SpecimenGenerated -> EncodedAnalyticsEvent("specimen_generated", JSONObject())
+  AnalyticsEvent.SpecimenRevealStarted -> EncodedAnalyticsEvent("specimen_reveal_started", JSONObject())
+  AnalyticsEvent.SpecimenRevealed -> EncodedAnalyticsEvent("specimen_revealed", JSONObject())
+  AnalyticsEvent.SpecimenLocked -> EncodedAnalyticsEvent("specimen_locked", JSONObject())
+  AnalyticsEvent.SpecimenUnlocked -> EncodedAnalyticsEvent("specimen_unlocked", JSONObject())
+  AnalyticsEvent.WeeklyDioramaCreated -> EncodedAnalyticsEvent("weekly_diorama_created", JSONObject())
 }

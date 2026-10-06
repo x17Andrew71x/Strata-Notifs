@@ -115,6 +115,21 @@ object ApiModels {
       "notification_access_result",
       "analytics_consent_changed",
       "notification_aggregate_consent_changed",
+      "screen_viewed",
+      "tab_selected",
+      "help_opened",
+      "setting_changed",
+      "share_started",
+      "share_completed",
+      "share_failed",
+      "formation_viewed",
+      "day_sealed",
+      "specimen_generated",
+      "specimen_reveal_started",
+      "specimen_revealed",
+      "specimen_locked",
+      "specimen_unlocked",
+      "weekly_diorama_created",
     )
   private val envelopeFields =
     setOf(
@@ -381,6 +396,11 @@ object ApiModels {
         properties.boolean("enabled")
         require(properties.integer("consent_version") in 1..1000)
       }
+      "screen_viewed", "tab_selected", "help_opened", "setting_changed",
+      "share_started", "share_completed", "share_failed", "formation_viewed",
+      "day_sealed", "specimen_generated", "specimen_reveal_started",
+      "specimen_revealed", "specimen_locked", "specimen_unlocked",
+      "weekly_diorama_created" -> properties.strict()
       else -> error("unsupported event")
     }
   }

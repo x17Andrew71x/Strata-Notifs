@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://afterchime.invalid/contracts/events/v1/formation-viewed.schema.json",
+  "title": "Afterchime Analytics Event v1: formation_viewed",
+  "allOf": [
+    { "$ref": "base.schema.json" },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": { "const": "formation_viewed" },
+        "properties": { "type": "object", "additionalProperties": false }
+      }
+    }
+  ]
+}

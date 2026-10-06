@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://afterchime.invalid/contracts/events/v1/specimen-unlocked.schema.json",
+  "title": "Afterchime Analytics Event v1: specimen_unlocked",
+  "allOf": [
+    { "$ref": "base.schema.json" },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": { "const": "specimen_unlocked" },
+        "properties": { "type": "object", "additionalProperties": false }
+      }
+    }
+  ]
+}

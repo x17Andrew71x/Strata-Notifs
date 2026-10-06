@@ -50,6 +50,21 @@
     },
     {
       "$ref": "notification-aggregate-consent-changed.schema.json"
-    }
+    },
+    { "$ref": "screen-viewed.schema.json" },
+    { "$ref": "tab-selected.schema.json" },
+    { "$ref": "help-opened.schema.json" },
+    { "$ref": "setting-changed.schema.json" },
+    { "$ref": "share-started.schema.json" },
+    { "$ref": "share-completed.schema.json" },
+    { "$ref": "share-failed.schema.json" },
+    { "$ref": "formation-viewed.schema.json" },
+    { "$ref": "day-sealed.schema.json" },
+    { "$ref": "specimen-generated.schema.json" },
+    { "$ref": "specimen-reveal-started.schema.json" },
+    { "$ref": "specimen-revealed.schema.json" },
+    { "$ref": "specimen-locked.schema.json" },
+    { "$ref": "specimen-unlocked.schema.json" },
+    { "$ref": "weekly-diorama-created.schema.json" }
   ]
 }

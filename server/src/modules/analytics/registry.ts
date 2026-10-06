@@ -116,6 +116,66 @@ export const analyticsEvent = z.union([
       })
       .strict(),
   }),
+  baseEvent.extend({
+    event_name: z.literal("screen_viewed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("tab_selected"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("help_opened"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("setting_changed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("share_started"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("share_completed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("share_failed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("formation_viewed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("day_sealed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("specimen_generated"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("specimen_reveal_started"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("specimen_revealed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("specimen_locked"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("specimen_unlocked"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("weekly_diorama_created"),
+    properties: z.object({}).strict(),
+  }),
 ]);
 
 export const analyticsBatch = z
