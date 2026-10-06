@@ -23,6 +23,12 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class MainActivityTest {
   @Test
+  fun `development world boundary follows flavour regardless of build type`() {
+    assertTrue(isDevelopmentWorldsEnabled("dev"))
+    assertFalse(isDevelopmentWorldsEnabled("prod"))
+  }
+
+  @Test
   fun `initialises a hardened WebView shell and starts from the configured shell or bundled disabled fallback`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
     val webView = activity.shellForTesting()

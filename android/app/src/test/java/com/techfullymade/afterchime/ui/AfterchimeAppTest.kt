@@ -10,6 +10,7 @@ import com.techfullymade.afterchime.ui.navigation.AfterchimeNavGraph
 import com.techfullymade.afterchime.ui.navigation.RootDestination
 import com.techfullymade.afterchime.settings.UserPreferences
 import com.techfullymade.afterchime.ui.theme.AfterchimeTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -77,6 +78,24 @@ class AfterchimeAppTest {
     RootDestination.entries.forEach { destination ->
       composeRule.onNodeWithTag("root-${destination.route}").assertExists()
     }
+  }
+
+  @Test
+  fun `world catalogue is nested under More and back restores the four-root navigation`() {
+    composeRule.setContent {
+      AfterchimeTheme {
+        AfterchimeApp(onEnableNotificationAccess = {})
+      }
+    }
+    composeRule.onNodeWithTag("root-more").performClick()
+    composeRule.onNodeWithTag("more-worlds").performClick()
+    composeRule.onNodeWithTag("worlds-screen").assertExists()
+    RootDestination.entries.forEach { destination ->
+      composeRule.onNodeWithTag("root-${destination.route}").assertDoesNotExist()
+    }
+    composeRule.onNodeWithTag("worlds-back").performClick()
+    composeRule.onNodeWithTag("root-content-more").assertExists()
+    assertEquals(4, RootDestination.entries.size)
   }
 
   @Test

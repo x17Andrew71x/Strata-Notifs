@@ -30,6 +30,7 @@ fun MoreScreen(
   preferences: UserPreferences,
   onEnableNotificationAccess: () -> Unit,
   onPreferencesChanged: (UserPreferences) -> Unit,
+  onOpenWorlds: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   Column(
@@ -41,6 +42,9 @@ fun MoreScreen(
     verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
     Text(stringResource(R.string.more_title), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
+    TextButton(onClick = onOpenWorlds, modifier = Modifier.testTag("more-worlds")) {
+      Text(stringResource(R.string.worlds_open))
+    }
     TextButton(onClick = onEnableNotificationAccess, modifier = Modifier.testTag("notification-access")) {
       Text(stringResource(R.string.enable_notification_access))
     }

@@ -25,6 +25,21 @@ class SpecimenDetailScreenTest {
   val composeRule = createComposeRule()
 
   @Test
+  fun `detail renderer follows selected cosmetic world`() {
+    composeRule.setContent {
+      AfterchimeTheme {
+        SpecimenDetailScreen(
+          specimen = specimen(),
+          world = com.techfullymade.afterchime.render.World.DEEP_SPACE,
+          onBack = {}, onSetLocked = {}, onBeginCombine = {},
+        )
+      }
+    }
+    composeRule.onNodeWithContentDescription("Deep Space specimen").assertExists()
+    composeRule.onNodeWithTag("specimen-detail-renderer").assertExists()
+  }
+
+  @Test
   fun `detail renders only safe specimen presentation and offers contextual back and lock`() {
     var backCount = 0
     val lockRequests = mutableListOf<Boolean>()

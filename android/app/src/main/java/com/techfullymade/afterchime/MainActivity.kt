@@ -28,7 +28,12 @@ import androidx.webkit.JavaScriptReplyProxy
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import android.content.Context
+import androidx.datastore.preferences.preferencesDataStore
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
+import com.techfullymade.afterchime.data.catalog.DataStoreWorldCatalog
+import com.techfullymade.afterchime.catalog.DevelopmentWorldState
+import com.techfullymade.afterchime.render.World
 import com.techfullymade.afterchime.settings.DataStoreUserPreferences
 import com.techfullymade.afterchime.settings.UserPreferences
 import com.techfullymade.afterchime.ui.AfterchimeApp
@@ -46,6 +51,7 @@ private const val MAX_BRIDGE_MESSAGE = 1024
 internal const val LOCAL_ORIGIN = "https://appassets.androidplatform.net"
 internal const val LOCAL_ENTRY_URL = "$LOCAL_ORIGIN/assets/web/index.html"
 private const val REMOTE_READY_TIMEOUT_MS = 3_000L
+private val Context.worldCatalogDataStore by preferencesDataStore(name = "world_catalog")
 
 internal data class BridgeRequest(val id: String, val type: String)
 
@@ -78,12 +84,16 @@ internal fun shouldFallbackFromHttpError(
   usingLocalShell: Boolean,
 ): Boolean = isMainFrame && statusCode >= 400 && !usingLocalShell
 
+internal fun isDevelopmentWorldsEnabled(flavor: String): Boolean = flavor == "dev"
+
 class MainActivity : ComponentActivity() {
   private val museumViewModel: MuseumViewModel by viewModels {
     MuseumViewModel.factory((application as AfterchimeApplication).museumRepository)
   }
   private lateinit var shell: WebView
   private val userPreferences by lazy { DataStoreUserPreferences(applicationContext) }
+  private val worldCatalog by lazy { DataStoreWorldCatalog(applicationContext.worldCatalogDataStore) }
+  private val developmentWorldsEnabled get() = isDevelopmentWorldsEnabled(BuildConfig.FLAVOR)
   private lateinit var assetLoader: WebViewAssetLoader
   private var replyProxy: JavaScriptReplyProxy? = null
   private var usingLocalShell = false
@@ -109,6 +119,7 @@ class MainActivity : ComponentActivity() {
     setContent {
       val museumState by museumViewModel.uiState.collectAsState()
       val preferences by userPreferences.values.collectAsState(initial = null)
+      val worldState by worldCatalog.state.collectAsState(initial = DevelopmentWorldState())
       val preferenceScope = rememberCoroutineScope()
       preferences?.let { loadedPreferences ->
         AfterchimeTheme(
@@ -122,6 +133,17 @@ class MainActivity : ComponentActivity() {
             onOnboardingComplete = {
               preferenceScope.launch { userPreferences.update { it.copy(onboardingComplete = true) } }
             },
+            worldState = worldState,
+            developmentControlsEnabled = developmentWorldsEnabled,
+            onOwnWorldForDevelopment = { world ->
+              if (developmentWorldsEnabled) preferenceScope.launch { worldCatalog.ownForDevelopment(world) }
+            },
+            onSelectWorld = { world ->
+              if (developmentWorldsEnabled) preferenceScope.launch { worldCatalog.select(world) }
+            },
+            onResetDevelopmentWorlds = {
+              if (developmentWorldsEnabled) preferenceScope.launch { worldCatalog.resetDevelopmentOwnership() }
+            },
             todayContent = {
               AndroidView(
                 factory = { shell },
@@ -131,6 +153,7 @@ class MainActivity : ComponentActivity() {
             museumContent = { openSpecimen ->
               MuseumScreen(
                 state = museumState,
+                world = if (developmentWorldsEnabled) worldState.selectedWorld else World.PRIMEVAL_STRATA,
                 onTierFilterSelected = museumViewModel::selectTierFilter,
                 onSpecimenSelected = { specimenId ->
                   museumViewModel.selectSpecimen(specimenId)
@@ -152,6 +175,7 @@ class MainActivity : ComponentActivity() {
               } else {
                 SpecimenDetailScreen(
                   specimen = specimen,
+                  world = if (developmentWorldsEnabled) worldState.selectedWorld else World.PRIMEVAL_STRATA,
                   onBack = onBack,
                   onSetLocked = { locked -> museumViewModel.setSpecimenLocked(specimen.id, locked) },
                   onBeginCombine = {

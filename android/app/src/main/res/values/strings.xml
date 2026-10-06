@@ -18,6 +18,15 @@
   <string name="tier_singular">Singular</string>
   <string name="community_title">Community</string>
   <string name="more_title">More</string>
+  <string name="worlds_open">Worlds</string>
+  <string name="worlds_title">Worlds</string>
+  <string name="world_selected">%1$s</string>
+  <string name="world_owned">%1$s</string>
+  <string name="world_not_owned">%1$s</string>
+  <string name="world_currently_selected">Selected for specimen presentation</string>
+  <string name="world_apply">Apply %1$s</string>
+  <string name="world_development_unlock">Development-only unlock %1$s</string>
+  <string name="world_development_reset">Reset development worlds</string>
   <string name="onboarding_title">A quiet collection, kept here</string>
   <string name="onboarding_body">Afterchime turns reduced local notification timing and broad category signals into daily specimens. Notification access starts off; you choose whether to enable it.</string>
   <string name="onboarding_privacy">Notification text, titles, senders, contacts, actions, and media are never kept. Only reduced signals stay on this device.</string>

@@ -37,6 +37,7 @@ import java.util.Locale
 @Composable
 fun SpecimenDetailScreen(
   specimen: MuseumSpecimen,
+  world: World = World.PRIMEVAL_STRATA,
   onBack: () -> Unit,
   onSetLocked: (Boolean) -> Unit,
   onBeginCombine: () -> Unit,
@@ -78,7 +79,7 @@ fun SpecimenDetailScreen(
         modifier = Modifier.padding(AfterchimeSpacing.content),
         verticalArrangement = Arrangement.spacedBy(AfterchimeSpacing.content),
       ) {
-        WorldRenderers.forWorld(World.PRIMEVAL_STRATA).Render(
+        WorldRenderers.forWorld(world).Render(
           model = specimen.toRenderModel(),
           modifier = Modifier
             .fillMaxWidth()

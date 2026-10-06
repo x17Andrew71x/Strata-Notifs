@@ -46,6 +46,7 @@ import java.util.Locale
 @Composable
 fun MuseumScreen(
   state: MuseumUiState,
+  world: World = World.PRIMEVAL_STRATA,
   onTierFilterSelected: (MuseumTierFilter) -> Unit,
   onSpecimenSelected: (String) -> Unit,
   onCombineSpecimenSelected: (String) -> Unit = {},
@@ -103,6 +104,7 @@ fun MuseumScreen(
           ) { specimen ->
             MuseumSpecimenCard(
               specimen = specimen,
+              world = world,
               selected = if (state.isCombining) {
                 specimen.id in state.combineSelectionIds
               } else {
@@ -227,6 +229,7 @@ private fun TierFilters(
 @Composable
 private fun MuseumSpecimenCard(
   specimen: MuseumSpecimen,
+  world: World,
   selected: Boolean,
   enabled: Boolean,
   onClick: () -> Unit,
@@ -256,7 +259,7 @@ private fun MuseumSpecimenCard(
       verticalArrangement = Arrangement.spacedBy(AfterchimeSpacing.controlGap),
       modifier = Modifier.padding(AfterchimeSpacing.controlGap),
     ) {
-      WorldRenderers.forWorld(World.PRIMEVAL_STRATA).Render(
+      WorldRenderers.forWorld(world).Render(
         model = specimen.toRenderModel(),
         modifier = Modifier
           .fillMaxWidth()

@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -26,6 +27,16 @@ import org.robolectric.annotation.Config
 class MuseumScreenTest {
   @get:Rule
   val composeRule = createComposeRule()
+
+  @Test
+  fun `selected world changes only the museum renderer presentation`() {
+    setMuseum(
+      specimens = listOf(specimen(id = "common", family = Family.AMMONITE, tier = Tier.COMMON)),
+      world = com.techfullymade.afterchime.render.World.BOTANICAL_ARCHIVE,
+    )
+    composeRule.onNodeWithContentDescription("Botanical Archive specimen").assertExists()
+    composeRule.onNodeWithTag("museum-specimen-common").assertExists()
+  }
 
   @Test
   fun `empty museum explains the next local event without a pressure action`() {
@@ -117,7 +128,10 @@ class MuseumScreenTest {
     assertEquals(listOf("newest", "oldest"), state.visibleSpecimens.map(MuseumSpecimen::id))
   }
 
-  private fun setMuseum(specimens: List<MuseumSpecimen>) {
+  private fun setMuseum(
+    specimens: List<MuseumSpecimen>,
+    world: com.techfullymade.afterchime.render.World = com.techfullymade.afterchime.render.World.PRIMEVAL_STRATA,
+  ) {
     composeRule.setContent {
       var filter by remember { mutableStateOf(MuseumTierFilter.ALL) }
       var selectedSpecimenId by remember { mutableStateOf<String?>(null) }
@@ -129,6 +143,7 @@ class MuseumScreenTest {
       AfterchimeTheme(reduceMotion = true) {
         MuseumScreen(
           state = state,
+          world = world,
           onTierFilterSelected = { filter = it },
           onSpecimenSelected = { selectedSpecimenId = it },
         )

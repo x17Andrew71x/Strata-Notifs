@@ -21,8 +21,11 @@ class MoreScreenTest {
   @Test
   fun `settings expose explicit local controls and gate dependent consent`() {
     var openedSettings = false
+    var openedWorlds = false
     var changed = UserPreferences(onboardingComplete = true)
-    composeRule.setContent { AfterchimeTheme { MoreScreen(changed, { openedSettings = true }, { changed = it }) } }
+    composeRule.setContent { AfterchimeTheme { MoreScreen(changed, { openedSettings = true }, { changed = it }, { openedWorlds = true }) } }
+    composeRule.onNodeWithTag("more-worlds").performClick()
+    composeRule.runOnIdle { assertEquals(true, openedWorlds) }
     composeRule.onNodeWithTag("setting-online-features").assertExists()
     composeRule.onNodeWithTag("setting-product-analytics").assertExists()
     composeRule.onNodeWithTag("setting-aggregate-sharing").assertExists()

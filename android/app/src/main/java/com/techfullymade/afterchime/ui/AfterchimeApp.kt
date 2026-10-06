@@ -28,7 +28,10 @@ import androidx.compose.ui.text.font.FontWeight
 import com.techfullymade.afterchime.R
 import com.techfullymade.afterchime.domain.FormationObservation
 import com.techfullymade.afterchime.domain.FormationSnapshot
+import com.techfullymade.afterchime.catalog.DevelopmentWorldState
+import com.techfullymade.afterchime.render.World
 import com.techfullymade.afterchime.settings.UserPreferences
+import com.techfullymade.afterchime.ui.worlds.WorldsScreen
 import com.techfullymade.afterchime.ui.more.MoreScreen
 import com.techfullymade.afterchime.ui.onboarding.OnboardingScreen
 import com.techfullymade.afterchime.ui.navigation.AfterchimeNavGraph
@@ -74,6 +77,11 @@ fun AfterchimeApp(
   preferences: UserPreferences = UserPreferences(onboardingComplete = true),
   onPreferencesChanged: (UserPreferences) -> Unit = {},
   onOnboardingComplete: () -> Unit = {},
+  worldState: DevelopmentWorldState = DevelopmentWorldState(),
+  developmentControlsEnabled: Boolean = false,
+  onOwnWorldForDevelopment: (World) -> Unit = {},
+  onSelectWorld: (World) -> Unit = {},
+  onResetDevelopmentWorlds: () -> Unit = {},
 ) {
   var navigation by rememberSaveable(stateSaver = afterchimeNavGraphSaver) {
     mutableStateOf(initialNavigation)
@@ -100,7 +108,18 @@ fun AfterchimeApp(
         ?.takeIf { it.startsWith(MUSEUM_SPECIMEN_ROUTE_PREFIX) }
         ?.removePrefix(MUSEUM_SPECIMEN_ROUTE_PREFIX)
         ?.takeIf { museumSpecimenIdPattern.matches(it) }
-      if (specimenId != null && museumDetailContent != null) {
+      val worldsRoute = navigation.nestedRoute == "more/worlds"
+      if (worldsRoute) {
+        WorldsScreen(
+          state = worldState,
+          developmentControlsEnabled = developmentControlsEnabled,
+          onBack = { navigation = navigation.back() },
+          onOwnForDevelopment = onOwnWorldForDevelopment,
+          onSelect = onSelectWorld,
+          onResetDevelopment = onResetDevelopmentWorlds,
+          modifier = Modifier.padding(insets),
+        )
+      } else if (specimenId != null && museumDetailContent != null) {
         Box(
           modifier = Modifier
             .fillMaxSize()
@@ -163,6 +182,7 @@ fun AfterchimeApp(
           preferences = preferences,
           onEnableNotificationAccess = onEnableNotificationAccess,
           onPreferencesChanged = onPreferencesChanged,
+          onOpenWorlds = { navigation = navigation.openNested("more/worlds") },
           modifier = Modifier.padding(insets),
         )
 
