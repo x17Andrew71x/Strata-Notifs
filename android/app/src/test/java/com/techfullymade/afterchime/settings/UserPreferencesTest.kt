@@ -38,35 +38,25 @@ class UserPreferencesTest {
   }
 
   @Test
-  fun `new preferences keep online collection and optional consent disabled`() = runBlocking {
-    val preferences = DataStoreUserPreferences(dataStore)
-
-    assertEquals(UserPreferences(), preferences.values.first())
+  fun `new preferences keep onboarding incomplete optional consent disabled and haptics enabled`() = runBlocking {
+    assertEquals(UserPreferences(), DataStoreUserPreferences(dataStore).values.first())
   }
 
   @Test
-  fun `updates persist each explicit consent and presentation preference`() = runBlocking {
+  fun `updates persist onboarding consent and presentation settings`() = runBlocking {
     val preferences = DataStoreUserPreferences(dataStore)
-
     preferences.update {
-      it.copy(
-        onlineFeaturesEnabled = true,
-        productAnalyticsEnabled = true,
-        notificationAggregateSharingEnabled = true,
-        reduceMotionEnabled = true,
-        hapticsEnabled = false,
-      )
+      it.copy(onboardingComplete = true, onlineFeaturesEnabled = true, productAnalyticsEnabled = true,
+        notificationAggregateSharingEnabled = true, reduceMotionEnabled = true, highContrastEnabled = true, hapticsEnabled = false)
     }
+    assertEquals(UserPreferences(true, true, true, true, true, true, false), DataStoreUserPreferences(dataStore).values.first())
+  }
 
-    assertEquals(
-      UserPreferences(
-        onlineFeaturesEnabled = true,
-        productAnalyticsEnabled = true,
-        notificationAggregateSharingEnabled = true,
-        reduceMotionEnabled = true,
-        hapticsEnabled = false,
-      ),
-      DataStoreUserPreferences(dataStore).values.first(),
-    )
+  @Test
+  fun `dependent consent cannot be enabled without online features`() = runBlocking {
+    DataStoreUserPreferences(dataStore).update {
+      it.copy(productAnalyticsEnabled = true, notificationAggregateSharingEnabled = true)
+    }
+    assertEquals(UserPreferences(), DataStoreUserPreferences(dataStore).values.first())
   }
 }

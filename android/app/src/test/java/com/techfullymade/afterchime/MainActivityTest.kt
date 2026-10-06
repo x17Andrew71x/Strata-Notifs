@@ -23,9 +23,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class MainActivityTest {
   @Test
-  fun `hosts a hardened WebView within the native app shell and starts from the configured shell or bundled disabled fallback`() {
+  fun `initialises a hardened WebView shell and starts from the configured shell or bundled disabled fallback`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
-    val webView = findWebView(activity.findViewById(android.R.id.content))
+    val webView = activity.shellForTesting()
     assertFalse(webView.settings.allowFileAccess)
     assertFalse(webView.settings.allowContentAccess)
     assertFalse(webView.settings.javaScriptCanOpenWindowsAutomatically)
@@ -46,7 +46,7 @@ class MainActivityTest {
   @Test
   fun `blocks off-origin requests and permits only configured shell origins`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
-    val webView = findWebView(activity.findViewById(android.R.id.content))
+    val webView = activity.shellForTesting()
 
     val blocked = webView.webViewClient.shouldInterceptRequest(
       webView,
@@ -176,23 +176,6 @@ class MainActivityTest {
     assertFalse(bundledPage.contains("strata", ignoreCase = true))
   }
 
-  private fun findWebView(view: android.view.View): WebView = when (view) {
-    is WebView -> view
-    is android.view.ViewGroup -> {
-      requireNotNull((0 until view.childCount).firstNotNullOfOrNull { index ->
-        findWebViewOrNull(view.getChildAt(index))
-      })
-    }
-    else -> error("WebView not found in native app shell")
-  }
-
-  private fun findWebViewOrNull(view: android.view.View): WebView? = when (view) {
-    is WebView -> view
-    is android.view.ViewGroup -> (0 until view.childCount).firstNotNullOfOrNull { index ->
-      findWebViewOrNull(view.getChildAt(index))
-    }
-    else -> null
-  }
 
   private fun request(url: String, mainFrame: Boolean = false): WebResourceRequest =
     object : WebResourceRequest {

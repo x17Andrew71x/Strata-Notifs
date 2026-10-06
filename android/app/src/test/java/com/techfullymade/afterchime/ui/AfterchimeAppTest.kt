@@ -3,10 +3,12 @@ package com.techfullymade.afterchime.ui
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.techfullymade.afterchime.ui.navigation.AfterchimeNavGraph
 import com.techfullymade.afterchime.ui.navigation.RootDestination
+import com.techfullymade.afterchime.settings.UserPreferences
 import com.techfullymade.afterchime.ui.theme.AfterchimeTheme
 import org.junit.Rule
 import org.junit.Test
@@ -18,6 +20,20 @@ import org.robolectric.annotation.Config
 class AfterchimeAppTest {
   @get:Rule
   val composeRule = createComposeRule()
+
+  @Test
+  fun `incomplete onboarding blocks app roots until explicit persisted completion callback`() {
+    var completed = false
+    composeRule.setContent {
+      AfterchimeTheme {
+        AfterchimeApp(onEnableNotificationAccess = {}, preferences = UserPreferences(), onOnboardingComplete = { completed = true })
+      }
+    }
+    composeRule.onNodeWithTag("onboarding-screen").assertExists()
+    composeRule.onNodeWithTag("root-today").assertDoesNotExist()
+    composeRule.onNodeWithText("Continue").performClick()
+    composeRule.runOnIdle { assert(completed) }
+  }
 
   @Test
   fun `root navigation exposes four labelled destinations and swaps root content`() {

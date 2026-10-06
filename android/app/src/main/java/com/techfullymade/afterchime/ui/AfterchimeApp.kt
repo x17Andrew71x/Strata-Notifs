@@ -28,6 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import com.techfullymade.afterchime.R
 import com.techfullymade.afterchime.domain.FormationObservation
 import com.techfullymade.afterchime.domain.FormationSnapshot
+import com.techfullymade.afterchime.settings.UserPreferences
+import com.techfullymade.afterchime.ui.more.MoreScreen
+import com.techfullymade.afterchime.ui.onboarding.OnboardingScreen
 import com.techfullymade.afterchime.ui.navigation.AfterchimeNavGraph
 import com.techfullymade.afterchime.ui.navigation.RootDestination
 import com.techfullymade.afterchime.ui.theme.AfterchimeSpacing
@@ -68,6 +71,9 @@ fun AfterchimeApp(
   museumContent: (@Composable (openSpecimen: (String) -> Unit) -> Unit)? = null,
   museumDetailContent: (@Composable (specimenId: String, onBack: () -> Unit) -> Unit)? = null,
   initialNavigation: AfterchimeNavGraph = AfterchimeNavGraph.initial(),
+  preferences: UserPreferences = UserPreferences(onboardingComplete = true),
+  onPreferencesChanged: (UserPreferences) -> Unit = {},
+  onOnboardingComplete: () -> Unit = {},
 ) {
   var navigation by rememberSaveable(stateSaver = afterchimeNavGraphSaver) {
     mutableStateOf(initialNavigation)
@@ -76,7 +82,9 @@ fun AfterchimeApp(
     navigation = navigation.back()
   }
 
-  Scaffold(
+  if (!preferences.onboardingComplete) {
+    OnboardingScreen(onComplete = onOnboardingComplete)
+  } else Scaffold(
     containerColor = Basalt,
     bottomBar = {
       if (navigation.isAtRoot) {
@@ -151,8 +159,14 @@ fun AfterchimeApp(
           }
         }
 
-        RootDestination.COMMUNITY,
-        RootDestination.MORE -> RootPlaceholder(
+        RootDestination.MORE -> MoreScreen(
+          preferences = preferences,
+          onEnableNotificationAccess = onEnableNotificationAccess,
+          onPreferencesChanged = onPreferencesChanged,
+          modifier = Modifier.padding(insets),
+        )
+
+        RootDestination.COMMUNITY -> RootPlaceholder(
           destination = navigation.selectedRoot,
           modifier = Modifier.padding(insets),
         )

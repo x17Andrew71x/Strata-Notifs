@@ -21,6 +21,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.JavaScriptReplyProxy
@@ -28,6 +29,8 @@ import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
+import com.techfullymade.afterchime.settings.DataStoreUserPreferences
+import com.techfullymade.afterchime.settings.UserPreferences
 import com.techfullymade.afterchime.ui.AfterchimeApp
 import com.techfullymade.afterchime.ui.museum.MuseumScreen
 import com.techfullymade.afterchime.ui.museum.MuseumViewModel
@@ -35,6 +38,7 @@ import com.techfullymade.afterchime.ui.museum.MissingSpecimenDetailScreen
 import com.techfullymade.afterchime.ui.museum.SpecimenDetailScreen
 import com.techfullymade.afterchime.ui.theme.AfterchimeTheme
 import org.json.JSONObject
+import kotlinx.coroutines.launch
 
 private const val BRIDGE_NAME = "AfterchimeBridge"
 private const val BRIDGE_VERSION = 1
@@ -79,6 +83,7 @@ class MainActivity : ComponentActivity() {
     MuseumViewModel.factory((application as AfterchimeApplication).museumRepository)
   }
   private lateinit var shell: WebView
+  private val userPreferences by lazy { DataStoreUserPreferences(applicationContext) }
   private lateinit var assetLoader: WebViewAssetLoader
   private var replyProxy: JavaScriptReplyProxy? = null
   private var usingLocalShell = false
@@ -87,6 +92,8 @@ class MainActivity : ComponentActivity() {
   private val remoteReadyWatchdog = Runnable {
     if (!usingLocalShell && !remoteShellReady) loadBundledShell()
   }
+
+  internal fun shellForTesting(): WebView = shell
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -101,49 +108,61 @@ class MainActivity : ComponentActivity() {
     configureWebView()
     setContent {
       val museumState by museumViewModel.uiState.collectAsState()
-      AfterchimeTheme {
-        AfterchimeApp(
-          onEnableNotificationAccess = { openNotificationAccessSettings() },
-          todayContent = {
-            AndroidView(
-              factory = { shell },
-              modifier = Modifier.fillMaxSize(),
-            )
-          },
-          museumContent = { openSpecimen ->
-            MuseumScreen(
-              state = museumState,
-              onTierFilterSelected = museumViewModel::selectTierFilter,
-              onSpecimenSelected = { specimenId ->
-                museumViewModel.selectSpecimen(specimenId)
-                openSpecimen(specimenId)
-              },
-              onCombineSpecimenSelected = museumViewModel::toggleCombineSpecimen,
-              onCancelCombine = museumViewModel::cancelCombine,
-              onReviewCombine = museumViewModel::reviewCombine,
-              onDismissCombineConfirmation = museumViewModel::dismissCombineConfirmation,
-              onConfirmCombine = museumViewModel::confirmCombine,
-            )
-          },
-          museumDetailContent = { specimenId, onBack ->
-            val specimen = museumState.specimens.firstOrNull { candidate ->
-              candidate.id == specimenId && candidate.revealedAtEpochMillis != null
-            }
-            if (specimen == null) {
-              MissingSpecimenDetailScreen(onBack = onBack)
-            } else {
-              SpecimenDetailScreen(
-                specimen = specimen,
-                onBack = onBack,
-                onSetLocked = { locked -> museumViewModel.setSpecimenLocked(specimen.id, locked) },
-                onBeginCombine = {
-                  museumViewModel.beginCombine(specimen.id)
-                  onBack()
-                },
+      val preferences by userPreferences.values.collectAsState(initial = null)
+      val preferenceScope = rememberCoroutineScope()
+      preferences?.let { loadedPreferences ->
+        AfterchimeTheme(
+          reduceMotion = loadedPreferences.reduceMotionEnabled,
+          highContrast = loadedPreferences.highContrastEnabled,
+        ) {
+          AfterchimeApp(
+            onEnableNotificationAccess = { openNotificationAccessSettings() },
+            preferences = loadedPreferences,
+            onPreferencesChanged = { updated -> preferenceScope.launch { userPreferences.update { updated } } },
+            onOnboardingComplete = {
+              preferenceScope.launch { userPreferences.update { it.copy(onboardingComplete = true) } }
+            },
+            todayContent = {
+              AndroidView(
+                factory = { shell },
+                modifier = Modifier.fillMaxSize(),
               )
-            }
-          },
-        )
+            },
+            museumContent = { openSpecimen ->
+              MuseumScreen(
+                state = museumState,
+                onTierFilterSelected = museumViewModel::selectTierFilter,
+                onSpecimenSelected = { specimenId ->
+                  museumViewModel.selectSpecimen(specimenId)
+                  openSpecimen(specimenId)
+                },
+                onCombineSpecimenSelected = museumViewModel::toggleCombineSpecimen,
+                onCancelCombine = museumViewModel::cancelCombine,
+                onReviewCombine = museumViewModel::reviewCombine,
+                onDismissCombineConfirmation = museumViewModel::dismissCombineConfirmation,
+                onConfirmCombine = museumViewModel::confirmCombine,
+              )
+            },
+            museumDetailContent = { specimenId, onBack ->
+              val specimen = museumState.specimens.firstOrNull { candidate ->
+                candidate.id == specimenId && candidate.revealedAtEpochMillis != null
+              }
+              if (specimen == null) {
+                MissingSpecimenDetailScreen(onBack = onBack)
+              } else {
+                SpecimenDetailScreen(
+                  specimen = specimen,
+                  onBack = onBack,
+                  onSetLocked = { locked -> museumViewModel.setSpecimenLocked(specimen.id, locked) },
+                  onBeginCombine = {
+                    museumViewModel.beginCombine(specimen.id)
+                    onBack()
+                  },
+                )
+              }
+            },
+          )
+        }
       }
     }
     if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
