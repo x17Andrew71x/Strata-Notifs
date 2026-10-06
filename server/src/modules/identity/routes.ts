@@ -89,7 +89,7 @@ export async function registerIdentityRoutes(
   );
 
   app.post(
-    "/v1/sessions/refresh",
+    "/v1/auth/refresh",
     {
       schema: {
         body: refreshBody,
@@ -109,8 +109,8 @@ export async function registerIdentityRoutes(
     },
   );
 
-  app.delete(
-    "/v1/sessions",
+  app.post(
+    "/v1/auth/logout",
     {
       schema: {
         body: refreshBody,

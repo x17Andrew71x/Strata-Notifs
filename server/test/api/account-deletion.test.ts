@@ -239,7 +239,7 @@ describePostgres("account deletion API", () => {
     const refreshed = await app.inject({
       method: "POST",
       payload: { refreshToken: target.refreshToken },
-      url: "/v1/sessions/refresh",
+      url: "/v1/auth/refresh",
     });
     expect(refreshed.statusCode).toBe(401);
     expect(refreshed.json()).toEqual({ error: "invalid_refresh_token" });

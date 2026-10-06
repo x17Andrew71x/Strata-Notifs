@@ -162,6 +162,10 @@ describePostgres("installation registration API", () => {
 
   it("rotates refresh-token families, detects replay, and revokes the family at logout", async () => {
     const app = await appForDatabase();
+    const legacyRefresh = await app.inject({ method: "POST", url: "/v1/sessions/refresh" });
+    const legacyLogout = await app.inject({ method: "DELETE", url: "/v1/sessions" });
+    expect(legacyRefresh.statusCode).toBe(404);
+    expect(legacyLogout.statusCode).toBe(404);
     const created = await app.inject({
       headers: { "idempotency-key": randomUUID() },
       method: "POST",
@@ -173,7 +177,7 @@ describePostgres("installation registration API", () => {
     const rotated = await app.inject({
       method: "POST",
       payload: { refreshToken: initial.refreshToken },
-      url: "/v1/sessions/refresh",
+      url: "/v1/auth/refresh",
     });
     expect(rotated.statusCode).toBe(200);
     const current = rotated.json();
@@ -182,13 +186,13 @@ describePostgres("installation registration API", () => {
     const replay = await app.inject({
       method: "POST",
       payload: { refreshToken: initial.refreshToken },
-      url: "/v1/sessions/refresh",
+      url: "/v1/auth/refresh",
     });
     expect(replay.statusCode).toBe(401);
     const familyRevoked = await app.inject({
       method: "POST",
       payload: { refreshToken: current.refreshToken },
-      url: "/v1/sessions/refresh",
+      url: "/v1/auth/refresh",
     });
     expect(familyRevoked.statusCode).toBe(401);
 
@@ -200,15 +204,15 @@ describePostgres("installation registration API", () => {
     });
     const anotherSession = another.json();
     const logout = await app.inject({
-      method: "DELETE",
+      method: "POST",
       payload: { refreshToken: anotherSession.refreshToken },
-      url: "/v1/sessions",
+      url: "/v1/auth/logout",
     });
     expect(logout.statusCode).toBe(204);
     const afterLogout = await app.inject({
       method: "POST",
       payload: { refreshToken: anotherSession.refreshToken },
-      url: "/v1/sessions/refresh",
+      url: "/v1/auth/refresh",
     });
     expect(afterLogout.statusCode).toBe(401);
   });

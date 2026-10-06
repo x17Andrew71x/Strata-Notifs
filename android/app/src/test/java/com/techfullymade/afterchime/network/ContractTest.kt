@@ -155,6 +155,15 @@ class ContractTest {
     assertFalse(connection.instanceFollowRedirects)
     assertTrue(connection.connectTimeout in 1..15_000)
     assertTrue(connection.readTimeout in 1..15_000)
+
+    val inertRefreshValue = "x".repeat(43)
+    api.refresh(RefreshRequest(inertRefreshValue))
+    assertEquals("/v1/auth/refresh", connection.url.path)
+    assertEquals("POST", connection.requestMethod)
+
+    api.logout(LogoutRequest(inertRefreshValue))
+    assertEquals("/v1/auth/logout", connection.url.path)
+    assertEquals("POST", connection.requestMethod)
   }
 
   @Test

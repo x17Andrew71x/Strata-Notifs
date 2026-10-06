@@ -6,6 +6,65 @@
     "description": "Development contract only; no production deployment is authorized."
   },
   "paths": {
+    "/v1/installations": {
+      "post": {
+        "summary": "Register an installation and issue a session",
+        "parameters": [
+          { "in": "header", "name": "idempotency-key", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["appVersion", "device"],
+                "properties": {
+                  "appVersion": { "type": "string", "minLength": 1, "maxLength": 48, "pattern": "^[A-Za-z0-9.+_-]+$" },
+                  "device": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["androidApiLevel", "deviceClass"],
+                    "properties": {
+                      "androidApiLevel": { "type": "integer", "minimum": 26, "maximum": 100 },
+                      "deviceClass": { "type": "string", "enum": ["phone", "tablet", "foldable"] }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Session" },
+          "201": { "$ref": "#/components/responses/Session" },
+          "409": { "description": "The idempotency key conflicts with a prior registration.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IdentityError" } } } },
+          "400": { "description": "The request does not match the strict registration schema." }
+        }
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "summary": "Rotate a refresh-token family",
+        "requestBody": { "$ref": "#/components/requestBodies/Refresh" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Session" },
+          "401": { "$ref": "#/components/responses/InvalidRefresh" },
+          "400": { "description": "The request does not match the strict refresh schema." }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "summary": "Revoke the refresh-token family; repeated logout is harmless",
+        "requestBody": { "$ref": "#/components/requestBodies/Refresh" },
+        "responses": {
+          "204": { "description": "Refresh-token family revoked, or already absent." },
+          "400": { "description": "The request does not match the strict logout schema." }
+        }
+      }
+    },
     "/v1/analytics/events:batch": {
       "post": {
         "summary": "Ingest a bounded batch of consented analytics events",
@@ -136,6 +195,53 @@
             "description": "The daily aggregate already has the supplied or a newer conflicting revision."
           }
         }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Session": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["accessToken", "expiresInSeconds", "installationId", "refreshToken", "tokenType"],
+        "properties": {
+          "accessToken": { "type": "string" },
+          "expiresInSeconds": { "type": "integer", "const": 900 },
+          "installationId": { "type": "string", "format": "uuid" },
+          "refreshToken": { "type": "string", "minLength": 43, "maxLength": 43, "pattern": "^[A-Za-z0-9_-]+$" },
+          "tokenType": { "type": "string", "const": "Bearer" }
+        }
+      },
+      "IdentityError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["error"],
+        "properties": { "error": { "type": "string", "enum": ["idempotency_conflict", "invalid_refresh_token"] } }
+      }
+    },
+    "requestBodies": {
+      "Refresh": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["refreshToken"],
+              "properties": { "refreshToken": { "type": "string", "minLength": 43, "maxLength": 43, "pattern": "^[A-Za-z0-9_-]+$" } }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "Session": {
+        "description": "A session was issued or rotated.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Session" } } }
+      },
+      "InvalidRefresh": {
+        "description": "The refresh token is invalid, expired, revoked, or replayed; the family is revoked on replay.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IdentityError" } } }
       }
     }
   }

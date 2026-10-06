@@ -39,7 +39,7 @@ class AfterchimeApi(
 
   fun refresh(request: RefreshRequest): ApiResult<SessionResponse> =
     execute(
-      path = "/v1/sessions/refresh",
+      path = "/v1/auth/refresh",
       method = "POST",
       body = ApiModels.encodeRefresh(request),
       token = null,
@@ -50,8 +50,8 @@ class AfterchimeApi(
 
   fun logout(request: LogoutRequest): ApiResult<Unit> =
     execute(
-      path = "/v1/sessions",
-      method = "DELETE",
+      path = "/v1/auth/logout",
+      method = "POST",
       body = ApiModels.encodeLogout(request),
       token = null,
       headers = emptyMap(),
