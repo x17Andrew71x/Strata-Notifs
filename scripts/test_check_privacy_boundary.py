@@ -99,6 +99,34 @@ class PrivacyBoundaryScannerTest(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_allows_non_notification_keystore_lookup(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_source(
+                root,
+                "android/app/src/main/java/com/example/security/CredentialCipher.kt",
+                "val key = keyStore.getKey(KEY_ALIAS, null)\n",
+            )
+
+            result = self.scan(root)
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_rejects_notification_key_getter(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = self.write_source(
+                root,
+                "android/app/src/main/java/com/example/domain/Unsafe.kt",
+                "val key = statusBarNotification.getKey()\n",
+            )
+
+            result = self.scan(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(source.relative_to(root).as_posix(), result.stderr)
+            self.assertIn("notification key", result.stderr)
+
     def test_rejects_content_field_inside_reducer(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

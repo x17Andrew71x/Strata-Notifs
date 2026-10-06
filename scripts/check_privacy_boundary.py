@@ -55,8 +55,7 @@ RULES = (
         "notification key",
         re.compile(
             r"\b(?:notificationKey|rawNotificationKey)\b"
-            r"|\b(?:notification|sbn)\s*\.\s*key\b"
-            r"|\bgetKey\s*\(",
+            r"|\b(?:notification|sbn|statusBarNotification)\s*\.\s*(?:key\b|getKey\s*\()",
             re.IGNORECASE,
         ),
     ),
