@@ -13,55 +13,72 @@ class AfterchimeDatabaseMigrationTest {
   )
 
   @Test
-  fun versionOneExportedSchemaMigratesToVersionFiveWithoutDestructiveFallback() {
-    val name = "afterchime-v1-to-v5-migration"
+  fun versionOneExportedSchemaMigratesToVersionSixWithoutDestructiveFallback() {
+    val name = "afterchime-v1-to-v6-migration"
 
     migrationHelper.createDatabase(name, 1).close()
     migrationHelper.runMigrationsAndValidate(
       name,
-      5,
+      6,
       true,
       AfterchimeDatabase.MIGRATION_1_2,
       AfterchimeDatabase.MIGRATION_2_3,
       AfterchimeDatabase.MIGRATION_3_4,
       AfterchimeDatabase.MIGRATION_4_5,
+      AfterchimeDatabase.MIGRATION_5_6,
     ).close()
   }
 
   @Test
-  fun versionTwoExportedSchemaMigratesToVersionFiveWithoutDestructiveFallback() {
-    val name = "afterchime-v2-to-v5-migration"
+  fun versionTwoExportedSchemaMigratesToVersionSixWithoutDestructiveFallback() {
+    val name = "afterchime-v2-to-v6-migration"
 
     migrationHelper.createDatabase(name, 2).close()
     migrationHelper.runMigrationsAndValidate(
       name,
-      5,
+      6,
       true,
       AfterchimeDatabase.MIGRATION_2_3,
       AfterchimeDatabase.MIGRATION_3_4,
       AfterchimeDatabase.MIGRATION_4_5,
+      AfterchimeDatabase.MIGRATION_5_6,
     ).close()
   }
 
   @Test
-  fun versionThreeExportedSchemaMigratesToVersionFiveWithoutDestructiveFallback() {
-    val name = "afterchime-v3-to-v5-migration"
+  fun versionThreeExportedSchemaMigratesToVersionSixWithoutDestructiveFallback() {
+    val name = "afterchime-v3-to-v6-migration"
 
     migrationHelper.createDatabase(name, 3).close()
     migrationHelper.runMigrationsAndValidate(
       name,
-      5,
+      6,
       true,
       AfterchimeDatabase.MIGRATION_3_4,
       AfterchimeDatabase.MIGRATION_4_5,
+      AfterchimeDatabase.MIGRATION_5_6,
     ).close()
   }
 
   @Test
-  fun versionFourExportedSchemaMigratesToVersionFiveWithoutDestructiveFallback() {
-    val name = "afterchime-v4-to-v5-migration"
+  fun versionFourExportedSchemaMigratesToVersionSixWithoutDestructiveFallback() {
+    val name = "afterchime-v4-to-v6-migration"
 
     migrationHelper.createDatabase(name, 4).close()
-    migrationHelper.runMigrationsAndValidate(name, 5, true, AfterchimeDatabase.MIGRATION_4_5).close()
+    migrationHelper.runMigrationsAndValidate(
+      name,
+      6,
+      true,
+      AfterchimeDatabase.MIGRATION_4_5,
+      AfterchimeDatabase.MIGRATION_5_6,
+    ).close()
+  }
+
+  @Test
+  fun versionFiveExportedSchemaMigratesToVersionSixWithoutDestructiveFallback() {
+    val name = "afterchime-v5-to-v6-migration"
+
+    migrationHelper.createDatabase(name, 5).close()
+    migrationHelper.runMigrationsAndValidate(name, 6, true, AfterchimeDatabase.MIGRATION_5_6).close()
   }
 }

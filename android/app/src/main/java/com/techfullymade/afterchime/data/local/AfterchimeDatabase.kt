@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.techfullymade.afterchime.data.local.dao.AnalyticsOutboxDao
 import com.techfullymade.afterchime.data.local.dao.DaySummaryDao
 import com.techfullymade.afterchime.data.local.dao.InventoryItemDao
 import com.techfullymade.afterchime.data.local.dao.InventoryMutationDao
@@ -12,6 +13,7 @@ import com.techfullymade.afterchime.data.local.dao.ListenerAccessStateDao
 import com.techfullymade.afterchime.data.local.dao.ReducedNotificationDao
 import com.techfullymade.afterchime.data.local.dao.SpecimenDao
 import com.techfullymade.afterchime.data.local.dao.SpecimenOutputDao
+import com.techfullymade.afterchime.data.local.entity.AnalyticsOutboxEntity
 import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
 import com.techfullymade.afterchime.data.local.entity.InventoryItemEntity
 import com.techfullymade.afterchime.data.local.entity.InventoryMutationEntity
@@ -29,9 +31,10 @@ import com.techfullymade.afterchime.data.local.entity.SpecimenOutputEntity
     SpecimenOutputEntity::class,
     InventoryItemEntity::class,
     InventoryMutationEntity::class,
+    AnalyticsOutboxEntity::class,
   ],
   exportSchema = true,
-  version = 5,
+  version = 6,
 )
 @TypeConverters(AfterchimeTypeConverters::class)
 abstract class AfterchimeDatabase : RoomDatabase() {
@@ -48,6 +51,8 @@ abstract class AfterchimeDatabase : RoomDatabase() {
   abstract fun inventoryItemDao(): InventoryItemDao
 
   abstract fun inventoryMutationDao(): InventoryMutationDao
+
+  abstract fun analyticsOutboxDao(): AnalyticsOutboxDao
 
   companion object {
     val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -92,6 +97,12 @@ abstract class AfterchimeDatabase : RoomDatabase() {
     val MIGRATION_3_4 = object : Migration(3, 4) {
       override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `specimens` ADD COLUMN `is_locked` INTEGER NOT NULL DEFAULT 0")
+      }
+    }
+
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS `analytics_outbox` (`event_id` TEXT NOT NULL, `ciphertext` BLOB NOT NULL, `created_at_epoch_millis` INTEGER NOT NULL, PRIMARY KEY(`event_id`))")
       }
     }
 
