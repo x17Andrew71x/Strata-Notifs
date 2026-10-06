@@ -34,6 +34,7 @@ import com.techfullymade.afterchime.capture.StrataNotificationListenerService
 import com.techfullymade.afterchime.data.catalog.DataStoreWorldCatalog
 import com.techfullymade.afterchime.catalog.DevelopmentWorldState
 import com.techfullymade.afterchime.render.World
+import com.techfullymade.afterchime.sharing.ShareUseCase
 import com.techfullymade.afterchime.settings.DataStoreUserPreferences
 import com.techfullymade.afterchime.settings.UserPreferences
 import com.techfullymade.afterchime.ui.AfterchimeApp
@@ -181,6 +182,12 @@ class MainActivity : ComponentActivity() {
                   onBeginCombine = {
                     museumViewModel.beginCombine(specimen.id)
                     onBack()
+                  },
+                  onShareSpecimen = {
+                    ShareUseCase(this@MainActivity).share(
+                      specimen,
+                      if (developmentWorldsEnabled) worldState.selectedWorld else World.PRIMEVAL_STRATA,
+                    )
                   },
                 )
               }

@@ -52,6 +52,9 @@
   <string name="specimen_detail_missing_title">Specimen unavailable</string>
   <string name="specimen_detail_missing_body">This specimen is no longer in your museum.</string>
   <string name="specimen_detail_combine">Combine specimen</string>
+  <string name="specimen_detail_share">Share specimen</string>
+  <string name="specimen_share_chooser">Share specimen</string>
+  <string name="specimen_share_summary">Afterchime specimen — %1$s, %2$s</string>
   <string name="museum_combine_selection_title">Choose three matching specimens</string>
   <string name="museum_combine_selection_body">Choose three unlocked specimens with the same family and tier.</string>
   <string name="museum_combine_selected_count">%1$d of 3 selected</string>

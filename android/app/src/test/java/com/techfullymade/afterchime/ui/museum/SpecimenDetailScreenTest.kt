@@ -44,6 +44,7 @@ class SpecimenDetailScreenTest {
     var backCount = 0
     val lockRequests = mutableListOf<Boolean>()
     var combineCount = 0
+    var shareCount = 0
     composeRule.setContent {
       AfterchimeTheme(reduceMotion = true) {
         SpecimenDetailScreen(
@@ -51,6 +52,7 @@ class SpecimenDetailScreenTest {
           onBack = { backCount += 1 },
           onSetLocked = { locked -> lockRequests.add(locked); Unit },
           onBeginCombine = { combineCount += 1 },
+          onShareSpecimen = { shareCount += 1 },
         )
       }
     }
@@ -60,15 +62,28 @@ class SpecimenDetailScreenTest {
     composeRule.onNodeWithText("Geode").assertExists()
     composeRule.onNodeWithText("Rare").assertExists()
     composeRule.onNodeWithText("Sealed").assertExists()
+    composeRule.onNodeWithTag("specimen-detail-share").assertExists()
     composeRule.onNodeWithText("private-test-id").assertDoesNotExist()
 
+    composeRule.onNodeWithTag("specimen-detail-share").performScrollTo().performClick()
     composeRule.onNodeWithTag("specimen-detail-lock").performScrollTo().performClick()
     composeRule.onNodeWithTag("specimen-detail-combine").performScrollTo().performClick()
     composeRule.onNodeWithTag("specimen-detail-back").performScrollTo().performClick()
 
     assertEquals(listOf(true), lockRequests)
     assertEquals(1, combineCount)
+    assertEquals(1, shareCount)
     assertEquals(1, backCount)
+  }
+
+  @Test
+  fun `unavailable detail exposes no share action`() {
+    composeRule.setContent {
+      AfterchimeTheme {
+        MissingSpecimenDetailScreen(onBack = {})
+      }
+    }
+    composeRule.onNodeWithTag("specimen-detail-share").assertDoesNotExist()
   }
 
   @Test

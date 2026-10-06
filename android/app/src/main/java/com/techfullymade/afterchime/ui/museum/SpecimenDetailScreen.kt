@@ -41,6 +41,7 @@ fun SpecimenDetailScreen(
   onBack: () -> Unit,
   onSetLocked: (Boolean) -> Unit,
   onBeginCombine: () -> Unit,
+  onShareSpecimen: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   val family = specimen.family.displayName()
@@ -106,6 +107,14 @@ fun SpecimenDetailScreen(
             label = stringResource(R.string.specimen_detail_lock),
             value = stringResource(R.string.specimen_detail_locked),
           )
+        }
+        if (specimen.revealedAtEpochMillis != null) {
+          TextButton(
+            onClick = onShareSpecimen,
+            modifier = Modifier.testTag("specimen-detail-share"),
+          ) {
+            Text(stringResource(R.string.specimen_detail_share))
+          }
         }
         TextButton(
           onClick = { onSetLocked(!specimen.isLocked) },
