@@ -1,6 +1,7 @@
 package com.techfullymade.afterchime.ui.today
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.techfullymade.afterchime.domain.FormationObservation
 import com.techfullymade.afterchime.domain.FormationRepository
@@ -58,6 +59,17 @@ class TodayViewModel(
   private val localDate: LocalDate = LocalDate.now(),
   private val clock: Clock = Clock.systemUTC(),
 ) : ViewModel() {
+  companion object {
+    fun factory(repository: FormationRepository): ViewModelProvider.Factory =
+      object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+          require(modelClass.isAssignableFrom(TodayViewModel::class.java))
+          return TodayViewModel(repository) as T
+        }
+      }
+  }
+
   private val revealInFlight = MutableStateFlow(false)
 
   val uiState: StateFlow<TodayUiState> = combine(

@@ -8,9 +8,13 @@ import com.techfullymade.afterchime.capture.NotificationReducer
 import com.techfullymade.afterchime.capture.ObservationRepository
 import com.techfullymade.afterchime.capture.ObservationRuntimeRegistry
 import com.techfullymade.afterchime.data.local.AfterchimeDatabase
+import com.techfullymade.afterchime.domain.FormationRepository
+import com.techfullymade.afterchime.domain.LocalFormationRepository
 import com.techfullymade.afterchime.domain.LocalMuseumRepository
 import com.techfullymade.afterchime.domain.MuseumRepository
 import com.techfullymade.afterchime.sealing.RoomSealDayStore
+import com.techfullymade.afterchime.sealing.SealDayScheduler
+import androidx.work.WorkManager
 import com.techfullymade.afterchime.sealing.SealDayRuntimeRegistry
 import com.techfullymade.afterchime.sealing.SealDayUseCase
 import com.techfullymade.afterchime.security.AndroidKeystoreMaterial
@@ -40,6 +44,7 @@ class AfterchimeApplication : Application() {
   }
 
   internal val userPreferences: DataStoreUserPreferences by lazy { DataStoreUserPreferences(this) }
+  internal val formationRepository: FormationRepository by lazy { LocalFormationRepository(database) }
   internal val museumRepository: MuseumRepository by lazy { LocalMuseumRepository(database) }
 
   override fun onCreate() {
@@ -65,6 +70,7 @@ class AfterchimeApplication : Application() {
         localSecretStore = activeLocalSecretStore,
         observationRepository = observationRepository,
         sealDayUseCase = sealDayUseCase,
+        onInstalled = { SealDayScheduler(WorkManager.getInstance(this)).schedule() },
       )
     } catch (_: LocalSecretException) {
       NotificationCaptureRuntimeRegistry.runtime = null
@@ -92,6 +98,7 @@ internal fun installAfterchimeRuntime(
   localSecretStore: LocalSecretStore,
   observationRepository: ObservationRepository,
   sealDayUseCase: SealDayUseCase,
+  onInstalled: () -> Unit = {},
 ): Boolean = try {
   localSecretStore.ensureAvailable()
   NotificationCaptureRuntimeRegistry.runtime = NotificationCaptureRuntime(
@@ -103,6 +110,7 @@ internal fun installAfterchimeRuntime(
     observationRepository = observationRepository,
   )
   SealDayRuntimeRegistry.useCase = sealDayUseCase
+  onInstalled()
   true
 } catch (_: LocalSecretException) {
   // Preserve history and fail closed. A later explicit local-history reset owns replacement material.

@@ -65,6 +65,7 @@ class AfterchimeRuntimeTest {
       random = LocalSecretRandom { ByteArray(LocalSecretStore.GENERATOR_SECRET_BYTES) { 7 } },
     )
 
+    var scheduled = false
     val installed = installAfterchimeRuntime(
       ownPackageName = "com.techfullymade.afterchime",
       timeZone = ZoneOffset.UTC,
@@ -80,15 +81,18 @@ class AfterchimeRuntimeTest {
         clock = Clock.systemUTC(),
         timeZone = ZoneOffset.UTC,
       ),
+      onInstalled = { scheduled = true },
     )
 
     assertTrue(installed)
+    assertTrue(scheduled)
     assertNotNull(NotificationCaptureRuntimeRegistry.runtime)
     assertNotNull(SealDayRuntimeRegistry.useCase)
   }
 
   @Test
   fun `runtime activation fails closed when initialized protected material is unavailable`() {
+    var scheduled = false
     val installed = installAfterchimeRuntime(
       ownPackageName = "com.techfullymade.afterchime",
       timeZone = ZoneOffset.UTC,
@@ -108,9 +112,11 @@ class AfterchimeRuntimeTest {
         clock = Clock.systemUTC(),
         timeZone = ZoneOffset.UTC,
       ),
+      onInstalled = { scheduled = true },
     )
 
     assertFalse(installed)
+    assertFalse(scheduled)
     assertNull(NotificationCaptureRuntimeRegistry.runtime)
     assertNull(SealDayRuntimeRegistry.useCase)
   }
