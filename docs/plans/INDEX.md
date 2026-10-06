@@ -65,6 +65,8 @@
 
 - **2026-10-05 — Combine confirmation UI (Task 6):** Connected an unlocked ordinary/restored specimen detail action to a three-item, family/tier/state-matched Museum selection flow and an explicit irreversible-exchange confirmation. The ViewModel prevents duplicate submission and now retains the exact client-generated mutation/output identifiers after an unknown result, so an explicit retry reaches the transactional idempotency boundary unchanged. No network, analytics, account, raw notification or package data enters the flow. A red regression first proved the former retry failure; the isolated Afterchime-Builder then passed 16 focused museum/combine tests, Android lint, and development APK assembly. Physical Room-migration and rendered device/AVD acceptance remain open.
 
+- **2026-10-06 — Weekly display domain slice:** Added a renderer-neutral, seven-day arrangement that keeps sealed, missing and explicitly unobserved local days distinct. It rejects duplicate/contradictory in-range inputs, ignores derived/out-of-range specimens and has no persistence, world, network or notification-data surface. The isolated Afterchime-Builder passed the focused `CreateWeeklyDisplayUseCaseTest`, Android lint and development APK assembly.
+
 Patch versions are used whenever a phase requires fixes after its coherent capability lands. Milestone numbers express ordering, not a target to reach artificially.
 
 ## Execution order
