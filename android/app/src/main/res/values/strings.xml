@@ -64,4 +64,12 @@
   <string name="reveal_specimen">Reveal specimen</string>
   <string name="specimen_revealed_title">Specimen revealed</string>
   <string name="formation_canvas_description">A private formation made from today’s notification rhythm</string>
+  <string name="weekly_display_sealed">Sealed formation</string>
+  <string name="weekly_display_missing">Missing day</string>
+  <string name="weekly_display_missing_body">This day has no sealed specimen.</string>
+  <string name="weekly_display_unobserved">Unobserved day</string>
+  <string name="weekly_display_unobserved_body">This day was not observed.</string>
+  <string name="weekly_display_sealed_semantics">Day %1$d, %2$s, sealed formation</string>
+  <string name="weekly_display_missing_semantics">Day %1$d, %2$s, missing specimen</string>
+  <string name="weekly_display_unobserved_semantics">Day %1$d, %2$s, not observed</string>
 </resources>
