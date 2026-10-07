@@ -97,6 +97,50 @@ class LocalRepositoryTest {
   }
 
   @Test
+  fun `today formation exposes the latest unrevealed prior specimen`() = runBlocking {
+    val today = LocalDate.parse("2026-10-04")
+    val yesterday = today.minusDays(1)
+    val specimenId = "yesterday-specimen"
+    database.listenerAccessStateDao().upsert(
+      ListenerAccessStateEntity(
+        localDate = today.toString(),
+        activeAtEpochMillis = 1_759_680_000_000L,
+        disconnectedAtEpochMillis = null,
+        revokedAtEpochMillis = null,
+        latestState = ListenerAccessState.ACTIVE,
+        updatedAtEpochMillis = 1_759_680_000_000L,
+      ),
+    )
+    database.specimenDao().insert(
+      SpecimenEntity(
+        specimenId = specimenId,
+        anchoredLocalDate = yesterday.toString(),
+        generatorVersion = 1,
+        createdAtEpochMillis = 1_759_680_000_000L,
+        revealedAtEpochMillis = null,
+      ),
+    )
+    database.specimenOutputDao().insert(
+      SpecimenOutputEntity(
+        specimenId = specimenId,
+        family = Family.GEODE,
+        tier = Tier.RARE,
+        hueDegrees = 143,
+        strataCount = 11,
+        inclusionDensityPercent = 72,
+        reliefPercent = 63,
+        rotationDegrees = 217,
+      ),
+    )
+
+    val formation = formationRepository.observe(today).first()
+
+    assertEquals(FormationObservation.Active, formation.observation)
+    assertEquals(specimenId, formation.sealedSpecimen?.id)
+    assertEquals(yesterday, formation.sealedSpecimen?.anchoredLocalDate)
+  }
+
+  @Test
   fun `museum flow and reveal remain local idempotent and entity-free`() = runBlocking {
     val localDate = LocalDate.parse("2026-10-02")
     val specimenId = "specimen-1"

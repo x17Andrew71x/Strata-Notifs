@@ -72,7 +72,7 @@
   <string name="specimen_preview_description">A preview of a specimen waiting to be discovered</string>
   <string name="today_formation_description">Today’s private formation</string>
   <string name="today_forming_title">Today is still forming</string>
-  <string name="today_quiet_body">A quiet day can become a clean mineral plate.</string>
+  <string name="today_quiet_body">Your specimen will be ready tomorrow. A quiet day can still become a clean mineral plate.</string>
   <string name="awaiting_access_body">Notification access is needed to observe today.</string>
   <string name="observation_paused_title">Observation paused</string>
   <string name="observation_paused_body">Today will stay separate from a quiet day until access returns.</string>
@@ -82,6 +82,9 @@
   <string name="unobserved_day_body">This day was not observed, so no specimen was made.</string>
   <string name="sealed_formation_title">Sealed formation</string>
   <string name="sealed_formation_body">One local day is ready to be uncovered.</string>
+  <string name="yesterday_specimen_ready_title">Yesterday’s specimen is ready</string>
+  <string name="prior_specimen_ready_title">A past specimen is ready</string>
+  <string name="prior_specimen_ready_body">It finished forming overnight. Reveal it whenever you are ready.</string>
   <string name="today_revealed_title">Today’s formation</string>
   <string name="today_revealed_body">This local day is safely in your museum.</string>
   <string name="reveal_specimen">Reveal specimen</string>

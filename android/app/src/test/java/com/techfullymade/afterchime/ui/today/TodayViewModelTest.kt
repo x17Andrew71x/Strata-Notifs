@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class TodayViewModelTest {
   @Test
-  fun `sealed specimen reveal is submitted once to the local formation repository`() {
+  fun `previous day specimen reveal is submitted once on the next visit`() {
     val repository = FakeFormationRepository()
     val viewModel = TodayViewModel(repository, TODAY, Clock.fixed(NOW, ZoneOffset.UTC))
     val collectionScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -51,7 +51,7 @@ class TodayViewModelTest {
     private val state = MutableStateFlow(
       FormationSnapshot(
         localDate = TODAY,
-        observation = FormationObservation.SealedObserved,
+        observation = FormationObservation.Active,
         layers = emptyList<FormationLayer>(),
         sealedSpecimen = MuseumSpecimen(
           id = "local-specimen",

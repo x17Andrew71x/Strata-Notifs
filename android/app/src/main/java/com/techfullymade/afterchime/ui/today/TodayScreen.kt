@@ -29,7 +29,22 @@ fun TodayScreen(
   modifier: Modifier = Modifier,
 ) {
   val snapshot = state.snapshot
-  val copy = todayCopy(snapshot.observation, state.specimen?.revealedAtEpochMillis != null)
+  val readyCopy = if (snapshot.observation == FormationObservation.SealedObserved) {
+    null
+  } else {
+    state.specimen
+      ?.takeIf { specimen -> specimen.revealedAtEpochMillis == null }
+      ?.anchoredLocalDate
+      ?.takeIf { anchoredDate -> anchoredDate < snapshot.localDate }
+      ?.let { anchoredDate ->
+        if (anchoredDate == snapshot.localDate.minusDays(1)) ReadyCopy.YESTERDAY else ReadyCopy.PRIOR_DAY
+      }
+  }
+  val copy = todayCopy(
+    observation = snapshot.observation,
+    revealed = state.specimen?.revealedAtEpochMillis != null,
+    readyCopy = readyCopy,
+  )
   val screenDescription = stringResource(R.string.today_formation_description)
   val motionEnabled = isAppInForeground && !reduceMotion
   Column(
@@ -52,7 +67,7 @@ fun TodayScreen(
       style = MaterialTheme.typography.bodyLarge,
     )
 
-    if (snapshot.observation != FormationObservation.SealedUnobserved) {
+    if (readyCopy == null && snapshot.observation != FormationObservation.SealedUnobserved) {
       FormationCanvas(
         layers = snapshot.layers,
         motionEnabled = motionEnabled,
@@ -97,6 +112,27 @@ private data class TodayCopy(
   val title: Int,
   val body: Int,
 )
+
+private enum class ReadyCopy {
+  YESTERDAY,
+  PRIOR_DAY,
+}
+
+private fun todayCopy(
+  observation: FormationObservation,
+  revealed: Boolean,
+  readyCopy: ReadyCopy?,
+): TodayCopy = when {
+  readyCopy == ReadyCopy.YESTERDAY -> TodayCopy(
+    title = R.string.yesterday_specimen_ready_title,
+    body = R.string.prior_specimen_ready_body,
+  )
+  readyCopy == ReadyCopy.PRIOR_DAY -> TodayCopy(
+    title = R.string.prior_specimen_ready_title,
+    body = R.string.prior_specimen_ready_body,
+  )
+  else -> todayCopy(observation, revealed)
+}
 
 private fun todayCopy(
   observation: FormationObservation,

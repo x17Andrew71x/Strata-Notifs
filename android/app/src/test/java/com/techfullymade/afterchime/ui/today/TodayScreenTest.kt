@@ -39,7 +39,9 @@ class TodayScreenTest {
     setScreen(snapshot(observation = FormationObservation.Active))
 
     composeRule.onNodeWithText("Today is still forming").assertExists()
-    composeRule.onNodeWithText("A quiet day can become a clean mineral plate.").assertExists()
+    composeRule.onNodeWithText(
+      "Your specimen will be ready tomorrow. A quiet day can still become a clean mineral plate.",
+    ).assertExists()
     composeRule.onNodeWithTag("formation-canvas").assertExists()
     composeRule.onNodeWithText("Reveal specimen").assertDoesNotExist()
   }
@@ -87,6 +89,25 @@ class TodayScreenTest {
     )
 
     composeRule.onNodeWithText("Sealed formation").assertExists()
+    composeRule.onNodeWithText("Reveal specimen").performClick()
+
+    check(revealedId == "specimen-1")
+  }
+
+  @Test
+  fun `previous day specimen is prioritised for reveal on the next visit`() {
+    var revealedId: String? = null
+    setScreen(
+      snapshot(
+        observation = FormationObservation.Active,
+        specimen = specimen(),
+      ),
+      onReveal = { revealedId = it },
+    )
+
+    composeRule.onNodeWithText("Yesterday’s specimen is ready").assertExists()
+    composeRule.onNodeWithText("It finished forming overnight. Reveal it whenever you are ready.").assertExists()
+    composeRule.onNodeWithTag("formation-canvas").assertDoesNotExist()
     composeRule.onNodeWithText("Reveal specimen").performClick()
 
     check(revealedId == "specimen-1")

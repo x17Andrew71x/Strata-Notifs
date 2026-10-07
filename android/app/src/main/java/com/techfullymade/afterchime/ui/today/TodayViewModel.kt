@@ -31,11 +31,11 @@ data class TodayUiState(
   val primaryAction: TodayPrimaryAction
     get() = when {
       revealInFlight -> TodayPrimaryAction.NONE
+      snapshot.sealedSpecimen?.revealedAtEpochMillis == null &&
+        snapshot.sealedSpecimen != null -> TodayPrimaryAction.REVEAL
       snapshot.observation == FormationObservation.AwaitingAccess ||
         snapshot.observation == FormationObservation.Disconnected ||
         snapshot.observation == FormationObservation.Revoked -> TodayPrimaryAction.ENABLE_ACCESS
-      snapshot.observation == FormationObservation.SealedObserved &&
-        snapshot.sealedSpecimen?.revealedAtEpochMillis == null -> TodayPrimaryAction.REVEAL
       else -> TodayPrimaryAction.NONE
     }
 

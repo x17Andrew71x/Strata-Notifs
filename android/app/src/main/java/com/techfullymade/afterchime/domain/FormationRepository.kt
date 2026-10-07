@@ -81,10 +81,15 @@ class LocalFormationRepository(
     val sealedInputs = combine(
       database.daySummaryDao().observe(localDateString),
       database.specimenDao().observeWithOutputForAnchoredLocalDate(localDateString),
-    ) { summary, specimen ->
+      database.specimenDao().observeAllWithOutput(),
+    ) { summary, specimen, specimens ->
+      val pendingPriorSpecimen = specimens.firstOrNull { candidate ->
+        candidate.revealedAtEpochMillis == null &&
+          LocalDate.parse(candidate.anchoredLocalDate) < localDate
+      }
       SealedFormationInputs(
         observationState = summary?.observationState,
-        specimen = specimen?.toMuseumSpecimen(),
+        specimen = (specimen ?: pendingPriorSpecimen)?.toMuseumSpecimen(),
       )
     }
 
