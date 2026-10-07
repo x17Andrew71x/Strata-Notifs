@@ -1,5 +1,7 @@
 package com.techfullymade.afterchime.contracts
 
+import com.techfullymade.afterchime.analytics.AnalyticsEvent
+import com.techfullymade.afterchime.analytics.encode
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
@@ -42,6 +44,21 @@ class ContractFixtureTest {
     "specimen_locked",
     "specimen_unlocked",
     "weekly_diorama_created",
+    "museum_viewed",
+    "museum_filter_changed",
+    "specimen_detail_viewed",
+    "combine_previewed",
+    "combine_completed",
+    "combine_cancelled",
+    "community_art_viewed",
+    "world_selector_opened",
+    "world_previewed",
+    "store_viewed",
+    "product_viewed",
+    "checkout_started",
+    "checkout_result",
+    "entitlements_restored",
+    "owned_world_applied",
   )
 
   @Test
@@ -62,6 +79,35 @@ class ContractFixtureTest {
     assertEquals(4, fixtures.size)
     fixtures.forEach { fixture ->
       assertTrue("invalid fixture accepted: ${fixture.getName()}", !isValid(fixture))
+    }
+  }
+
+  @Test
+  fun `museum commerce and world events encode canonical empty facts`() {
+    val events =
+      listOf(
+        AnalyticsEvent.MuseumViewed to "museum_viewed",
+        AnalyticsEvent.MuseumFilterChanged to "museum_filter_changed",
+        AnalyticsEvent.SpecimenDetailViewed to "specimen_detail_viewed",
+        AnalyticsEvent.CombinePreviewed to "combine_previewed",
+        AnalyticsEvent.CombineCompleted to "combine_completed",
+        AnalyticsEvent.CombineCancelled to "combine_cancelled",
+        AnalyticsEvent.CommunityArtViewed to "community_art_viewed",
+        AnalyticsEvent.WorldSelectorOpened to "world_selector_opened",
+        AnalyticsEvent.WorldPreviewed to "world_previewed",
+        AnalyticsEvent.StoreViewed to "store_viewed",
+        AnalyticsEvent.ProductViewed to "product_viewed",
+        AnalyticsEvent.CheckoutStarted to "checkout_started",
+        AnalyticsEvent.CheckoutResult to "checkout_result",
+        AnalyticsEvent.EntitlementsRestored to "entitlements_restored",
+        AnalyticsEvent.OwnedWorldApplied to "owned_world_applied",
+      )
+
+    assertEquals(15, events.size)
+    events.forEach { (event, expectedName) ->
+      val encoded = event.encode()
+      assertEquals(expectedName, encoded.name)
+      assertEquals(emptySet<String>(), encoded.properties.keysAsSet())
     }
   }
 
@@ -197,7 +243,11 @@ class ContractFixtureTest {
       "share_started", "share_completed", "share_failed", "formation_viewed",
       "day_sealed", "specimen_generated", "specimen_reveal_started",
       "specimen_revealed", "specimen_locked", "specimen_unlocked",
-      "weekly_diorama_created" -> properties.exactly()
+      "weekly_diorama_created", "museum_viewed", "museum_filter_changed",
+      "specimen_detail_viewed", "combine_previewed", "combine_completed",
+      "combine_cancelled", "community_art_viewed", "world_selector_opened",
+      "world_previewed", "store_viewed", "product_viewed", "checkout_started",
+      "checkout_result", "entitlements_restored", "owned_world_applied" -> properties.exactly()
     }
   }
 

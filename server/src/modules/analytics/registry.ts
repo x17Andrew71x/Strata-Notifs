@@ -176,6 +176,51 @@ export const analyticsEvent = z.union([
     event_name: z.literal("weekly_diorama_created"),
     properties: z.object({}).strict(),
   }),
+  baseEvent.extend({ event_name: z.literal("museum_viewed"), properties: z.object({}).strict() }),
+  baseEvent.extend({
+    event_name: z.literal("museum_filter_changed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("specimen_detail_viewed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("combine_previewed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("combine_completed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("combine_cancelled"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("community_art_viewed"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("world_selector_opened"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({ event_name: z.literal("world_previewed"), properties: z.object({}).strict() }),
+  baseEvent.extend({ event_name: z.literal("store_viewed"), properties: z.object({}).strict() }),
+  baseEvent.extend({ event_name: z.literal("product_viewed"), properties: z.object({}).strict() }),
+  baseEvent.extend({
+    event_name: z.literal("checkout_started"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({ event_name: z.literal("checkout_result"), properties: z.object({}).strict() }),
+  baseEvent.extend({
+    event_name: z.literal("entitlements_restored"),
+    properties: z.object({}).strict(),
+  }),
+  baseEvent.extend({
+    event_name: z.literal("owned_world_applied"),
+    properties: z.object({}).strict(),
+  }),
 ]);
 
 export const analyticsBatch = z

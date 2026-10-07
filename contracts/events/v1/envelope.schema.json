@@ -65,6 +65,21 @@
     { "$ref": "specimen-revealed.schema.json" },
     { "$ref": "specimen-locked.schema.json" },
     { "$ref": "specimen-unlocked.schema.json" },
-    { "$ref": "weekly-diorama-created.schema.json" }
+    { "$ref": "weekly-diorama-created.schema.json" },
+    { "$ref": "museum-viewed.schema.json" },
+    { "$ref": "museum-filter-changed.schema.json" },
+    { "$ref": "specimen-detail-viewed.schema.json" },
+    { "$ref": "combine-previewed.schema.json" },
+    { "$ref": "combine-completed.schema.json" },
+    { "$ref": "combine-cancelled.schema.json" },
+    { "$ref": "community-art-viewed.schema.json" },
+    { "$ref": "world-selector-opened.schema.json" },
+    { "$ref": "world-previewed.schema.json" },
+    { "$ref": "store-viewed.schema.json" },
+    { "$ref": "product-viewed.schema.json" },
+    { "$ref": "checkout-started.schema.json" },
+    { "$ref": "checkout-result.schema.json" },
+    { "$ref": "entitlements-restored.schema.json" },
+    { "$ref": "owned-world-applied.schema.json" }
   ]
 }

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://afterchime.invalid/contracts/events/v1/museum-filter-changed.schema.json",
+  "title": "Afterchime Analytics Event v1: museum_filter_changed",
+  "allOf": [
+    { "$ref": "base.schema.json" },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": { "const": "museum_filter_changed" },
+        "properties": { "type": "object", "additionalProperties": false, "maxProperties": 0 }
+      }
+    }
+  ]
+}

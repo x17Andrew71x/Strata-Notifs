@@ -130,6 +130,21 @@ object ApiModels {
       "specimen_locked",
       "specimen_unlocked",
       "weekly_diorama_created",
+      "museum_viewed",
+      "museum_filter_changed",
+      "specimen_detail_viewed",
+      "combine_previewed",
+      "combine_completed",
+      "combine_cancelled",
+      "community_art_viewed",
+      "world_selector_opened",
+      "world_previewed",
+      "store_viewed",
+      "product_viewed",
+      "checkout_started",
+      "checkout_result",
+      "entitlements_restored",
+      "owned_world_applied",
     )
   private val envelopeFields =
     setOf(
@@ -400,7 +415,11 @@ object ApiModels {
       "share_started", "share_completed", "share_failed", "formation_viewed",
       "day_sealed", "specimen_generated", "specimen_reveal_started",
       "specimen_revealed", "specimen_locked", "specimen_unlocked",
-      "weekly_diorama_created" -> properties.strict()
+      "weekly_diorama_created", "museum_viewed", "museum_filter_changed",
+      "specimen_detail_viewed", "combine_previewed", "combine_completed",
+      "combine_cancelled", "community_art_viewed", "world_selector_opened",
+      "world_previewed", "store_viewed", "product_viewed", "checkout_started",
+      "checkout_result", "entitlements_restored", "owned_world_applied" -> properties.strict()
       else -> error("unsupported event")
     }
   }

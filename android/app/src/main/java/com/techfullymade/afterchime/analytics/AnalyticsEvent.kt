@@ -35,6 +35,21 @@ sealed interface AnalyticsEvent {
   data object SpecimenLocked : AnalyticsEvent
   data object SpecimenUnlocked : AnalyticsEvent
   data object WeeklyDioramaCreated : AnalyticsEvent
+  data object MuseumViewed : AnalyticsEvent
+  data object MuseumFilterChanged : AnalyticsEvent
+  data object SpecimenDetailViewed : AnalyticsEvent
+  data object CombinePreviewed : AnalyticsEvent
+  data object CombineCompleted : AnalyticsEvent
+  data object CombineCancelled : AnalyticsEvent
+  data object CommunityArtViewed : AnalyticsEvent
+  data object WorldSelectorOpened : AnalyticsEvent
+  data object WorldPreviewed : AnalyticsEvent
+  data object StoreViewed : AnalyticsEvent
+  data object ProductViewed : AnalyticsEvent
+  data object CheckoutStarted : AnalyticsEvent
+  data object CheckoutResult : AnalyticsEvent
+  data object EntitlementsRestored : AnalyticsEvent
+  data object OwnedWorldApplied : AnalyticsEvent
 }
 
 enum class InstallationEntryPoint { FIRST_RUN, ONLINE_MODE_ENABLED }
@@ -98,4 +113,19 @@ internal fun AnalyticsEvent.encode(): EncodedAnalyticsEvent = when (this) {
   AnalyticsEvent.SpecimenLocked -> EncodedAnalyticsEvent("specimen_locked", JSONObject())
   AnalyticsEvent.SpecimenUnlocked -> EncodedAnalyticsEvent("specimen_unlocked", JSONObject())
   AnalyticsEvent.WeeklyDioramaCreated -> EncodedAnalyticsEvent("weekly_diorama_created", JSONObject())
+  AnalyticsEvent.MuseumViewed -> EncodedAnalyticsEvent("museum_viewed", JSONObject())
+  AnalyticsEvent.MuseumFilterChanged -> EncodedAnalyticsEvent("museum_filter_changed", JSONObject())
+  AnalyticsEvent.SpecimenDetailViewed -> EncodedAnalyticsEvent("specimen_detail_viewed", JSONObject())
+  AnalyticsEvent.CombinePreviewed -> EncodedAnalyticsEvent("combine_previewed", JSONObject())
+  AnalyticsEvent.CombineCompleted -> EncodedAnalyticsEvent("combine_completed", JSONObject())
+  AnalyticsEvent.CombineCancelled -> EncodedAnalyticsEvent("combine_cancelled", JSONObject())
+  AnalyticsEvent.CommunityArtViewed -> EncodedAnalyticsEvent("community_art_viewed", JSONObject())
+  AnalyticsEvent.WorldSelectorOpened -> EncodedAnalyticsEvent("world_selector_opened", JSONObject())
+  AnalyticsEvent.WorldPreviewed -> EncodedAnalyticsEvent("world_previewed", JSONObject())
+  AnalyticsEvent.StoreViewed -> EncodedAnalyticsEvent("store_viewed", JSONObject())
+  AnalyticsEvent.ProductViewed -> EncodedAnalyticsEvent("product_viewed", JSONObject())
+  AnalyticsEvent.CheckoutStarted -> EncodedAnalyticsEvent("checkout_started", JSONObject())
+  AnalyticsEvent.CheckoutResult -> EncodedAnalyticsEvent("checkout_result", JSONObject())
+  AnalyticsEvent.EntitlementsRestored -> EncodedAnalyticsEvent("entitlements_restored", JSONObject())
+  AnalyticsEvent.OwnedWorldApplied -> EncodedAnalyticsEvent("owned_world_applied", JSONObject())
 }

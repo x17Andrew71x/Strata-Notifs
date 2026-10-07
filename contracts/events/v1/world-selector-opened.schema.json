@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://afterchime.invalid/contracts/events/v1/world-selector-opened.schema.json",
+  "title": "Afterchime Analytics Event v1: world_selector_opened",
+  "allOf": [
+    { "$ref": "base.schema.json" },
+    {
+      "type": "object",
+      "required": ["event_name", "properties"],
+      "properties": {
+        "event_name": { "const": "world_selector_opened" },
+        "properties": { "type": "object", "additionalProperties": false, "maxProperties": 0 }
+      }
+    }
+  ]
+}
