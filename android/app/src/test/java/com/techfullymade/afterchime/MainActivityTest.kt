@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
 import android.webkit.WebResourceRequest
+import androidx.webkit.WebViewFeature
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,12 +50,14 @@ class MainActivityTest {
     assertEquals(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW, webView.settings.mixedContentMode)
     val configuredShell = Uri.parse(BuildConfig.SHELL_URL)
     val expectedEntry = if (
-      configuredShell.host == "shell-disabled.invalid" ||
-        configuredShell.host == "production-disabled.invalid"
+      isRemoteShellEnabled(
+        configuredShell,
+        WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER),
+      )
     ) {
-      LOCAL_ENTRY_URL
-    } else {
       BuildConfig.SHELL_URL
+    } else {
+      LOCAL_ENTRY_URL
     }
     assertEquals(expectedEntry, shadowOf(webView).lastLoadedUrl)
   }
