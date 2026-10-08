@@ -97,12 +97,17 @@ function App() {
     }
     setToastExiting(false);
     const fadeTimeout = window.setTimeout(() => setToastExiting(true), TOAST_FADE_START_MS);
-    const dismissTimeout = window.setTimeout(() => setMessage(""), TOAST_DURATION_MS);
-    return () => {
-      window.clearTimeout(fadeTimeout);
-      window.clearTimeout(dismissTimeout);
-    };
+    return () => window.clearTimeout(fadeTimeout);
   }, [message]);
+
+  useEffect(() => {
+    if (!toastExiting) return;
+    const dismissTimeout = window.setTimeout(
+      () => setMessage(""),
+      TOAST_DURATION_MS - TOAST_FADE_START_MS,
+    );
+    return () => window.clearTimeout(dismissTimeout);
+  }, [toastExiting]);
 
   useEffect(() => {
     if (!shellState) return;
