@@ -1,5 +1,5 @@
-const CACHE_NAME = "afterchime-shell-v5";
-const LEGACY_CACHE_NAMES = ["afterchime-shell-v4"];
+const CACHE_NAME = "afterchime-shell-v6";
+const LEGACY_CACHE_NAMES = ["afterchime-shell-v5", "afterchime-shell-v4"];
 const ENTRY = "/";
 const STATE_KEY = "/.afterchime/current";
 const ASSET_PATTERN = /^\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$/;
@@ -24,7 +24,10 @@ async function activateWorker() {
   } catch (_) {
     // An offline first launch falls through to Android's bundled shell.
   }
-  if (promoted || (await hasCompleteCurrentShell(cache))) await self.clients.claim();
+  if (promoted || (await hasCompleteCurrentShell(cache))) {
+    await Promise.all(LEGACY_CACHE_NAMES.map((name) => caches.delete(name)));
+    await self.clients.claim();
+  }
 }
 
 async function fetchAndPromoteShell(cache) {

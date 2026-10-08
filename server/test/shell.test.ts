@@ -1,4 +1,5 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -36,14 +37,23 @@ describe("web shell routes", () => {
     expect(response.body).toContain("doctype html");
     expect(response.headers["cache-control"]).toBe("no-cache, must-revalidate");
     expect(response.headers["content-security-policy"]).toContain("script-src 'self'");
-    expect(response.headers["content-security-policy"]).not.toContain("unsafe-inline");
+    expect(response.headers["content-security-policy"]).not.toContain(
+      "script-src 'self' 'unsafe-inline'",
+    );
   });
 
   it("publishes only non-secret protocol metadata and explicit health", async () => {
-    const app = await buildApp({ config: testConfig, webRoot: await shellRoot() });
+    const root = await shellRoot();
+    const app = await buildApp({ config: testConfig, webRoot: root });
     apps.push(app);
     const metadata = await app.inject({ method: "GET", url: "/shell/metadata" });
-    expect(metadata.json()).toEqual({ shellVersion: 1, bridgeVersion: 1, entry: "/" });
+    const entry = await readFile(path.join(root, "index.html"));
+    expect(metadata.json()).toEqual({
+      shellVersion: 2,
+      bridgeVersion: 2,
+      revision: createHash("sha256").update(entry).digest("hex"),
+      entry: "/",
+    });
     expect(metadata.headers["cache-control"]).toBe("no-cache, must-revalidate");
     expect((await app.inject({ method: "GET", url: "/shell/health" })).json()).toEqual({
       status: "ok",

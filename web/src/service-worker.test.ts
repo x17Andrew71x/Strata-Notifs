@@ -63,7 +63,10 @@ async function createWorker(
   const script = options.transformSource ? options.transformSource(source) : source;
   runInNewContext(script, {
     self,
-    caches: { open: async (name: string) => cacheFor(name) },
+    caches: {
+      open: async (name: string) => cacheFor(name),
+      delete: async (name: string) => stores.delete(name),
+    },
     fetch: fetcher,
     Response,
     URL,
@@ -149,6 +152,30 @@ describe("last-known-good web shell", () => {
     expect(await cached.text()).toContain('id="root"');
   });
 
+  it("removes legacy app caches only after the current shell is complete", async () => {
+    const stores: CacheStores = new Map([
+      ["afterchime-shell-v5", new Map()],
+      ["unrelated-cache", new Map()],
+    ]);
+    const worker = await createWorker(
+      async (input) => {
+        const url = new URL(responseUrl(input), origin);
+        if (url.pathname === "/")
+          return new Response(entryHtml("/assets/main-AbCdEf123456.js"), {
+            headers: { "content-type": "text/html" },
+          });
+        if (url.pathname === "/assets/main-AbCdEf123456.js") return assetResponse();
+        return new Response("missing", { status: 404 });
+      },
+      { stores },
+    );
+
+    await worker.activate();
+
+    expect(stores.has("afterchime-shell-v5")).toBe(false);
+    expect(stores.has("unrelated-cache")).toBe(true);
+  });
+
   it("promotes only a complete digest-verified shell and serves it after an offline restart", async () => {
     let offline = false;
     const worker = await createWorker(async (input) => {
@@ -209,7 +236,11 @@ describe("last-known-good web shell", () => {
     };
     const prior = await createWorker(fetcher, {
       stores,
-      transformSource: (source) => source.replace("afterchime-shell-v5", "afterchime-shell-v4"),
+      transformSource: (source) =>
+        source.replace(
+          'const CACHE_NAME = "afterchime-shell-v6";\nconst LEGACY_CACHE_NAMES = ["afterchime-shell-v5", "afterchime-shell-v4"];',
+          'const CACHE_NAME = "afterchime-shell-v5";\nconst LEGACY_CACHE_NAMES = ["afterchime-shell-v4"];',
+        ),
     });
     await prior.activate();
     offline = true;

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import cors from "@fastify/cors";
@@ -98,7 +99,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
 function setShellHeaders(reply: FastifyReply, cache: string): void {
   reply.header(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+    "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
   );
   reply.header("X-Content-Type-Options", "nosniff");
   reply.header("Referrer-Policy", "no-referrer");
@@ -112,7 +113,13 @@ async function registerShellRoutes(app: FastifyInstance, webRoot: string): Promi
   });
   app.get("/shell/metadata", async (_request, reply) => {
     setShellHeaders(reply, "no-cache, must-revalidate");
-    return reply.send({ shellVersion: 1, bridgeVersion: 1, entry: "/" });
+    try {
+      const entry = await readFile(path.join(webRoot, "index.html"));
+      const revision = createHash("sha256").update(entry).digest("hex");
+      return reply.send({ shellVersion: 2, bridgeVersion: 2, revision, entry: "/" });
+    } catch {
+      return reply.code(503).send({ error: "shell_unavailable" });
+    }
   });
   app.get("/service-worker.js", async (_request, reply) => {
     setShellHeaders(reply, "no-cache, must-revalidate");

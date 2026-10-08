@@ -2,34 +2,14 @@ package com.techfullymade.afterchime
 
 import android.content.ComponentName
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
-import android.view.View
-import android.view.ViewGroup
-import android.webkit.WebView
+import android.webkit.WebResourceRequest
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
-import com.techfullymade.afterchime.domain.FormationObservation
-import com.techfullymade.afterchime.domain.FormationRepository
-import com.techfullymade.afterchime.domain.FormationSnapshot
-import com.techfullymade.afterchime.domain.MuseumSpecimen
-import com.techfullymade.afterchime.domain.RevealResult
-import com.techfullymade.afterchime.generation.Family
-import com.techfullymade.afterchime.generation.Tier
-import com.techfullymade.afterchime.generation.VisualParameters
-import com.techfullymade.afterchime.settings.UserPreferences
-import com.techfullymade.afterchime.ui.theme.AfterchimeTheme
-import com.techfullymade.afterchime.ui.today.TodayViewModel
-import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import java.time.LocalDate
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
-import org.junit.Rule
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,9 +21,6 @@ import org.robolectric.annotation.Config
 @RunWith(org.robolectric.RobolectricTestRunner::class)
 @Config(sdk = [35])
 class MainActivityTest {
-  @get:Rule
-  val composeRule = createComposeRule()
-
   @Test
   fun `development world boundary follows flavour regardless of build type`() {
     assertTrue(isDevelopmentWorldsEnabled("dev"))
@@ -51,16 +28,100 @@ class MainActivityTest {
   }
 
   @Test
-  fun `activity content tree does not create a web shell`() {
-    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
-
-    assertFalse(containsWebView(activity.window.decorView))
+  fun `remote shell requires the bounded bridge and an enabled HTTPS origin`() {
+    assertTrue(isRemoteShellEnabled(Uri.parse("https://shell.example/"), bridgeSupported = true))
+    assertFalse(isRemoteShellEnabled(Uri.parse("https://shell.example/"), bridgeSupported = false))
+    assertFalse(isRemoteShellEnabled(Uri.parse("http://shell.example/"), bridgeSupported = true))
+    assertFalse(isRemoteShellEnabled(Uri.parse("https://shell-disabled.invalid/"), bridgeSupported = true))
+    assertFalse(isRemoteShellEnabled(Uri.parse("https://production-disabled.invalid/"), bridgeSupported = true))
+    assertFalse(isRemoteShellEnabled(Uri.parse("https://user@shell.example/"), bridgeSupported = true))
   }
 
   @Test
-  fun `activity uses its explicit native notification access action`() {
+  fun `activity is a hardened remote shell with bundled fallback`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    val webView = activity.shellForTesting()
 
+    assertFalse(webView.settings.allowFileAccess)
+    assertFalse(webView.settings.allowContentAccess)
+    assertFalse(webView.settings.javaScriptCanOpenWindowsAutomatically)
+    assertTrue(webView.settings.domStorageEnabled)
+    assertEquals(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW, webView.settings.mixedContentMode)
+    val configuredShell = Uri.parse(BuildConfig.SHELL_URL)
+    val expectedEntry = if (
+      configuredShell.host == "shell-disabled.invalid" ||
+        configuredShell.host == "production-disabled.invalid"
+    ) {
+      LOCAL_ENTRY_URL
+    } else {
+      BuildConfig.SHELL_URL
+    }
+    assertEquals(expectedEntry, shadowOf(webView).lastLoadedUrl)
+  }
+
+  @Test
+  fun `shell blocks off-origin requests and permits configured and bundled origins`() {
+    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    val webView = activity.shellForTesting()
+
+    val blocked = webView.webViewClient.shouldInterceptRequest(
+      webView,
+      request("https://example.invalid/private.js"),
+    )
+    assertEquals(403, blocked?.statusCode)
+    assertNull(webView.webViewClient.shouldInterceptRequest(webView, request(BuildConfig.SHELL_URL)))
+    assertTrue(isAllowedShellUri(Uri.parse(LOCAL_ENTRY_URL), Uri.parse(BuildConfig.SHELL_URL)))
+    assertFalse(isAllowedShellUri(Uri.parse("https://example.invalid/"), Uri.parse(BuildConfig.SHELL_URL)))
+  }
+
+  @Test
+  fun `remote main-frame HTTP errors trigger bundled fallback policy`() {
+    assertTrue(shouldFallbackFromHttpError(isMainFrame = true, statusCode = 503, usingLocalShell = false))
+    assertFalse(shouldFallbackFromHttpError(isMainFrame = false, statusCode = 503, usingLocalShell = false))
+    assertFalse(shouldFallbackFromHttpError(isMainFrame = true, statusCode = 399, usingLocalShell = false))
+    assertFalse(shouldFallbackFromHttpError(isMainFrame = true, statusCode = 503, usingLocalShell = true))
+  }
+
+  @Test
+  fun `v2 bridge accepts only bounded shell actions and exact payloads`() {
+    assertNull(parseBridgeRequest(null))
+    assertNull(parseBridgeRequest("{"))
+    assertNull(parseBridgeRequest("""{"version":1,"id":"req","type":"state.get"}"""))
+    assertNull(parseBridgeRequest("""{"version":2,"id":"req","type":"notification.read"}"""))
+    assertNull(
+      parseBridgeRequest(
+        """{"version":2,"id":"req","type":"state.get","payload":{"private":"text"}}""",
+      ),
+    )
+    assertNull(
+      parseBridgeRequest(
+        """{"version":2,"id":"req","type":"preferences.update","payload":{"key":"unknown","value":true}}""",
+      ),
+    )
+    assertEquals(
+      BridgeRequest("req_1", "state.get"),
+      parseBridgeRequest("""{"version":2,"id":"req_1","type":"state.get"}"""),
+    )
+    val preference = parseBridgeRequest(
+      """{"version":2,"id":"req_2","type":"preferences.update","payload":{"key":"reduceMotionEnabled","value":true}}""",
+    )
+    assertEquals("preferences.update", preference?.type)
+    assertEquals("reduceMotionEnabled", preference?.payload?.getString("key"))
+    assertTrue(preference?.payload?.getBoolean("value") == true)
+    val combine = parseBridgeRequest(
+      """{"version":2,"id":"req_3","type":"museum.combine","payload":{"specimenIds":["one","two","three"]}}""",
+    )
+    assertEquals("museum.combine", combine?.type)
+    assertNull(
+      parseBridgeRequest(
+        """{"version":2,"id":"req_4","type":"museum.combine","payload":{"specimenIds":["one","one","three"]}}""",
+      ),
+    )
+  }
+
+  @Test
+  fun `notification settings action opens this listeners app and type filters`() {
+    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
     assertTrue(activity.openNotificationAccessSettings())
     val startedIntent = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
     assertEquals(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS, startedIntent?.action)
@@ -71,59 +132,23 @@ class MainActivityTest {
   }
 
   @Test
-  fun `native Today reveal action reaches the local formation repository once`() {
-    val repository = TestFormationRepository(
-      FormationSnapshot(
-        localDate = LocalDate.now(),
-        observation = FormationObservation.SealedObserved,
-        layers = emptyList(),
-        sealedSpecimen = testSpecimen(),
-      ),
-    )
-    val preferences = UserPreferences(onboardingComplete = true)
-    val viewModel = TodayViewModel(repository)
-    composeRule.setContent {
-      AfterchimeTheme(reduceMotion = preferences.reduceMotionEnabled) {
-        MainActivityTodayContent(
-          viewModel = viewModel,
-          preferences = preferences,
-          onEnableNotificationAccess = {},
-        )
-      }
-    }
+  fun `capability response advertises bridge v2 and app info recovery`() {
+    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    val response = activity.capabilitiesResponse("req_capabilities")
 
-    composeRule.waitUntil(timeoutMillis = 5_000) {
-      composeRule.onAllNodesWithText("Reveal specimen").fetchSemanticsNodes().isNotEmpty()
-    }
-    composeRule.onNodeWithText("Reveal specimen").performClick()
-    shadowOf(android.os.Looper.getMainLooper()).idle()
-    composeRule.waitUntil(timeoutMillis = 5_000) { repository.revealCalls == 1 }
-    composeRule.runOnIdle { assertEquals(1, repository.revealCalls) }
+    assertEquals(2, response.getInt("version"))
+    assertEquals(2, response.getInt("bridgeVersion"))
+    assertEquals("capabilities.state", response.getString("type"))
+    assertTrue(response.getBoolean("appDetailsAction"))
   }
 
   @Test
-  fun `persisted reduced motion pauses the real native Today formation`() {
-    val repository = TestFormationRepository(
-      FormationSnapshot(
-        localDate = LocalDate.now(),
-        observation = FormationObservation.Active,
-        layers = emptyList(),
-        sealedSpecimen = null,
-      ),
-    )
-    val preferences = UserPreferences(onboardingComplete = true, reduceMotionEnabled = true)
-    val viewModel = TodayViewModel(repository)
-    composeRule.setContent {
-      AfterchimeTheme(reduceMotion = preferences.reduceMotionEnabled) {
-        MainActivityTodayContent(
-          viewModel = viewModel,
-          preferences = preferences,
-          onEnableNotificationAccess = {},
-        )
-      }
-    }
-
-    composeRule.onNodeWithTag("formation-motion-paused").assertExists()
+  fun `restricted setting recovery opens this apps info page`() {
+    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    assertTrue(activity.openAppDetailsSettings())
+    val startedIntent = shadowOf(RuntimeEnvironment.getApplication()).nextStartedActivity
+    assertEquals(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, startedIntent?.action)
+    assertEquals("package:${activity.packageName}", startedIntent?.data?.toString())
   }
 
   @Test
@@ -136,10 +161,7 @@ class MainActivityTest {
     )
 
     assertEquals(31, activity.applicationInfo.minSdkVersion)
-    assertEquals(
-      "",
-      serviceInfo.metaData.getString(NotificationListenerService.META_DATA_DEFAULT_FILTER_TYPES),
-    )
+    assertEquals("", serviceInfo.metaData.getString(NotificationListenerService.META_DATA_DEFAULT_FILTER_TYPES))
     val disabledTypes = serviceInfo.metaData
       .getString(NotificationListenerService.META_DATA_DISABLED_FILTER_TYPES)
       ?.split(",")
@@ -155,42 +177,14 @@ class MainActivityTest {
     )
     assertFalse(disabledTypes.orEmpty().contains(NotificationListenerService.FLAG_FILTER_TYPE_ALERTING))
   }
+
+  private fun request(url: String, mainFrame: Boolean = false): WebResourceRequest =
+    object : WebResourceRequest {
+      override fun getUrl(): Uri = Uri.parse(url)
+      override fun isForMainFrame(): Boolean = mainFrame
+      override fun isRedirect(): Boolean = false
+      override fun hasGesture(): Boolean = false
+      override fun getMethod(): String = "GET"
+      override fun getRequestHeaders(): MutableMap<String, String> = mutableMapOf()
+    }
 }
-
-private fun containsWebView(view: View): Boolean = when (view) {
-  is WebView -> true
-  is ViewGroup -> (0 until view.childCount).any { index -> containsWebView(view.getChildAt(index)) }
-  else -> false
-}
-
-private class TestFormationRepository(
-  snapshot: FormationSnapshot,
-) : FormationRepository {
-  private val state = MutableStateFlow(snapshot)
-  var revealCalls: Int = 0
-    private set
-
-  override fun observe(localDate: LocalDate): Flow<FormationSnapshot> = state
-
-  override suspend fun reveal(specimenId: String, revealedAtEpochMillis: Long): RevealResult {
-    revealCalls += 1
-    return RevealResult.Revealed(revealedAtEpochMillis)
-  }
-}
-
-private fun testSpecimen() = MuseumSpecimen(
-  id = "local",
-  anchoredLocalDate = LocalDate.now().minusDays(1),
-  generatorVersion = 1,
-  createdAtEpochMillis = 1L,
-  revealedAtEpochMillis = null,
-  family = Family.AMMONITE,
-  tier = Tier.UNCOMMON,
-  visual = VisualParameters(
-    hueDegrees = 32,
-    strataCount = 7,
-    inclusionDensityPercent = 30,
-    reliefPercent = 42,
-    rotationDegrees = 14,
-  ),
-)

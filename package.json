@@ -20,6 +20,7 @@
     "web:dev": "pnpm --filter @afterchime/web dev",
     "web:test": "pnpm --filter @afterchime/web test",
     "web:build": "pnpm --filter @afterchime/web build",
+    "shell:fallback": "pnpm web:build && python3 scripts/sync_android_shell_fallback.py",
     "db:generate": "pnpm --filter @afterchime/server db:generate",
     "db:migrate": "pnpm --filter @afterchime/server db:migrate"
   },

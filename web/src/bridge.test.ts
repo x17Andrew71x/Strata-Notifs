@@ -1,56 +1,101 @@
 import { describe, expect, it } from "vitest";
-import { installResponseListener, parseNativeRequest } from "./bridge";
+import { installResponseListener, parseNativeRequest, type ShellState } from "./bridge";
 
 describe("versioned native bridge requests", () => {
-  it("accepts only the bounded v1 actions", () => {
-    expect(parseNativeRequest({ version: 1, id: "req_1", type: "capabilities.get" })).toEqual({
-      version: 1,
+  it("accepts only exact bounded v2 actions", () => {
+    expect(parseNativeRequest({ version: 2, id: "req_1", type: "capabilities.get" })).toEqual({
+      version: 2,
       id: "req_1",
       type: "capabilities.get",
     });
     expect(
-      parseNativeRequest({ version: 1, id: "req_2", type: "notificationAccess.openSettings" }),
-    ).toEqual({ version: 1, id: "req_2", type: "notificationAccess.openSettings" });
+      parseNativeRequest({
+        version: 2,
+        id: "req_2",
+        type: "preferences.update",
+        payload: { key: "reduceMotionEnabled", value: true },
+      }),
+    ).toEqual({
+      version: 2,
+      id: "req_2",
+      type: "preferences.update",
+      payload: { key: "reduceMotionEnabled", value: true },
+    });
     expect(
-      parseNativeRequest({ version: 1, id: "req_3", type: "notificationAccess.openAppDetails" }),
-    ).toEqual({ version: 1, id: "req_3", type: "notificationAccess.openAppDetails" });
+      parseNativeRequest({
+        version: 2,
+        id: "req_3",
+        type: "museum.combine",
+        payload: { specimenIds: ["one", "two", "three"] },
+      }),
+    ).not.toBeNull();
   });
 
   it.each([
     null,
     [],
-    { version: 2, id: "req", type: "capabilities.get" },
-    { version: 1, id: "!", type: "capabilities.get" },
-    { version: 1, id: "req", type: "notification.read" },
-    { version: 1, id: "req", type: "capabilities.get", body: "private text" },
-  ])("rejects malformed, unsupported, or sensitive-shaped message %#", (message) => {
+    { version: 1, id: "req", type: "state.get" },
+    { version: 2, id: "!", type: "state.get" },
+    { version: 2, id: "req", type: "notification.read" },
+    { version: 2, id: "req", type: "state.get", payload: { private: "text" } },
+    {
+      version: 2,
+      id: "req",
+      type: "preferences.update",
+      payload: { key: "unknown", value: true },
+    },
+    {
+      version: 2,
+      id: "req",
+      type: "museum.combine",
+      payload: { specimenIds: ["same", "same", "other"] },
+    },
+  ])("rejects malformed, unsupported, or expanded request %#", (message) => {
     expect(parseNativeRequest(message)).toBeNull();
   });
 
-  it("accepts current and previous v1 capability responses without accepting extra fields", () => {
+  it("accepts a strict privacy-reduced state and rejects added fields", () => {
     const responses: unknown[] = [];
     const stop = installResponseListener((response) => responses.push(response));
-    for (const data of [
-      { version: 1, id: "old", type: "capabilities.state", notificationAccess: false },
-      {
-        version: 1,
-        id: "current",
-        type: "capabilities.state",
-        notificationAccess: false,
-        appDetailsAction: true,
-      },
-      {
-        version: 1,
-        id: "unsafe",
-        type: "capabilities.state",
-        notificationAccess: false,
-        body: "private text",
-      },
-    ]) {
-      window.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(data) }));
-    }
+    window.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(state) }));
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: JSON.stringify({ ...state, notificationText: "private" }),
+      }),
+    );
     stop();
 
-    expect(responses).toHaveLength(2);
+    expect(responses).toEqual([state]);
   });
 });
+
+const state: ShellState = {
+  version: 2,
+  id: "state",
+  type: "shell.state",
+  notificationAccess: true,
+  preferences: {
+    onboardingComplete: true,
+    onlineFeaturesEnabled: false,
+    productAnalyticsEnabled: false,
+    notificationAggregateSharingEnabled: false,
+    reduceMotionEnabled: false,
+    highContrastEnabled: false,
+    hapticsEnabled: true,
+  },
+  today: {
+    localDate: "2026-10-07",
+    observation: "Active",
+    layers: [{ localHour: 10, category: "SOCIAL", sourceColourRgb: 123 }],
+    specimen: null,
+    revealInFlight: false,
+    primaryAction: "NONE",
+  },
+  museum: { specimens: [] },
+  worlds: {
+    selected: "PRIMEVAL_STRATA",
+    owned: ["PRIMEVAL_STRATA"],
+    available: ["PRIMEVAL_STRATA", "DEEP_SPACE", "BOTANICAL_ARCHIVE", "THE_ABYSS"],
+    developmentControlsEnabled: true,
+  },
+};
