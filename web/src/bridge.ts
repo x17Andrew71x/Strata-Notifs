@@ -116,7 +116,10 @@ export type NativeResponse =
 
 declare global {
   interface Window {
-    AfterchimeBridge?: { postMessage(message: string): void };
+    AfterchimeBridge?: {
+      postMessage(message: string): void;
+      onmessage: ((event: MessageEvent<string>) => void) | null;
+    };
   }
 }
 
@@ -163,8 +166,14 @@ export function installResponseListener(
       // Malformed native messages never become shell state.
     }
   };
+  const bridge = window.AfterchimeBridge;
+  const previousBridgeListener = bridge?.onmessage ?? null;
+  if (bridge) bridge.onmessage = listener;
   window.addEventListener("message", listener);
-  return () => window.removeEventListener("message", listener);
+  return () => {
+    window.removeEventListener("message", listener);
+    if (bridge?.onmessage === listener) bridge.onmessage = previousBridgeListener;
+  };
 }
 
 function parseNativeResponse(value: unknown): NativeResponse | null {

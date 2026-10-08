@@ -1,5 +1,5 @@
-const CACHE_NAME = "afterchime-shell-v6";
-const LEGACY_CACHE_NAMES = ["afterchime-shell-v5", "afterchime-shell-v4"];
+const CACHE_NAME = "afterchime-shell-v7";
+const LEGACY_CACHE_NAMES = ["afterchime-shell-v6", "afterchime-shell-v5", "afterchime-shell-v4"];
 const ENTRY = "/";
 const STATE_KEY = "/.afterchime/current";
 const ASSET_PATTERN = /^\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$/;

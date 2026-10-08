@@ -3,13 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, { registerShellWorker } from "./App";
 import type { ShellState } from "./bridge";
 
-const native = { postMessage: vi.fn() };
+const native = {
+  postMessage: vi.fn(),
+  onmessage: null as ((event: MessageEvent<string>) => void) | null,
+};
 
 beforeEach(() => {
   cleanup();
   window.location.hash = "";
   Object.defineProperty(window, "AfterchimeBridge", { configurable: true, value: native });
   native.postMessage.mockClear();
+  native.onmessage = null;
 });
 
 afterEach(() => cleanup());
@@ -25,6 +29,15 @@ describe("service worker registration", () => {
 });
 
 describe("full shell application", () => {
+  it("receives replies on the injected WebView bridge channel", () => {
+    render(<App />);
+    expect(native.onmessage).toBeTypeOf("function");
+    act(() => {
+      native.onmessage?.(new MessageEvent("message", { data: JSON.stringify(baseState) }));
+    });
+    expect(screen.getByRole("heading", { name: "Today is still forming" })).toBeTruthy();
+  });
+
   it("requests bridge state and renders private onboarding from native state", () => {
     render(<App />);
     expect(native.postMessage).toHaveBeenCalledTimes(2);
