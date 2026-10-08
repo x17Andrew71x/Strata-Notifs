@@ -16,6 +16,7 @@ async function shellRoot(): Promise<string> {
   const root = await mkdtemp(path.join(os.tmpdir(), "afterchime-shell-"));
   roots.push(root);
   await mkdir(path.join(root, "assets"));
+  await mkdir(path.join(root, "worlds"));
   await writeFile(
     path.join(root, "index.html"),
     '<!doctype html><script src="/assets/main-AbCdEf123456.js"></script>',
@@ -25,6 +26,7 @@ async function shellRoot(): Promise<string> {
     "self.addEventListener('fetch', () => {});",
   );
   await writeFile(path.join(root, "assets", "main-AbCdEf123456.js"), "safe asset");
+  await writeFile(path.join(root, "worlds", "relic-fossil-aaaaaaaaaaaa.jpg"), "safe image");
   return root;
 }
 
@@ -69,9 +71,19 @@ describe("web shell routes", () => {
     const asset = await app.inject({ method: "GET", url: "/assets/main-AbCdEf123456.js" });
     expect(asset.statusCode).toBe(200);
     expect(asset.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
+    const image = await app.inject({
+      method: "GET",
+      url: "/worlds/relic-fossil-aaaaaaaaaaaa.jpg",
+    });
+    expect(image.statusCode).toBe(200);
+    expect(image.headers["content-type"]).toBe("image/jpeg");
+    expect(image.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
     const unhashed = await app.inject({ method: "GET", url: "/assets/unhashed.js" });
     expect(unhashed.statusCode).toBe(404);
     expect(unhashed.headers["cache-control"]).not.toContain("immutable");
+    expect((await app.inject({ method: "GET", url: "/worlds/relic-fossil.jpg" })).statusCode).toBe(
+      404,
+    );
     expect(
       (await app.inject({ method: "GET", url: "/assets/%2e%2e%2findex.html" })).statusCode,
     ).toBe(404);

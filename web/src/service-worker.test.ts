@@ -61,13 +61,20 @@ async function createWorker(
   };
   const source = await readFile(path.resolve(process.cwd(), "public/service-worker.js"), "utf8");
   const script = options.transformSource ? options.transformSource(source) : source;
+  const workerFetcher = async (input: RequestInfo | URL) => {
+    const url = new URL(responseUrl(input), origin);
+    const response = await fetcher(input);
+    if (!/^\/worlds\/[a-z0-9-]+-[a-f0-9]{12}\.jpg$/.test(url.pathname)) return response;
+    if (!response.ok && response.status !== 404) return response;
+    return imageResponse();
+  };
   runInNewContext(script, {
     self,
     caches: {
       open: async (name: string) => cacheFor(name),
       delete: async (name: string) => stores.delete(name),
     },
-    fetch: fetcher,
+    fetch: workerFetcher,
     Response,
     URL,
     crypto: webcrypto,
@@ -130,6 +137,12 @@ function assetResponse(body = "bundle") {
   return response;
 }
 
+function imageResponse(body = "image") {
+  const response = new Response(body, { headers: { "content-type": "image/jpeg" } });
+  Object.defineProperty(response, "type", { value: "basic" });
+  return response;
+}
+
 describe("last-known-good web shell", () => {
   it("primes the first validated online shell during activation for the next offline launch", async () => {
     let offline = false;
@@ -172,7 +185,7 @@ describe("last-known-good web shell", () => {
 
     await worker.activate();
 
-    expect(stores.has("afterchime-shell-v5")).toBe(false);
+    expect(stores.has("afterchime-shell-v7")).toBe(false);
     expect(stores.has("unrelated-cache")).toBe(true);
   });
 
@@ -194,6 +207,27 @@ describe("last-known-good web shell", () => {
     const cached = await worker.navigate();
     expect(cached.status).toBe(200);
     expect(await cached.text()).toContain('id="root"');
+  });
+
+  it("includes the exact authored world artwork in the verified offline shell", async () => {
+    let offline = false;
+    const worker = await createWorker(async (input) => {
+      if (offline) throw new TypeError("offline");
+      const url = new URL(responseUrl(input), origin);
+      if (url.pathname === "/")
+        return new Response(entryHtml("/assets/main-AbCdEf123456.js"), {
+          headers: { "content-type": "text/html" },
+        });
+      if (url.pathname === "/assets/main-AbCdEf123456.js") return assetResponse();
+      return new Response("missing", { status: 404 });
+    });
+
+    await worker.activate();
+    offline = true;
+    const artwork = await worker.asset("/worlds/relic-fossil-choir-a885cad842a6.jpg");
+    expect(artwork.status).toBe(200);
+    expect(artwork.headers.get("content-type")).toBe("image/jpeg");
+    expect(await artwork.text()).toBe("image");
   });
 
   it("keeps the prior entry after an incomplete update and fails closed without a valid entry", async () => {
@@ -239,10 +273,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v9";',
             'const CACHE_NAME = "afterchime-shell-v8";',
-            'const CACHE_NAME = "afterchime-shell-v7";',
           )
-          .replace('  "afterchime-shell-v7",\n', ""),
+          .replace('  "afterchime-shell-v8",\n', ""),
     });
     await prior.activate();
     offline = true;

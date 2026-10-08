@@ -64,7 +64,7 @@ describe("full shell application", () => {
     renderWithState(baseState);
     expect(screen.getByRole("heading", { name: "Today is still forming" })).toBeTruthy();
     expect(screen.getByText(/ready tomorrow/i)).toBeTruthy();
-    expect(screen.getByText(/quiet day can still become/i)).toBeTruthy();
+    expect(screen.getByText(/new relief is being pressed/i)).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeTruthy();
   });
 
@@ -88,9 +88,9 @@ describe("full shell application", () => {
       museum: { specimens: [{ ...specimen, revealedAtEpochMillis: 2 }] },
     });
     fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
-    expect(screen.getByRole("heading", { name: "Museum" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Uncommon Ammonite specimen/i }));
-    expect(screen.getByRole("heading", { name: "Specimen" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Vault" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Fossil Choir/i }));
+    expect(screen.getByRole("heading", { name: "Fossil Choir" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Protect specimen" }));
     expect(lastRequest()).toMatchObject({
       version: 2,
@@ -108,9 +108,9 @@ describe("full shell application", () => {
     }));
     renderWithState({ ...baseState, museum: { specimens } });
     fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
-    fireEvent.click(screen.getAllByRole("button", { name: /Uncommon Ammonite specimen/i })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: /artifact from Relic Vault/i })[0]);
     fireEvent.click(screen.getByRole("button", { name: "Combine three" }));
-    const cards = screen.getAllByRole("button", { name: /Uncommon Ammonite specimen/i });
+    const cards = screen.getAllByRole("button", { name: /artifact from Relic Vault/i });
     fireEvent.click(cards[1]);
     fireEvent.click(cards[2]);
     fireEvent.click(screen.getByRole("button", { name: "Review" }));
@@ -136,6 +136,51 @@ describe("full shell application", () => {
       type: "preferences.update",
       payload: { key: "onlineFeaturesEnabled", value: true },
     });
+  });
+
+  it("shows only the four approved public worlds and keeps compatibility ids out of the UI", () => {
+    renderWithState(baseState);
+    fireEvent.click(screen.getByRole("button", { name: /More$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Worlds/i }));
+
+    for (const name of [
+      "Relic Vault",
+      "Living Field Station",
+      "Expedition Control",
+      "Charcoal Atlas",
+    ]) {
+      expect(screen.getByRole("heading", { name })).toBeTruthy();
+    }
+    expect(
+      screen.queryByText(/Primeval Strata|Deep Space|Botanical Archive|The Abyss/i),
+    ).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Unlock for testing" })).toHaveLength(3);
+    expect(screen.getByText("Fossil Choir")).toBeTruthy();
+    expect(screen.getByText("Tidal Archive")).toBeTruthy();
+    expect(screen.getByText("Pelagic Channel")).toBeTruthy();
+    expect(screen.getByText("Hollow Range")).toBeTruthy();
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Unlock for testing" })[0]);
+    expect(lastRequest()).toMatchObject({
+      version: 2,
+      type: "worlds.own",
+      payload: { world: "BOTANICAL_ARCHIVE" },
+    });
+  });
+
+  it("applies the selected authored world to page language and material theme", () => {
+    const { container } = render(<App />);
+    sendState({
+      ...baseState,
+      worlds: {
+        ...baseState.worlds,
+        selected: "THE_ABYSS",
+        owned: ["PRIMEVAL_STRATA", "THE_ABYSS"],
+      },
+    });
+    expect(container.querySelector(".app-shell")).toHaveAttribute("data-world", "Charcoal Atlas");
+    expect(container.querySelector(".app-shell")).toHaveClass("world-atlas");
+    expect(screen.getByText(/terrain is being fixed in charcoal/i)).toBeTruthy();
   });
 
   it("dismisses action feedback after the visible toast period", () => {

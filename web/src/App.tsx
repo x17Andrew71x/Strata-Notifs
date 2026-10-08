@@ -10,6 +10,7 @@ import {
   type Tier,
   type World,
 } from "./bridge";
+import { artifactFor, WORLD_DEFINITIONS, worldDefinition } from "./worlds";
 
 type ShellWorkerRegistrar = {
   register(scriptURL: string, options?: RegistrationOptions): Promise<unknown>;
@@ -26,11 +27,6 @@ type RootRoute = "today" | "museum" | "community" | "more";
 type Route = RootRoute | "worlds" | `specimen/${string}`;
 export const TOAST_FADE_START_MS = 2_700;
 export const TOAST_DURATION_MS = 3_000;
-const STRATA_LAYERS = Array.from({ length: 12 }, (_, ordinal) => ({
-  key: `strata-${ordinal}`,
-  ordinal,
-}));
-
 export async function registerShellWorker(
   isProduction: boolean,
   registrar: ShellWorkerRegistrar | undefined = typeof navigator !== "undefined" &&
@@ -173,12 +169,14 @@ function App() {
     ? (shellState.museum.specimens.find((specimen) => specimen.id === selectedSpecimenId) ?? null)
     : null;
   const selectedRoot = rootFor(route);
+  const selectedWorld = worldDefinition(shellState.worlds.selected);
 
   return (
     <div
-      className={`app-shell${shellState.preferences.highContrastEnabled ? " high-contrast" : ""}${
+      className={`app-shell world-${selectedWorld.theme}${shellState.preferences.highContrastEnabled ? " high-contrast" : ""}${
         shellState.preferences.reduceMotionEnabled ? " reduce-motion" : ""
       }`}
+      data-world={selectedWorld.name}
     >
       <header className="app-header">
         <Brand />
@@ -456,6 +454,7 @@ function Museum({
   onCancelCombine(): void;
   onReviewCombine(): void;
 }) {
+  const world = worldDefinition(state.worlds.selected);
   const specimens = state.museum.specimens
     .filter((specimen) => specimen.revealedAtEpochMillis !== null)
     .filter((specimen) => tier === "ALL" || specimen.tier === tier)
@@ -467,8 +466,8 @@ function Museum({
   return (
     <section className="screen museum-screen" aria-labelledby="museum-title">
       <div className="screen-heading compact">
-        <p className="eyebrow">Your private collection</p>
-        <h1 id="museum-title">Museum</h1>
+        <p className="eyebrow">{world.eyebrow}</p>
+        <h1 id="museum-title">{world.collectionName}</h1>
       </div>
       {combineIds.length > 0 && (
         <div className="combine-bar">
@@ -512,6 +511,7 @@ function Museum({
       ) : (
         <div className="specimen-grid">
           {specimens.map((specimen) => {
+            const artifact = artifactFor(state.worlds.selected, specimen.id);
             const combining = combineIds.length > 0;
             const selectable =
               !combining || canAddToCombine(combineIds, specimen, state.museum.specimens);
@@ -524,7 +524,7 @@ function Museum({
                 onClick={() => (combining ? onToggleCombine(specimen) : onOpen(specimen.id))}
               >
                 <SpecimenVisual specimen={specimen} world={state.worlds.selected} compact />
-                <strong>{formatName(specimen.family)}</strong>
+                <strong>{artifact.name}</strong>
                 <span>{formatName(specimen.tier)}</span>
                 <small>
                   {specimen.anchoredLocalDate ? formatDate(specimen.anchoredLocalDate) : "Restored"}
@@ -564,17 +564,23 @@ function SpecimenDetail({
       </section>
     );
   }
+  const artifact = artifactFor(world, specimen.id);
   return (
     <section className="screen detail-screen" aria-labelledby="detail-title">
       <button type="button" className="back-button" onClick={onBack}>
         ← Back
       </button>
-      <h1 id="detail-title">Specimen</h1>
+      <p className="eyebrow">{worldDefinition(world).name}</p>
+      <h1 id="detail-title">{artifact.name}</h1>
       <div className="detail-card">
         <SpecimenVisual specimen={specimen} world={world} />
         <dl>
           <div>
-            <dt>Family</dt>
+            <dt>Artifact</dt>
+            <dd>{artifact.name}</dd>
+          </div>
+          <div>
+            <dt>Source pattern</dt>
             <dd>{formatName(specimen.family)}</dd>
           </div>
           <div>
@@ -655,7 +661,7 @@ function More({
         <button type="button" className="settings-link" onClick={onWorlds}>
           <span>
             <strong>Worlds</strong>
-            <small>{formatName(state.worlds.selected)}</small>
+            <small>{worldDefinition(state.worlds.selected).name}</small>
           </span>
           <span>›</span>
         </button>
@@ -765,42 +771,62 @@ function Worlds({
       <button type="button" className="back-button" onClick={onBack}>
         ← Back
       </button>
-      <p className="eyebrow">Presentation only</p>
+      <p className="eyebrow">Four authored worlds</p>
       <h1 id="worlds-title">Worlds</h1>
-      <p className="lead-small">Worlds change how specimens appear, never their value.</p>
+      <p className="lead-small">
+        Relic Vault is included. The other worlds are permanent cosmetic unlocks: buy once or earn
+        through long-form collection milestones. This development build uses local test unlocks.
+      </p>
       <div className="world-list">
-        {state.worlds.available.map((world) => {
-          const owned = state.worlds.owned.includes(world);
-          const selected = state.worlds.selected === world;
-          return (
-            <article
-              className={`world-card world-${world.toLowerCase()}${selected ? " selected" : ""}`}
-              key={world}
-            >
-              <div className="world-preview">
-                <SpecimenVisual decorative compact world={world} />
-              </div>
-              <div>
-                <h2>{formatName(world)}</h2>
-                <p>{selected ? "Selected" : owned ? "Owned" : "Not owned"}</p>
-              </div>
-              {!selected && owned && state.worlds.developmentControlsEnabled && (
-                <button type="button" className="secondary" onClick={() => onSelect(world)}>
-                  Apply
-                </button>
-              )}
-              {!owned && state.worlds.developmentControlsEnabled && (
-                <button type="button" className="secondary" onClick={() => onOwn(world)}>
-                  Unlock
-                </button>
-              )}
-            </article>
-          );
-        })}
+        {WORLD_DEFINITIONS.filter((world) => state.worlds.available.includes(world.id)).map(
+          (world) => {
+            const owned = world.baseline || state.worlds.owned.includes(world.id);
+            const selected = state.worlds.selected === world.id;
+            return (
+              <article
+                className={`world-card theme-${world.theme}${selected ? " selected" : ""}`}
+                key={world.id}
+              >
+                <div className="world-preview">
+                  <SpecimenVisual decorative compact world={world.id} />
+                </div>
+                <div className="world-copy">
+                  <p className="world-eyebrow">{world.eyebrow}</p>
+                  <h2>{world.name}</h2>
+                  <p>{world.description}</p>
+                  <ul className="artifact-list" aria-label={`${world.name} artifacts`}>
+                    {world.artifacts.map((artifact) => (
+                      <li key={artifact.name}>{artifact.name}</li>
+                    ))}
+                  </ul>
+                  <p className="world-status">
+                    {selected
+                      ? "Active world"
+                      : world.baseline
+                        ? "Included with Afterchime"
+                        : owned
+                          ? "Permanently unlocked"
+                          : "Locked · one-time purchase or long-form mastery"}
+                  </p>
+                </div>
+                {!selected && owned && state.worlds.developmentControlsEnabled && (
+                  <button type="button" className="secondary" onClick={() => onSelect(world.id)}>
+                    Apply
+                  </button>
+                )}
+                {!owned && state.worlds.developmentControlsEnabled && (
+                  <button type="button" className="secondary" onClick={() => onOwn(world.id)}>
+                    Unlock for testing
+                  </button>
+                )}
+              </article>
+            );
+          },
+        )}
       </div>
       {state.worlds.developmentControlsEnabled && (
         <button type="button" className="text-button" onClick={onReset}>
-          Reset development worlds
+          Reset test unlocks
         </button>
       )}
     </section>
@@ -850,37 +876,22 @@ function SpecimenVisual({
   decorative?: boolean;
   compact?: boolean;
 }) {
-  const visual = specimen?.visual ?? {
-    hueDegrees: 78,
-    strataCount: 7,
-    inclusionDensityPercent: 28,
-    reliefPercent: 46,
-    rotationDegrees: 350,
-  };
-  const style = {
-    "--hue": visual.hueDegrees,
-    "--rotation": `${visual.rotationDegrees}deg`,
-    "--layers": visual.strataCount,
-    "--density": `${visual.inclusionDensityPercent}%`,
-    "--relief": visual.reliefPercent,
-  } as CSSProperties;
+  const artifact = artifactFor(world, specimen?.id);
+  const definition = worldDefinition(world);
   const accessibility = decorative
     ? { "aria-hidden": true }
     : {
         role: "img" as const,
-        "aria-label": `${formatName(specimen?.tier ?? "COMMON")} ${formatName(specimen?.family ?? "TRACE_PLATE")} specimen`,
+        "aria-label": `${formatName(specimen?.tier ?? "COMMON")} ${artifact.name} artifact from ${definition.name}`,
       };
   return (
-    <div
-      className={`specimen-visual ${world.toLowerCase()}${compact ? " compact" : ""}`}
-      style={style}
+    <figure
+      className={`specimen-visual theme-${definition.theme}${compact ? " compact" : ""}`}
       {...accessibility}
     >
-      {STRATA_LAYERS.slice(0, Math.min(visual.strataCount, 12)).map((layer) => (
-        <span key={layer.key} style={{ "--i": layer.ordinal } as CSSProperties} />
-      ))}
-      <i />
-    </div>
+      <img src={artifact.image} alt="" draggable="false" />
+      {!compact && <figcaption>{artifact.name}</figcaption>}
+    </figure>
   );
 }
 
@@ -909,7 +920,7 @@ function todayCopy(state: ShellState): { title: string; body: string } {
     case "Active":
       return {
         title: "Today is still forming",
-        body: "Your specimen will be ready tomorrow. A quiet day can still become a clean mineral plate.",
+        body: worldDefinition(state.worlds.selected).formingCopy,
       };
     case "Disconnected":
       return {

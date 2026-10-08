@@ -1,5 +1,6 @@
-const CACHE_NAME = "afterchime-shell-v8";
+const CACHE_NAME = "afterchime-shell-v9";
 const LEGACY_CACHE_NAMES = [
+  "afterchime-shell-v8",
   "afterchime-shell-v7",
   "afterchime-shell-v6",
   "afterchime-shell-v5",
@@ -7,7 +8,22 @@ const LEGACY_CACHE_NAMES = [
 ];
 const ENTRY = "/";
 const STATE_KEY = "/.afterchime/current";
-const ASSET_PATTERN = /^\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$/;
+const ASSET_PATTERN =
+  /^(?:\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)|\/worlds\/[a-z0-9-]{1,128}-[a-f0-9]{12}\.jpg)$/;
+const WORLD_ASSETS = [
+  "/worlds/relic-fossil-choir-a885cad842a6.jpg",
+  "/worlds/relic-abyssal-glass-a7fd0353491a.jpg",
+  "/worlds/relic-lunar-ash-c08cb38e7b92.jpg",
+  "/worlds/field-verdant-crown-16cd41ad4394.jpg",
+  "/worlds/field-tidal-archive-7870aabaf855.jpg",
+  "/worlds/field-cinder-vale-baba2fad26b5.jpg",
+  "/worlds/control-canopy-frequency-264930918583.jpg",
+  "/worlds/control-pelagic-channel-679685abf5a2.jpg",
+  "/worlds/control-lunar-silence-af1ea8ce38ec.jpg",
+  "/worlds/atlas-hollow-range-40fffccf4155.jpg",
+  "/worlds/atlas-ember-roads-fe87b2c52620.jpg",
+  "/worlds/atlas-white-quarry-40e3ba96733d.jpg",
+];
 
 self.addEventListener("install", (event) => event.waitUntil(installWorker()));
 self.addEventListener("activate", (event) => event.waitUntil(activateWorker()));
@@ -75,12 +91,13 @@ async function promoteCompleteShell(response, cache) {
     return false;
   const html = await response.clone().text();
   if (!html.includes('id="root"') || html.length > 512 * 1024) return false;
-  const references = [
+  const entryReferences = [
     ...html.matchAll(
       /(?:src|href)="(\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css))"/g,
     ),
   ].map((match) => match[1]);
-  if (references.length === 0 || references.length > 32) return false;
+  if (entryReferences.length === 0 || entryReferences.length > 32) return false;
+  const references = [...new Set([...entryReferences, ...WORLD_ASSETS])];
 
   const assets = [];
   for (const pathname of new Set(references)) {
@@ -90,7 +107,7 @@ async function promoteCompleteShell(response, cache) {
     if (
       !asset.ok ||
       asset.type !== "basic" ||
-      !["text/javascript", "application/javascript", "text/css"].some((type) =>
+      !["text/javascript", "application/javascript", "text/css", "image/jpeg"].some((type) =>
         contentType.startsWith(type),
       )
     )
@@ -182,7 +199,7 @@ async function isExpectedAsset(response, digest) {
   if (
     !response.ok ||
     response.type !== "basic" ||
-    !["text/javascript", "application/javascript", "text/css"].some((type) =>
+    !["text/javascript", "application/javascript", "text/css", "image/jpeg"].some((type) =>
       contentType.startsWith(type),
     )
   )
@@ -201,7 +218,7 @@ async function readCurrentState(cache) {
       /^[a-f0-9]{64}$/.test(state.entryDigest) &&
       Array.isArray(state.assets) &&
       state.assets.length > 0 &&
-      state.assets.length <= 32 &&
+      state.assets.length <= 48 &&
       state.assets.every(
         (asset) => ASSET_PATTERN.test(asset.pathname) && /^[a-f0-9]{64}$/.test(asset.digest),
       )
