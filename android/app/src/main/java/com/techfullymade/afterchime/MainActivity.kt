@@ -481,8 +481,9 @@ class MainActivity : ComponentActivity() {
   private fun postActionResult(
     request: BridgeRequest,
     ok: Boolean,
-    proxy: JavaScriptReplyProxy = replyProxy ?: return,
+    proxy: JavaScriptReplyProxy? = replyProxy,
   ) {
+    proxy ?: return
     proxy.postMessage(
       JSONObject()
         .put("version", BRIDGE_VERSION)
