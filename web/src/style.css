@@ -907,6 +907,16 @@ p {
   box-shadow: 0 10px 32px #0008;
   font-size: 11px;
   text-align: center;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 300ms ease,
+    transform 300ms ease;
+}
+
+.toast.exiting {
+  opacity: 0;
+  transform: translateY(4px);
 }
 
 .high-contrast {

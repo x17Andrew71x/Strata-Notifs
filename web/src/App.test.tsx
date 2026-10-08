@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import App, { registerShellWorker } from "./App";
+import App, { registerShellWorker, TOAST_DURATION_MS, TOAST_FADE_START_MS } from "./App";
 import type { ShellState } from "./bridge";
 
 const native = {
@@ -16,7 +16,10 @@ beforeEach(() => {
   native.onmessage = null;
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe("service worker registration", () => {
   it("registers only when the hosted production shell asks for it", async () => {
@@ -133,6 +136,32 @@ describe("full shell application", () => {
       type: "preferences.update",
       payload: { key: "onlineFeaturesEnabled", value: true },
     });
+  });
+
+  it("dismisses action feedback after the visible toast period", () => {
+    vi.useFakeTimers();
+    renderWithState(baseState);
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            version: 2,
+            id: "save_result",
+            type: "action.result",
+            action: "preferences.update",
+            ok: true,
+          }),
+        }),
+      );
+    });
+    expect(screen.getByRole("status")).toHaveTextContent("Saved on this device.");
+
+    act(() => vi.advanceTimersByTime(TOAST_FADE_START_MS - 1));
+    expect(screen.getByRole("status")).not.toHaveClass("exiting");
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole("status")).toHaveClass("exiting");
+    act(() => vi.advanceTimersByTime(TOAST_DURATION_MS - TOAST_FADE_START_MS));
+    expect(screen.queryByRole("status")).toBeNull();
   });
 });
 

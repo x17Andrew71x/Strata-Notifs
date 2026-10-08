@@ -24,6 +24,8 @@ type ShellMetadata = {
 
 type RootRoute = "today" | "museum" | "community" | "more";
 type Route = RootRoute | "worlds" | `specimen/${string}`;
+export const TOAST_FADE_START_MS = 2_700;
+export const TOAST_DURATION_MS = 3_000;
 const STRATA_LAYERS = Array.from({ length: 12 }, (_, ordinal) => ({
   key: `strata-${ordinal}`,
   ordinal,
@@ -49,6 +51,7 @@ function App() {
   const [access, setAccess] = useState<boolean | null>(null);
   const [appDetailsAction, setAppDetailsAction] = useState(false);
   const [message, setMessage] = useState("");
+  const [toastExiting, setToastExiting] = useState(false);
   const [metadata, setMetadata] = useState<ShellMetadata | null>(null);
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
   const [tier, setTier] = useState<Tier | "ALL">("ALL");
@@ -86,6 +89,20 @@ function App() {
       window.removeEventListener("hashchange", onHashChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (!message) {
+      setToastExiting(false);
+      return;
+    }
+    setToastExiting(false);
+    const fadeTimeout = window.setTimeout(() => setToastExiting(true), TOAST_FADE_START_MS);
+    const dismissTimeout = window.setTimeout(() => setMessage(""), TOAST_DURATION_MS);
+    return () => {
+      window.clearTimeout(fadeTimeout);
+      window.clearTimeout(dismissTimeout);
+    };
+  }, [message]);
 
   useEffect(() => {
     if (!shellState) return;
@@ -252,7 +269,7 @@ function App() {
         </nav>
       )}
       {message && (
-        <div className="toast" role="status">
+        <div className={`toast${toastExiting ? " exiting" : ""}`} role="status">
           {message}
         </div>
       )}

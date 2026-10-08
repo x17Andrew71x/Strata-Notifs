@@ -154,7 +154,7 @@ describe("last-known-good web shell", () => {
 
   it("removes legacy app caches only after the current shell is complete", async () => {
     const stores: CacheStores = new Map([
-      ["afterchime-shell-v6", new Map()],
+      ["afterchime-shell-v7", new Map()],
       ["unrelated-cache", new Map()],
     ]);
     const worker = await createWorker(
@@ -237,10 +237,12 @@ describe("last-known-good web shell", () => {
     const prior = await createWorker(fetcher, {
       stores,
       transformSource: (source) =>
-        source.replace(
-          'const CACHE_NAME = "afterchime-shell-v7";\nconst LEGACY_CACHE_NAMES = ["afterchime-shell-v6", "afterchime-shell-v5", "afterchime-shell-v4"];',
-          'const CACHE_NAME = "afterchime-shell-v6";\nconst LEGACY_CACHE_NAMES = ["afterchime-shell-v5", "afterchime-shell-v4"];',
-        ),
+        source
+          .replace(
+            'const CACHE_NAME = "afterchime-shell-v8";',
+            'const CACHE_NAME = "afterchime-shell-v7";',
+          )
+          .replace('  "afterchime-shell-v7",\n', ""),
     });
     await prior.activate();
     offline = true;
