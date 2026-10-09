@@ -173,7 +173,7 @@ function App() {
 
   return (
     <div
-      className={`app-shell world-${selectedWorld.theme}${shellState.preferences.highContrastEnabled ? " high-contrast" : ""}${
+      className={`app-shell route-${selectedRoot} world-${selectedWorld.theme}${shellState.preferences.highContrastEnabled ? " high-contrast" : ""}${
         shellState.preferences.reduceMotionEnabled ? " reduce-motion" : ""
       }`}
       data-world={selectedWorld.name}
@@ -296,9 +296,21 @@ function App() {
 function Brand() {
   return (
     <div className="brand">
-      <span aria-hidden="true">✳</span>
+      <AfterchimeMark />
       <strong>afterchime</strong>
     </div>
+  );
+}
+
+function AfterchimeMark() {
+  return (
+    <svg className="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+      <path className="brand-mark-strata" d="M4 33c7-3 12 2 19-1 8-4 13-1 21-4v14H4z" />
+      <path
+        className="brand-mark-fossil"
+        d="M24 23.1 24.3 22.9 24.6 22.8 25 22.8 25.4 22.9 25.9 23.2 26.2 23.6 26.5 24.1 26.7 24.7 26.6 25.4 26.4 26.2 26 26.8 25.4 27.4 24.6 27.9 23.7 28.2 22.6 28.2 21.6 28 20.6 27.5 19.7 26.7 18.9 25.8 18.4 24.6 18.2 23.3 18.3 21.9 18.7 20.5 19.5 19.2 20.6 18.1 22 17.3 23.5 16.8 25.2 16.6 27 16.9 28.7 17.6 30.2 18.6 31.5 20.1 32.4 21.8 32.9 23.8 33 25.9 32.5 28 31.5 30 30.1 31.7 28.3 33.1 26.1 34.1 23.8 34.6 21.3 34.5 18.9 33.8 16.6 32.5 14.7 30.8 13.2 28.6 12.2 26 11.8 23.2 12.1 20.4 13 17.6 14.6 15.1 16.7 13 19.3 11.4 22.3 10.5 25.5 10.2 28.6 10.7 31.7 11.9 34.4 13.8 36.7 16.3 38.3 19.3 39.3 22.7 39.4 26.3 38.7 29.8 37.2 33.1 34.9 36.1 31.9 38.5 28.5 40.1 24.7 41 20.8 40.9 16.9 39.9 13.3 38.1 10.2 35.4 7.7 32.1 6.1 28.2 5.4 24"
+      />
+    </svg>
   );
 }
 
@@ -375,7 +387,11 @@ function Today({ state, onAction }: { state: ShellState; onAction(type: NativeAc
         {specimen && specimen.revealedAtEpochMillis !== null ? (
           <SpecimenVisual specimen={specimen} world={state.worlds.selected} />
         ) : (
-          <Formation layers={state.today.layers} ready={state.today.primaryAction === "REVEAL"} />
+          <Formation
+            layers={state.today.layers}
+            ready={state.today.primaryAction === "REVEAL"}
+            world={state.worlds.selected}
+          />
         )}
       </div>
       {state.today.primaryAction === "ENABLE_ACCESS" && (
@@ -403,35 +419,110 @@ function Today({ state, onAction }: { state: ShellState; onAction(type: NativeAc
   );
 }
 
-function Formation({ layers, ready }: { layers: ShellState["today"]["layers"]; ready: boolean }) {
+function Formation({
+  layers,
+  ready,
+  world,
+}: {
+  layers: ShellState["today"]["layers"];
+  ready: boolean;
+  world: World;
+}) {
   const visible = layers.slice(-18);
+  const occurrences = new Map<string, number>();
+  const keyedVisible = visible.map((layer) => {
+    const signature = `${layer.localHour}-${layer.category}-${layer.sourceColourRgb}`;
+    const occurrence = occurrences.get(signature) ?? 0;
+    occurrences.set(signature, occurrence + 1);
+    return { key: `${signature}-${occurrence}`, layer };
+  });
+  const theme = worldDefinition(world).theme;
   return (
     <div
-      className={`formation ${ready ? "ready" : ""}`}
+      className={`formation formation-${theme} ${ready ? "ready" : ""}`}
       role="img"
-      aria-label="Today's forming specimen"
+      aria-label="Today's notifications settling into a forming specimen"
+      style={{ "--formation-progress": Math.min(visible.length / 18, 1) } as CSSProperties}
     >
-      <div className="formation-core" />
-      {visible.map((layer, index) => {
-        const colour = `#${(layer.sourceColourRgb & 0xffffff).toString(16).padStart(6, "0")}`;
-        return (
-          <span
-            key={`${layer.localHour}-${layer.category}-${layer.sourceColourRgb}`}
-            className="formation-layer"
-            style={
-              {
-                "--layer-colour": colour,
-                "--layer-index": index,
-                "--layer-total": Math.max(visible.length, 1),
-              } as CSSProperties
-            }
-          />
-        );
-      })}
+      <div className="formation-bed" aria-hidden="true">
+        {keyedVisible.map(({ key, layer }, index) => {
+          const colour = `#${(layer.sourceColourRgb & 0xffffff).toString(16).padStart(6, "0")}`;
+          return (
+            <span
+              key={key}
+              className="formation-layer"
+              data-category={layer.category}
+              style={
+                {
+                  "--layer-colour": colour,
+                  "--layer-index": index,
+                  "--layer-inset": `${(index * 7) % 5}%`,
+                  "--layer-shift": `${[-2, 1, -1, 2, 0][index % 5]}%`,
+                } as CSSProperties
+              }
+            />
+          );
+        })}
+      </div>
+      <FormationImprint theme={theme} />
       {visible.length === 0 && (
         <span className="formation-empty">Quiet days still leave a trace.</span>
       )}
     </div>
+  );
+}
+
+function FormationImprint({ theme }: { theme: ReturnType<typeof worldDefinition>["theme"] }) {
+  return (
+    <svg className={`formation-imprint imprint-${theme}`} viewBox="0 0 100 100" aria-hidden="true">
+      {theme === "relic" && (
+        <>
+          <path
+            className="imprint-shadow"
+            d="M50 10C70 9 88 27 90 48c2 21-15 39-36 42-22 3-42-13-44-35C8 34 25 12 50 10Z"
+          />
+          <path
+            className="imprint-line"
+            d="M50 48.2 50.5 47.8 51.2 47.5 52.1 47.5 53 47.7 53.9 48.3 54.7 49.1 55.2 50.2 55.5 51.5 55.5 53 55 54.5 54.1 55.9 52.8 57.2 51.2 58.1 49.3 58.7 47.2 58.7 45 58.3 42.9 57.3 41 55.7 39.4 53.7 38.4 51.2 37.9 48.5 38.1 45.6 39 42.7 40.7 40.1 42.9 37.8 45.8 36 49.1 34.9 52.6 34.6 56.2 35.2 59.8 36.6 62.9 38.8 65.6 41.9 67.5 45.5 68.6 49.6 68.7 54 67.7 58.3 65.7 62.5 62.8 66.1 59 69 54.5 71.1 49.5 72 44.4 71.8 39.3 70.4 34.6 67.8 30.6 64.1 27.4 59.5 25.4 54.2 24.6 48.4 25.1 42.5 27.1 36.8 30.3 31.5 34.8 27.1 40.3 23.8 46.4 21.8 53 21.2 59.7 22.2 66 24.7 71.7 28.7 76.4 34 79.9 40.3 81.8 47.3 82 54.7 80.6 62.1 77.4 69 72.7 75.2 66.6 80.1 59.4 83.6 51.5 85.3 43.3 85.2 35.2 83.2 27.7 79.3 21.2 73.8 16.1 66.8 12.7 58.7 11.2 50"
+          />
+          <path
+            className="imprint-detail"
+            d="M50 23 50 11.5M61.7 25.7 66.7 15.3M71.1 33.2 80.1 26M76.3 44 87.5 41.4M76.3 56 87.5 58.6M71.1 66.8 80.1 74M61.7 74.3 66.7 84.7M50 77 50 88.5M38.3 74.3 33.3 84.7M28.9 66.8 19.9 74M23.7 56 12.5 58.6M23.7 44 12.5 41.4M28.9 33.2 19.9 26M38.3 25.7 33.3 15.3"
+          />
+        </>
+      )}
+      {theme === "field" && (
+        <>
+          <path className="imprint-shadow" d="M20 78C28 49 43 27 78 16c-4 33-22 57-58 62Z" />
+          <path
+            className="imprint-line"
+            d="M20 78C28 49 43 27 78 16c-4 33-22 57-58 62Zm4-5 49-51M34 60l3-21m8 10 20-4M50 43l3-13m5 6 12-2"
+          />
+        </>
+      )}
+      {theme === "control" && (
+        <>
+          <circle className="imprint-shadow" cx="50" cy="50" r="32" />
+          <path
+            className="imprint-line"
+            d="M50 12v76M12 50h76M25 50a25 25 0 1 0 50 0 25 25 0 1 0-50 0Zm9 0a16 16 0 1 0 32 0 16 16 0 1 0-32 0Z"
+          />
+          <path className="imprint-detail" d="m19 69 12-8 9 5 13-21 10 8 18-20" />
+        </>
+      )}
+      {theme === "atlas" && (
+        <>
+          <path
+            className="imprint-shadow"
+            d="M10 65c11-4 14-19 27-20 10-1 13-22 25-21 10 1 12 16 28 18v34H10Z"
+          />
+          <path
+            className="imprint-line"
+            d="M9 72c14-4 17-17 30-18 12-1 17-20 29-19 9 1 11 12 23 15M8 61c13-3 17-16 28-16 11 0 14-22 27-21 10 1 12 16 28 18M12 82c10-5 18-15 31-16 14-1 19-17 30-16 7 1 11 7 17 9"
+          />
+        </>
+      )}
+    </svg>
   );
 }
 

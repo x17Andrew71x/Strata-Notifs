@@ -68,6 +68,28 @@ describe("full shell application", () => {
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeTruthy();
   });
 
+  it("builds the primary formation from bounded sediment layers and a fossil imprint", () => {
+    const layers = Array.from({ length: 22 }, (_, index) => ({
+      localHour: index,
+      category: `CATEGORY_${String.fromCharCode(65 + index)}`,
+      sourceColourRgb: 0x5f4528 + index,
+    }));
+    const { container } = render(<App />);
+    sendState({ ...baseState, today: { ...baseState.today, layers } });
+
+    expect(container.querySelector(".app-shell")).toHaveClass("route-today", "world-relic");
+    expect(container.querySelector(".brand-mark-fossil")).toBeTruthy();
+    expect(
+      screen.getByRole("img", {
+        name: "Today's notifications settling into a forming specimen",
+      }),
+    ).toHaveClass("formation-relic");
+    const sediment = container.querySelectorAll(".formation-layer");
+    expect(sediment).toHaveLength(18);
+    expect(sediment[0]).toHaveAttribute("data-category", "CATEGORY_E");
+    expect(container.querySelector(".imprint-relic")).toBeTruthy();
+  });
+
   it("surfaces a prior-day specimen and sends the bounded reveal action", () => {
     renderWithState({
       ...baseState,

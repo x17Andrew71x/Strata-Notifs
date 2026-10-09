@@ -273,10 +273,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v10";',
             'const CACHE_NAME = "afterchime-shell-v9";',
-            'const CACHE_NAME = "afterchime-shell-v8";',
           )
-          .replace('  "afterchime-shell-v8",\n', ""),
+          .replace('  "afterchime-shell-v9",\n', ""),
     });
     await prior.activate();
     offline = true;
