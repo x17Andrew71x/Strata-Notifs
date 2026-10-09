@@ -5,8 +5,9 @@
     android:name=".AfterchimeApplication"
     android:allowBackup="false"
     android:fullBackupContent="false"
-    android:icon="@drawable/ic_afterchime"
+    android:icon="@mipmap/ic_afterchime"
     android:label="@string/app_name"
+    android:roundIcon="@mipmap/ic_afterchime"
     android:supportsRtl="true"
     android:theme="@style/Theme.Afterchime"
     android:usesCleartextTraffic="false">

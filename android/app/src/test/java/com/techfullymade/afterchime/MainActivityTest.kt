@@ -23,6 +23,15 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class MainActivityTest {
   @Test
+  fun `launcher uses the full bleed adaptive fossil icon`() {
+    val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
+    val icon = activity.getDrawable(R.mipmap.ic_afterchime)
+
+    assertEquals(R.mipmap.ic_afterchime, activity.applicationInfo.icon)
+    assertTrue(icon is android.graphics.drawable.AdaptiveIconDrawable)
+  }
+
+  @Test
   fun `development world boundary follows flavour regardless of build type`() {
     assertTrue(isDevelopmentWorldsEnabled("dev"))
     assertFalse(isDevelopmentWorldsEnabled("prod"))

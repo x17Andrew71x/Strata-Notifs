@@ -447,17 +447,19 @@ function Formation({
       <div className="formation-bed" aria-hidden="true">
         {keyedVisible.map(({ key, layer }, index) => {
           const colour = `#${(layer.sourceColourRgb & 0xffffff).toString(16).padStart(6, "0")}`;
+          const newest = index === keyedVisible.length - 1;
           return (
             <span
               key={key}
-              className="formation-layer"
+              className={`formation-layer${newest ? " is-newest" : ""}`}
               data-category={layer.category}
+              data-newest={newest ? "true" : undefined}
               style={
                 {
                   "--layer-colour": colour,
                   "--layer-index": index,
-                  "--layer-inset": `${(index * 7) % 5}%`,
-                  "--layer-shift": `${[-2, 1, -1, 2, 0][index % 5]}%`,
+                  "--layer-inset": `${[1, 0, 2, 0, 1][index % 5]}%`,
+                  "--layer-shift": `${[-1, 0.5, -0.5, 1, 0][index % 5]}%`,
                 } as CSSProperties
               }
             />
@@ -752,14 +754,20 @@ function More({
         <button type="button" className="settings-link" onClick={onWorlds}>
           <span>
             <strong>Worlds</strong>
-            <small>{worldDefinition(state.worlds.selected).name}</small>
+            <small>
+              {worldDefinition(state.worlds.selected).name} · Change the collection’s look and
+              language
+            </small>
           </span>
           <span>›</span>
         </button>
         <button type="button" className="settings-link" onClick={onOpenSettings}>
           <span>
             <strong>Notification access</strong>
-            <small>{state.notificationAccess ? "Collecting" : "Paused"}</small>
+            <small>
+              Choose which apps may add layers ·{" "}
+              {state.notificationAccess ? "Collecting" : "Paused"}
+            </small>
           </span>
           <span>›</span>
         </button>
@@ -767,18 +775,20 @@ function More({
       <div className="settings-group">
         <Toggle
           label="Online features"
-          detail="Off unless you choose otherwise"
+          detail="Allow optional network features; your collection still works offline"
           checked={preferences.onlineFeaturesEnabled}
           onChange={(value) => onPreference("onlineFeaturesEnabled", value)}
         />
         <Toggle
           label="Product analytics"
+          detail="Share pseudonymous app-use events to improve Afterchime"
           checked={preferences.productAnalyticsEnabled}
           disabled={!preferences.onlineFeaturesEnabled}
           onChange={(value) => onPreference("productAnalyticsEnabled", value)}
         />
         <Toggle
           label="Aggregate sharing"
+          detail="Share daily counts only—never notification content or app identity"
           checked={preferences.notificationAggregateSharingEnabled}
           disabled={!preferences.onlineFeaturesEnabled}
           onChange={(value) => onPreference("notificationAggregateSharingEnabled", value)}
@@ -787,16 +797,19 @@ function More({
       <div className="settings-group">
         <Toggle
           label="Reduce motion"
+          detail="Limit interface animation and movement"
           checked={preferences.reduceMotionEnabled}
           onChange={(value) => onPreference("reduceMotionEnabled", value)}
         />
         <Toggle
           label="High contrast"
+          detail="Increase separation between text, controls, and surfaces"
           checked={preferences.highContrastEnabled}
           onChange={(value) => onPreference("highContrastEnabled", value)}
         />
         <Toggle
           label="Haptics"
+          detail="Use gentle vibration for taps and confirmations"
           checked={preferences.hapticsEnabled}
           onChange={(value) => onPreference("hapticsEnabled", value)}
         />

@@ -87,7 +87,36 @@ describe("full shell application", () => {
     const sediment = container.querySelectorAll(".formation-layer");
     expect(sediment).toHaveLength(18);
     expect(sediment[0]).toHaveAttribute("data-category", "CATEGORY_E");
+    expect(sediment[17]).toHaveClass("is-newest");
+    expect(sediment[17]).toHaveAttribute("data-newest", "true");
+    expect(sediment[16]).not.toHaveClass("is-newest");
     expect(container.querySelector(".imprint-relic")).toBeTruthy();
+  });
+
+  it("adds exactly one new sediment course for each incoming notification", () => {
+    const layers = Array.from({ length: 3 }, (_, index) => ({
+      localHour: index,
+      category: `CATEGORY_${String.fromCharCode(65 + index)}`,
+      sourceColourRgb: 0x5f4528 + index,
+    }));
+    const { container } = render(<App />);
+    sendState({ ...baseState, today: { ...baseState.today, layers } });
+    const previousNewest = container.querySelectorAll(".formation-layer")[2];
+
+    sendState({
+      ...baseState,
+      today: {
+        ...baseState.today,
+        layers: [...layers, { localHour: 4, category: "CATEGORY_NEW", sourceColourRgb: 0x9b7241 }],
+      },
+    });
+
+    const sediment = container.querySelectorAll(".formation-layer");
+    expect(sediment).toHaveLength(4);
+    expect(sediment[2]).toBe(previousNewest);
+    expect(sediment[2]).not.toHaveClass("is-newest");
+    expect(sediment[3]).toHaveClass("is-newest");
+    expect(sediment[3]).toHaveAttribute("data-category", "CATEGORY_NEW");
   });
 
   it("surfaces a prior-day specimen and sends the bounded reveal action", () => {
@@ -158,6 +187,24 @@ describe("full shell application", () => {
       type: "preferences.update",
       payload: { key: "onlineFeaturesEnabled", value: true },
     });
+  });
+
+  it("explains what every More setting controls", () => {
+    renderWithState(baseState);
+    fireEvent.click(screen.getByRole("button", { name: /More$/ }));
+
+    for (const detail of [
+      /Change the collection’s look and language/i,
+      /Choose which apps may add layers/i,
+      /your collection still works offline/i,
+      /pseudonymous app-use events/i,
+      /daily counts only—never notification content or app identity/i,
+      /Limit interface animation and movement/i,
+      /Increase separation between text, controls, and surfaces/i,
+      /gentle vibration for taps and confirmations/i,
+    ]) {
+      expect(screen.getByText(detail)).toBeTruthy();
+    }
   });
 
   it("shows only the four approved public worlds and keeps compatibility ids out of the UI", () => {
