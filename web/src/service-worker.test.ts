@@ -144,6 +144,29 @@ function imageResponse(body = "image") {
 }
 
 describe("last-known-good web shell", () => {
+  it("serves a valid first-seen content-addressed image while the new worker fills its cache", async () => {
+    const body = "image";
+    const digest = Array.from(
+      new Uint8Array(await webcrypto.subtle.digest("SHA-256", new TextEncoder().encode(body))),
+    )
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+    const worker = await createWorker(async () => new Response("missing", { status: 404 }));
+
+    const response = await worker.asset(`/worlds/relic-first-load-${digest.slice(0, 12)}.jpg`);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe(body);
+  });
+
+  it("rejects a first-seen image whose bytes do not match its content-addressed path", async () => {
+    const worker = await createWorker(async () => new Response("missing", { status: 404 }));
+
+    const response = await worker.asset("/worlds/relic-first-load-000000000000.jpg");
+
+    expect(response.type).toBe("error");
+  });
+
   it("primes the first validated online shell during activation for the next offline launch", async () => {
     let offline = false;
     const worker = await createWorker(async (input) => {
@@ -273,10 +296,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v12";',
             'const CACHE_NAME = "afterchime-shell-v11";',
-            'const CACHE_NAME = "afterchime-shell-v10";',
           )
-          .replace('  "afterchime-shell-v10",\n', ""),
+          .replace('  "afterchime-shell-v11",\n', ""),
     });
     await prior.activate();
     offline = true;

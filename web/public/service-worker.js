@@ -1,5 +1,6 @@
-const CACHE_NAME = "afterchime-shell-v11";
+const CACHE_NAME = "afterchime-shell-v12";
 const LEGACY_CACHE_NAMES = [
+  "afterchime-shell-v11",
   "afterchime-shell-v10",
   "afterchime-shell-v9",
   "afterchime-shell-v8",
@@ -145,10 +146,27 @@ async function assetWithOfflineFallback(request) {
   try {
     const response = await fetch(request, { credentials: "same-origin", redirect: "error" });
     if (cached && (await isExpectedAsset(response, cached.digest))) return response;
+    if (!cached && (await isValidFirstSeenContentAddressedImage(response, request.url))) {
+      return response;
+    }
     return cached?.response || Response.error();
   } catch (_) {
     return cached?.response || Response.error();
   }
+}
+
+async function isValidFirstSeenContentAddressedImage(response, assetUrl) {
+  const match = new URL(assetUrl).pathname.match(/-([a-f0-9]{12})\.jpg$/);
+  const contentType = response.headers.get("content-type") || "";
+  if (
+    !match ||
+    !response.ok ||
+    response.type !== "basic" ||
+    !contentType.startsWith("image/jpeg")
+  ) {
+    return false;
+  }
+  return (await sha256(await response.clone().arrayBuffer())).startsWith(match[1]);
 }
 
 async function cachedEntry() {

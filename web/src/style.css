@@ -497,12 +497,17 @@ p {
 .excavation-artifact {
   display: block;
   object-fit: cover;
+  visibility: hidden;
   border: 1px solid #b88a5238;
   background: #16110c;
   box-shadow:
     0 28px 74px #000b,
     inset 0 0 0 1px #ffffff0a;
   user-select: none;
+}
+
+.excavation-artifact.is-loaded {
+  visibility: visible;
 }
 
 .excavation-grid {

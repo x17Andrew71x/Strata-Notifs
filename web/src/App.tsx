@@ -27,6 +27,8 @@ type RootRoute = "today" | "museum" | "community" | "more";
 type Route = RootRoute | "worlds" | `specimen/${string}`;
 export const TOAST_FADE_START_MS = 2_700;
 export const TOAST_DURATION_MS = 3_000;
+export const SHELL_STATE_REFRESH_MS = 2_000;
+export const IMAGE_RETRY_DELAYS_MS = [250, 750, 1_500, 3_000, 5_000] as const;
 const EXCAVATION_TILE_IDS = Array.from(
   { length: 100 },
   (_, tileIndex) => `excavation-tile-${tileIndex}`,
@@ -81,12 +83,23 @@ function App() {
       }
     });
     const onHashChange = () => setRoute(parseRoute(window.location.hash));
+    const refreshState = () => {
+      if (document.visibilityState !== "hidden") sendNativeRequest("state.get");
+    };
     window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("focus", refreshState);
+    window.addEventListener("pageshow", refreshState);
+    document.addEventListener("visibilitychange", refreshState);
+    const refreshInterval = window.setInterval(refreshState, SHELL_STATE_REFRESH_MS);
     sendNativeRequest("capabilities.get");
     sendNativeRequest("state.get");
     return () => {
       stop();
+      window.clearInterval(refreshInterval);
       window.removeEventListener("hashchange", onHashChange);
+      window.removeEventListener("focus", refreshState);
+      window.removeEventListener("pageshow", refreshState);
+      document.removeEventListener("visibilitychange", refreshState);
     };
   }, []);
 
@@ -400,7 +413,7 @@ function Today({
       <div className="screen-heading">
         <p className="eyebrow">{formatDate(state.today.localDate)}</p>
         <h1 id="today-title">{copy.title}</h1>
-        <p>{copy.body}</p>
+        {copy.body && <p>{copy.body}</p>}
       </div>
       <div className="formation-stage">
         {specimen && specimen.revealedAtEpochMillis !== null ? (
@@ -469,11 +482,10 @@ function Excavation({
       className="excavation"
       aria-label={`Excavate today’s concealed fossil. ${excavation.energyAvailable} energy available.`}
     >
-      <img
+      <RetryingImage
+        key={artifact.excavationImage}
         className="excavation-artifact"
         src={artifact.excavationImage}
-        alt=""
-        draggable="false"
       />
       <div
         className="excavation-grid"
@@ -519,10 +531,46 @@ function Excavation({
         </div>
       </div>
       <p className="excavation-capture">
-        {excavation.capturedNotificationCount} captured · {excavation.eligibleNotificationCount}{" "}
-        counted · {excavation.tileEnergyCost} energy per tile
+        {excavation.capturedNotificationCount} captured · {excavation.energyEarned} energy earned ·{" "}
+        {excavation.tileEnergyCost} per tile
       </p>
     </fieldset>
+  );
+}
+
+function RetryingImage({ className, src }: { className: string; src: string }) {
+  const [attempt, setAttempt] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!failed || loaded) return;
+    const delay = IMAGE_RETRY_DELAYS_MS[Math.min(attempt, IMAGE_RETRY_DELAYS_MS.length - 1)];
+    const retry = window.setTimeout(() => {
+      setFailed(false);
+      setAttempt((current) => current + 1);
+    }, delay);
+    return () => window.clearTimeout(retry);
+  }, [attempt, failed, loaded]);
+
+  return (
+    <img
+      key={`${src}-${attempt}`}
+      className={`${className}${loaded ? " is-loaded" : ""}`}
+      src={src}
+      alt=""
+      draggable="false"
+      decoding="async"
+      fetchPriority="high"
+      onLoad={() => {
+        setLoaded(true);
+        setFailed(false);
+      }}
+      onError={() => {
+        setLoaded(false);
+        setFailed(true);
+      }}
+    />
   );
 }
 
@@ -1114,7 +1162,7 @@ function SpecimenVisual({
   );
 }
 
-function todayCopy(state: ShellState): { title: string; body: string } {
+function todayCopy(state: ShellState): { title: string; body: string | null } {
   const { today } = state;
   if (
     today.excavation?.completedAtEpochMillis !== null &&
@@ -1129,7 +1177,7 @@ function todayCopy(state: ShellState): { title: string; body: string } {
   if (today.observation === "Active" && today.excavation) {
     return {
       title: "Excavate today’s fossil",
-      body: `${today.excavation.capturedNotificationCount} notifications captured; ${today.excavation.eligibleNotificationCount} counted after pacing. Spend ${today.excavation.tileEnergyCost} energy to clear one tile.`,
+      body: null,
     };
   }
   const priorDate = today.specimen?.anchoredLocalDate;

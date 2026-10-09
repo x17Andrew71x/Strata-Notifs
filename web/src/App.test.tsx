@@ -1,6 +1,12 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import App, { registerShellWorker, TOAST_DURATION_MS, TOAST_FADE_START_MS } from "./App";
+import App, {
+  IMAGE_RETRY_DELAYS_MS,
+  registerShellWorker,
+  SHELL_STATE_REFRESH_MS,
+  TOAST_DURATION_MS,
+  TOAST_FADE_START_MS,
+} from "./App";
 import type { ShellState } from "./bridge";
 
 const native = {
@@ -144,7 +150,8 @@ describe("full shell application", () => {
     });
 
     expect(screen.getByRole("heading", { name: "Excavate today’s fossil" })).toBeTruthy();
-    expect(screen.getByText(/8 captured · 6 counted · 3 energy per tile/i)).toBeTruthy();
+    expect(screen.queryByText(/notifications captured;.*counted after pacing/i)).toBeNull();
+    expect(screen.getByText(/8 captured · 6 energy earned · 3 per tile/i)).toBeTruthy();
     expect(container.querySelector(".excavation-artifact")).toHaveAttribute(
       "src",
       "/worlds/relic-fossil-choir-excavation-fb847346a7cf.jpg",
@@ -158,6 +165,45 @@ describe("full shell application", () => {
       type: "excavation.dig",
       payload: { tileIndex: 0 },
     });
+  });
+
+  it("retries a failed first-load excavation image without showing a broken image", () => {
+    vi.useFakeTimers();
+    const { container } = renderWithState(excavationState());
+    const firstImage = container.querySelector<HTMLImageElement>(".excavation-artifact");
+    expect(firstImage).not.toBeNull();
+    fireEvent.error(firstImage as HTMLImageElement);
+    expect(firstImage).not.toHaveClass("is-loaded");
+
+    act(() => vi.advanceTimersByTime(IMAGE_RETRY_DELAYS_MS[0]));
+    const retryImage = container.querySelector<HTMLImageElement>(".excavation-artifact");
+    expect(retryImage).not.toBe(firstImage);
+    expect(retryImage).toHaveAttribute(
+      "src",
+      "/worlds/relic-fossil-choir-excavation-fb847346a7cf.jpg",
+    );
+    fireEvent.load(retryImage as HTMLImageElement);
+    expect(retryImage).toHaveClass("is-loaded");
+  });
+
+  it("updates dig energy from a native push and requests a visible-state fallback refresh", () => {
+    vi.useFakeTimers();
+    renderWithState(excavationState());
+    expect(screen.getByText("3", { selector: ".excavation-hud strong" })).toBeTruthy();
+
+    sendState(
+      excavationState({
+        capturedNotificationCount: 9,
+        eligibleNotificationCount: 7,
+        energyEarned: 7,
+        energyAvailable: 4,
+      }),
+    );
+    expect(screen.getByText("4", { selector: ".excavation-hud strong" })).toBeTruthy();
+
+    native.postMessage.mockClear();
+    act(() => vi.advanceTimersByTime(SHELL_STATE_REFRESH_MS));
+    expect(lastRequest()).toMatchObject({ version: 2, type: "state.get" });
   });
 
   it("moves a completed catalog fossil to its matching rarity-treated Museum image", () => {
@@ -383,6 +429,33 @@ function sendState(state: ShellState | { preferences: ShellState["preferences"] 
 function lastRequest(): Record<string, unknown> {
   const raw = native.postMessage.mock.calls.at(-1)?.[0];
   return JSON.parse(raw ?? "null") as Record<string, unknown>;
+}
+
+function excavationState(
+  excavation: Partial<NonNullable<ShellState["today"]["excavation"]>> = {},
+): ShellState {
+  return {
+    ...baseState,
+    today: {
+      ...baseState.today,
+      excavation: {
+        artifactId: "relic-fossil-choir",
+        capturedNotificationCount: 8,
+        eligibleNotificationCount: 6,
+        energyPerNotification: 1,
+        energyEarned: 6,
+        energySpent: 3,
+        energyAvailable: 3,
+        tileEnergyCost: 3,
+        gridColumns: 5,
+        gridRows: 5,
+        dugTiles: [12],
+        completedAtEpochMillis: null,
+        ...excavation,
+      },
+      digInFlight: false,
+    },
+  };
 }
 
 const specimen = {

@@ -10,8 +10,11 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -67,6 +70,24 @@ class DailyExcavationRepositoryTest {
     assertEquals(3, snapshot.energyEarned)
     assertEquals(GameBalance.ENERGY_PER_TILE, snapshot.energyAvailable)
     assertEquals("relic-fossil-choir", snapshot.artifactId)
+  }
+
+  @Test
+  fun `an eligible notification emits usable energy to an active observer`() = runBlocking {
+    val update = async(start = CoroutineStart.UNDISPATCHED) {
+      withTimeout(5_000) {
+        repository.observe(localDate).first { snapshot ->
+          snapshot.excavation?.capturedNotificationCount == 1
+        }
+      }
+    }
+
+    insertNotification("live-event", "c".repeat(64), now.toEpochMilli())
+
+    val excavation = update.await().excavation!!
+    assertEquals(1, excavation.capturedNotificationCount)
+    assertEquals(1, excavation.eligibleNotificationCount)
+    assertEquals(1, excavation.energyAvailable)
   }
 
   @Test
