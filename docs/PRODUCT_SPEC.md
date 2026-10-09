@@ -13,9 +13,9 @@
 
 ## 1. Executive summary
 
-Afterchime is a small, distinctly Android collection game that turns the rhythm of a person's notifications into calm generative artefacts. It never reads, retains or uploads notification text. Each local day becomes a geological layer; at midnight the day seals into one deterministic specimen. The user reveals it, keeps it in a private museum, restores duplicates, changes how the same history appears through cosmetic worlds, and may donate specimens to collaborative seasonal artworks.
+Afterchime is a small, distinctly Android collection game that turns a privacy-reduced count of eligible notifications into energy for one daily excavation. It never reads, retains or uploads notification text. One fossil is privately pre-rolled for the local day; the user spends earned energy to uncover it tile by tile, then keeps the completed discovery in a private museum.
 
-The product is intentionally restrained. The primary experience is a beautiful daily object, not a dashboard full of charts and not another notification-management utility. It should feel like a quiet game: tactile, collectible and lightly mysterious, with no punishment for inactivity and no incentive to generate more notifications.
+The product is intentionally restrained. The primary experience is a beautiful daily object, not a dashboard full of charts and not another notification-management utility. It should feel like a quiet game: tactile, collectible and lightly mysterious, with no streak pressure and no reward for manufacturing extra notifications after the daily opportunity is exhausted.
 
 The free product is complete. Revenue comes from optional one-time cosmetic world packs and a launch bundle. There are no forced adverts, no paid rarity boosts, no loot boxes, no consumable currency and no subscription until genuinely recurring content exists.
 
@@ -25,9 +25,9 @@ A lightweight Railway backend and PostgreSQL database support pseudonymous insta
 
 ## 2. Product promise
 
-> **A living fossil of your phone's interruptions.**
+> **Uncover what remains after the noise.**
 
-Every notification adds a mineral-thin layer to today's live formation. Bursts buckle the rock. Quiet hours leave clean stone. At midnight, the day becomes a collectible specimen.
+Each qualifying notification earns one unit of dig energy. The user decides when and where to excavate a concealed daily fossil. The fossil's identity and rarity are fixed before activity begins and cannot be improved by generating more notifications.
 
 ### 2.1 User value
 
@@ -116,52 +116,46 @@ Copy is short, calm and concrete. Prefer “Seal today’s layer” to “Embark
 
 ## 5. Core game loop
 
-### 5.1 Daily formation
+### 5.1 Daily excavation
 
 1. A fresh install's `NotificationListenerService` starts with no notification types selected.
 2. Android's listener controls permanently disable ongoing, conversation and silent notifications. The user explicitly enables alerting notifications and chooses which apps may contribute.
 3. A non-overridable local safety policy rejects a curated set of common financial, payment, cryptocurrency-wallet, password-manager, authenticator and VPN sources before notification fields are inspected. This is defence in depth, not an exhaustive catalogue; users can exclude any additional app in Android's system controls.
-4. The app immediately reduces each eligible event to an approved local record: timestamp bucket, coarse Android category and a device-local pseudonymous source colour.
+4. The app immediately reduces each eligible event to an approved local record: timestamp bucket, coarse Android category and a device-local pseudonymous source token/colour.
 5. Group summaries, the app's own notifications, the built-in safety policy and user-selected system exclusions do not count.
-6. Today's formation updates locally. No network is required.
-7. At local midnight, or during the next catch-up opportunity, the previous local day seals.
-8. A versioned deterministic generator converts the day's summary into one specimen.
-9. The user may reveal the specimen immediately or later; unrevealed specimens remain safely queued.
-10. The specimen enters the museum and may be displayed, combined, donated or re-rendered in another owned world.
+6. A local-secret/date-bound weighted draw fixes one catalogue fossil for the day before notification activity can influence it; rarity stays concealed until discovery.
+7. A notification earns one unit of dig energy only when that source has not already earned energy within the configured rolling cooldown. Initial tuning is one energy per qualifying notification and a five-minute per-source cooldown.
+8. The user spends the configured tile cost—initially three energy—to clear a chosen tile from the real paired excavation image.
+9. Clearing every configured tile immediately places the same fossil's paired Museum image on its standard pedestal and adds the specimen to the local collection.
+10. No second personal plate begins that day. Incomplete excavations expire at the next local day boundary; completed specimens remain immutable in the Museum.
 
 ### 5.2 No-notification and missing days
 
-A day with no eligible notifications remains valid and can create a trace fossil or clean mineral plate. A day when the service lacked permission is marked **unobserved**, not interpreted as quiet. The app never breaks a streak because Afterchime has no punitive streak.
+A day with insufficient eligible notifications may end without a specimen. The unfinished concealed fossil expires rather than entering the Museum. A day when the service lacked permission is marked **unobserved**, not interpreted as quiet. Afterchime has no streak counter and never downgrades an already selected fossil because activity was low.
 
 ### 5.3 Day boundaries
 
 - Local calendar date is authoritative for the personal daily specimen.
-- A scheduled worker attempts sealing shortly after midnight; app launch and service startup provide catch-up.
+- App launch and service startup establish the date-bound excavation and catch up aggregate day records.
 - The sealed input includes the zone offset used for that day.
-- Once sealed, a specimen is immutable except for an explicit generator migration that preserves the original version and outcome.
+- Once fully excavated, a specimen is immutable except for an explicit catalogue migration that preserves the original version and outcome.
 - Clock changes and travel must not mint more than one ordinary specimen for the same anchored local day.
 
-### 5.4 Feature vector
+### 5.4 Selection and energy inputs
 
-The generator may use only approved derived features:
+The fossil draw may use only:
 
-- total eligible notifications, normalised through diminishing returns;
-- active time buckets;
-- longest observed quiet interval;
-- burst distribution;
-- coarse category diversity;
-- locally pseudonymised source diversity;
-- day/night shape according to device-local time;
-- observation completeness;
-- deterministic daily entropy derived from local secret, date and generator version.
+- deterministic daily entropy derived from the device-local secret and local date;
+- the versioned fossil catalogue and each item's independently tunable positive selection weight.
 
-It must not use message text, titles, sender identities, contact data, raw application package names, notification actions or media.
+Energy eligibility may use only event time and the device-local pseudonymous source token. Neither selection nor energy may use message text, titles, sender identities, contact data, raw application package names, notification actions or media.
 
 ### 5.5 Fairness rules
 
-- Raw count influences visual density but not monotonically increasing rarity.
-- Repeated high-frequency events from one source and time window are capped for game calculations.
-- Quiet and sparse patterns have their own rare archetypes.
+- Notification count never influences rarity or fossil identity.
+- Repeated events from one source inside the configured rolling cooldown earn no energy.
+- Every gameplay number—energy earned, tile cost, grid dimensions and cooldown—lives in the central balance constants; item rarity is tuned through per-item catalogue weights.
+- The initial launch-set weights are Lunar Ash 60, Fossil Choir 30 and Abyssal Glass 10. These are starting values for feasibility testing, not a permanent economy.
 - A paid world uses the same underlying specimen class and rarity as the free world.
 - Changing device time, replaying sync or reinstalling must not create duplicate ordinary rewards.
 
@@ -196,7 +190,7 @@ Scientific labels must be clearly presented as stylised game taxonomy rather tha
 - **Exceptional**
 - **Singular**
 
-The tier is deterministic from the pattern class and daily seed. Every observed pattern, including an extremely quiet day, must have paths to all ordinary tiers. Singular specimens are exceptionally infrequent and cannot be purchased.
+The tier belongs to the selected catalogue item. Common fossils use restrained natural materials; medium tiers gain stronger silhouettes and richer mineral detail; rare and higher tiers must provide an immediate visual “wow” without relying only on glow. The weighted draw is deterministic for a date and local secret, cannot be purchased, and cannot be altered by notification volume.
 
 ### 6.3 Restoration and combining
 

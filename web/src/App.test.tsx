@@ -119,6 +119,94 @@ describe("full shell application", () => {
     expect(sediment[3]).toHaveAttribute("data-category", "CATEGORY_NEW");
   });
 
+  it("renders the actual daily fossil beneath a spendable excavation bed", () => {
+    const { container } = render(<App />);
+    sendState({
+      ...baseState,
+      today: {
+        ...baseState.today,
+        excavation: {
+          artifactId: "relic-fossil-choir",
+          capturedNotificationCount: 8,
+          eligibleNotificationCount: 6,
+          energyPerNotification: 1,
+          energyEarned: 6,
+          energySpent: 3,
+          energyAvailable: 3,
+          tileEnergyCost: 3,
+          gridColumns: 5,
+          gridRows: 5,
+          dugTiles: [12],
+          completedAtEpochMillis: null,
+        },
+        digInFlight: false,
+      },
+    });
+
+    expect(screen.getByRole("heading", { name: "Excavate today’s fossil" })).toBeTruthy();
+    expect(screen.getByText(/8 captured · 6 counted · 3 energy per tile/i)).toBeTruthy();
+    expect(container.querySelector(".excavation-artifact")).toHaveAttribute(
+      "src",
+      "/worlds/relic-fossil-choir-excavation-fb847346a7cf.jpg",
+    );
+    expect(container.querySelectorAll(".excavation-tile")).toHaveLength(25);
+    expect(container.querySelectorAll(".excavation-tile.dug")).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Excavate tile 1 for 3 energy" }));
+    expect(lastRequest()).toMatchObject({
+      version: 2,
+      type: "excavation.dig",
+      payload: { tileIndex: 0 },
+    });
+  });
+
+  it("moves a completed catalog fossil to its matching rarity-treated Museum image", () => {
+    const { container } = renderWithState({
+      ...baseState,
+      today: {
+        ...baseState.today,
+        specimen: {
+          ...specimen,
+          catalogItemId: "relic-abyssal-glass",
+          tier: "RARE",
+          revealedAtEpochMillis: 25,
+        },
+        excavation: {
+          artifactId: "relic-abyssal-glass",
+          capturedNotificationCount: 80,
+          eligibleNotificationCount: 75,
+          energyPerNotification: 1,
+          energyEarned: 75,
+          energySpent: 75,
+          energyAvailable: 0,
+          tileEnergyCost: 3,
+          gridColumns: 5,
+          gridRows: 5,
+          dugTiles: Array.from({ length: 25 }, (_, index) => index),
+          completedAtEpochMillis: 25,
+        },
+        digInFlight: false,
+      },
+      museum: {
+        specimens: [
+          {
+            ...specimen,
+            catalogItemId: "relic-abyssal-glass",
+            tier: "RARE",
+            revealedAtEpochMillis: 25,
+          },
+        ],
+      },
+    });
+
+    expect(screen.getByRole("heading", { name: "Today’s fossil is secured" })).toBeTruthy();
+    expect(container.querySelector(".specimen-visual")).toHaveClass("rarity-rare");
+    expect(container.querySelector(".specimen-visual img")).toHaveAttribute(
+      "src",
+      "/worlds/relic-abyssal-glass-museum-f65a8e00a8e4.jpg",
+    );
+  });
+
   it("surfaces a prior-day specimen and sends the bounded reveal action", () => {
     renderWithState({
       ...baseState,
@@ -280,8 +368,9 @@ describe("full shell application", () => {
 });
 
 function renderWithState(state: ShellState) {
-  render(<App />);
+  const rendered = render(<App />);
   sendState(state);
+  return rendered;
 }
 
 function sendState(state: ShellState | { preferences: ShellState["preferences"] }) {

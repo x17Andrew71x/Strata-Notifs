@@ -10,7 +10,7 @@ import {
   type Tier,
   type World,
 } from "./bridge";
-import { artifactFor, WORLD_DEFINITIONS, worldDefinition } from "./worlds";
+import { artifactById, artifactFor, WORLD_DEFINITIONS, worldDefinition } from "./worlds";
 
 type ShellWorkerRegistrar = {
   register(scriptURL: string, options?: RegistrationOptions): Promise<unknown>;
@@ -27,6 +27,10 @@ type RootRoute = "today" | "museum" | "community" | "more";
 type Route = RootRoute | "worlds" | `specimen/${string}`;
 export const TOAST_FADE_START_MS = 2_700;
 export const TOAST_DURATION_MS = 3_000;
+const EXCAVATION_TILE_IDS = Array.from(
+  { length: 100 },
+  (_, tileIndex) => `excavation-tile-${tileIndex}`,
+);
 export async function registerShellWorker(
   isProduction: boolean,
   registrar: ShellWorkerRegistrar | undefined = typeof navigator !== "undefined" &&
@@ -188,8 +192,16 @@ function App() {
         {route === "today" && (
           <Today
             state={shellState}
-            onAction={(type) =>
-              act(type, undefined, type === "formation.reveal" ? "Revealing…" : "Opening settings…")
+            onAction={(type, payload) =>
+              act(
+                type,
+                payload,
+                type === "formation.reveal"
+                  ? "Revealing…"
+                  : type === "excavation.dig"
+                    ? "Brushing away earth…"
+                    : "Opening settings…",
+              )
             }
           />
         )}
@@ -373,8 +385,15 @@ function Onboarding({
   );
 }
 
-function Today({ state, onAction }: { state: ShellState; onAction(type: NativeAction): void }) {
+function Today({
+  state,
+  onAction,
+}: {
+  state: ShellState;
+  onAction(type: NativeAction, payload?: Record<string, unknown>): void;
+}) {
   const specimen = state.today.specimen;
+  const excavation = state.today.excavation;
   const copy = todayCopy(state);
   return (
     <section className="screen today-screen" aria-labelledby="today-title">
@@ -386,6 +405,13 @@ function Today({ state, onAction }: { state: ShellState; onAction(type: NativeAc
       <div className="formation-stage">
         {specimen && specimen.revealedAtEpochMillis !== null ? (
           <SpecimenVisual specimen={specimen} world={state.worlds.selected} />
+        ) : excavation && artifactById(excavation.artifactId) ? (
+          <Excavation
+            excavation={excavation}
+            world={state.worlds.selected}
+            digInFlight={state.today.digInFlight ?? false}
+            onDig={(tileIndex) => onAction("excavation.dig", { tileIndex })}
+          />
         ) : (
           <Formation
             layers={state.today.layers}
@@ -416,6 +442,87 @@ function Today({ state, onAction }: { state: ShellState; onAction(type: NativeAc
         </button>
       )}
     </section>
+  );
+}
+
+function Excavation({
+  excavation,
+  world,
+  digInFlight,
+  onDig,
+}: {
+  excavation: NonNullable<ShellState["today"]["excavation"]>;
+  world: World;
+  digInFlight: boolean;
+  onDig(tileIndex: number): void;
+}) {
+  const artifact =
+    world === "PRIMEVAL_STRATA"
+      ? artifactById(excavation.artifactId)
+      : artifactFor(world, excavation.artifactId);
+  if (!artifact) return null;
+  const dugTiles = new Set(excavation.dugTiles);
+  const tileCount = excavation.gridColumns * excavation.gridRows;
+  const canAfford = excavation.energyAvailable >= excavation.tileEnergyCost;
+  return (
+    <fieldset
+      className="excavation"
+      aria-label={`Excavate today’s concealed fossil. ${excavation.energyAvailable} energy available.`}
+    >
+      <img
+        className="excavation-artifact"
+        src={artifact.excavationImage}
+        alt=""
+        draggable="false"
+      />
+      <div
+        className="excavation-grid"
+        style={
+          {
+            "--excavation-columns": excavation.gridColumns,
+            "--excavation-rows": excavation.gridRows,
+          } as CSSProperties
+        }
+      >
+        {EXCAVATION_TILE_IDS.slice(0, tileCount).map((tileId) => {
+          const tileIndex = Number(tileId.slice("excavation-tile-".length));
+          const dug = dugTiles.has(tileIndex);
+          return (
+            <button
+              type="button"
+              key={tileId}
+              className={`excavation-tile${dug ? " dug" : ""}`}
+              data-tile-index={tileIndex}
+              aria-label={
+                dug
+                  ? `Excavation tile ${tileIndex + 1} cleared`
+                  : `Excavate tile ${tileIndex + 1} for ${excavation.tileEnergyCost} energy`
+              }
+              aria-hidden={dug ? "true" : undefined}
+              tabIndex={dug ? -1 : 0}
+              disabled={dug || digInFlight || !canAfford}
+              onClick={() => onDig(tileIndex)}
+            />
+          );
+        })}
+      </div>
+      <div className="excavation-hud">
+        <div>
+          <span>Dig energy</span>
+          <strong>{excavation.energyAvailable}</strong>
+        </div>
+        <div>
+          <span>Excavated</span>
+          <strong>
+            {excavation.dugTiles.length}/{tileCount}
+          </strong>
+        </div>
+      </div>
+      <p className="excavation-capture">
+        {excavation.capturedNotificationCount} captured · {excavation.eligibleNotificationCount}{" "}
+        counted · {excavation.tileEnergyCost} energy per tile
+      </p>
+    </fieldset>
   );
 }
 
@@ -604,7 +711,7 @@ function Museum({
       ) : (
         <div className="specimen-grid">
           {specimens.map((specimen) => {
-            const artifact = artifactFor(state.worlds.selected, specimen.id);
+            const artifact = artifactForSpecimen(state.worlds.selected, specimen);
             const combining = combineIds.length > 0;
             const selectable =
               !combining || canAddToCombine(combineIds, specimen, state.museum.specimens);
@@ -657,7 +764,7 @@ function SpecimenDetail({
       </section>
     );
   }
-  const artifact = artifactFor(world, specimen.id);
+  const artifact = artifactForSpecimen(world, specimen);
   return (
     <section className="screen detail-screen" aria-labelledby="detail-title">
       <button type="button" className="back-button" onClick={onBack}>
@@ -969,6 +1076,12 @@ function CombineDialog({
   );
 }
 
+function artifactForSpecimen(world: World, specimen: ShellSpecimen) {
+  return world === "PRIMEVAL_STRATA"
+    ? (artifactById(specimen.catalogItemId) ?? artifactFor(world, specimen.id))
+    : artifactFor(world, specimen.id);
+}
+
 function SpecimenVisual({
   specimen,
   world = "PRIMEVAL_STRATA",
@@ -980,7 +1093,9 @@ function SpecimenVisual({
   decorative?: boolean;
   compact?: boolean;
 }) {
-  const artifact = artifactFor(world, specimen?.id);
+  const artifact = specimen
+    ? artifactForSpecimen(world, specimen)
+    : artifactFor(world, "decorative");
   const definition = worldDefinition(world);
   const accessibility = decorative
     ? { "aria-hidden": true }
@@ -990,10 +1105,10 @@ function SpecimenVisual({
       };
   return (
     <figure
-      className={`specimen-visual theme-${definition.theme}${compact ? " compact" : ""}`}
+      className={`specimen-visual theme-${definition.theme} rarity-${(specimen?.tier ?? artifact.tier).toLowerCase()}${compact ? " compact" : ""}`}
       {...accessibility}
     >
-      <img src={artifact.image} alt="" draggable="false" />
+      <img src={artifact.museumImage} alt="" draggable="false" />
       {!compact && <figcaption>{artifact.name}</figcaption>}
     </figure>
   );
@@ -1001,6 +1116,22 @@ function SpecimenVisual({
 
 function todayCopy(state: ShellState): { title: string; body: string } {
   const { today } = state;
+  if (
+    today.excavation?.completedAtEpochMillis !== null &&
+    today.excavation?.completedAtEpochMillis !== undefined &&
+    today.specimen?.revealedAtEpochMillis != null
+  ) {
+    return {
+      title: "Today’s fossil is secured",
+      body: "The completed discovery is now displayed on its Museum pedestal.",
+    };
+  }
+  if (today.observation === "Active" && today.excavation) {
+    return {
+      title: "Excavate today’s fossil",
+      body: `${today.excavation.capturedNotificationCount} notifications captured; ${today.excavation.eligibleNotificationCount} counted after pacing. Spend ${today.excavation.tileEnergyCost} energy to clear one tile.`,
+    };
+  }
   const priorDate = today.specimen?.anchoredLocalDate;
   if (
     today.observation !== "SealedObserved" &&
@@ -1114,6 +1245,8 @@ function actionMessage(action: NativeAction, ok: boolean): string {
       return "The restored specimen is now in your Museum.";
     case "formation.reveal":
       return "Specimen revealed.";
+    case "excavation.dig":
+      return "Excavation updated.";
     default:
       return "Saved on this device.";
   }

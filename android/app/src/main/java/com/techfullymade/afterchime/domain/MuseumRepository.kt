@@ -5,6 +5,7 @@ import androidx.room.withTransaction
 import com.techfullymade.afterchime.data.local.AfterchimeDatabase
 import com.techfullymade.afterchime.data.local.dao.StoredSpecimenWithOutput
 import com.techfullymade.afterchime.data.local.entity.InventoryItemEntity
+import com.techfullymade.afterchime.gameplay.FossilCatalog
 import com.techfullymade.afterchime.generation.Family
 import com.techfullymade.afterchime.generation.Tier
 import com.techfullymade.afterchime.generation.VisualParameters
@@ -47,6 +48,7 @@ data class MuseumSpecimen(
   val family: Family,
   val tier: Tier,
   val visual: VisualParameters,
+  val catalogItemId: String? = null,
 ) {
   init {
     require(provenanceCount > 0)
@@ -187,6 +189,7 @@ internal fun StoredSpecimenWithOutput.toMuseumSpecimen(): MuseumSpecimen = Museu
     reliefPercent = reliefPercent,
     rotationDegrees = rotationDegrees,
   ),
+  catalogItemId = FossilCatalog.itemForSpecimenId(specimenId)?.id,
 )
 
 internal fun InventoryItemEntity.toMuseumSpecimen(): MuseumSpecimen = MuseumSpecimen(
@@ -207,6 +210,7 @@ internal fun InventoryItemEntity.toMuseumSpecimen(): MuseumSpecimen = MuseumSpec
     reliefPercent = reliefPercent,
     rotationDegrees = rotationDegrees,
   ),
+  catalogItemId = FossilCatalog.itemForSpecimenId(itemId)?.id,
 )
 
 private val CollectibleState.inputProvenanceCount: Int

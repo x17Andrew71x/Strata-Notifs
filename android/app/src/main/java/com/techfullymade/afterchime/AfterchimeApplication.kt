@@ -12,6 +12,8 @@ import com.techfullymade.afterchime.domain.FormationRepository
 import com.techfullymade.afterchime.domain.LocalFormationRepository
 import com.techfullymade.afterchime.domain.LocalMuseumRepository
 import com.techfullymade.afterchime.domain.MuseumRepository
+import com.techfullymade.afterchime.gameplay.FossilCatalog
+import com.techfullymade.afterchime.generation.GenerationResult
 import com.techfullymade.afterchime.sealing.RoomSealDayStore
 import com.techfullymade.afterchime.sealing.SealDayScheduler
 import androidx.work.WorkManager
@@ -34,6 +36,7 @@ class AfterchimeApplication : Application() {
         AfterchimeDatabase.MIGRATION_3_4,
         AfterchimeDatabase.MIGRATION_4_5,
         AfterchimeDatabase.MIGRATION_5_6,
+        AfterchimeDatabase.MIGRATION_6_7,
       )
       .build()
   }
@@ -45,7 +48,14 @@ class AfterchimeApplication : Application() {
   }
 
   internal val userPreferences: DataStoreUserPreferences by lazy { DataStoreUserPreferences(this) }
-  internal val formationRepository: FormationRepository by lazy { LocalFormationRepository(database) }
+  internal val formationRepository: FormationRepository by lazy {
+    LocalFormationRepository(
+      database = database,
+      selectDailyFossil = { localDate ->
+        FossilCatalog.selectFor(localDate, localSecretStore.loadGeneratorSecret())
+      },
+    )
+  }
   internal val museumRepository: MuseumRepository by lazy { LocalMuseumRepository(database) }
 
   override fun onCreate() {
@@ -64,6 +74,7 @@ class AfterchimeApplication : Application() {
         localSecretProvider = activeLocalSecretStore::loadGeneratorSecret,
         clock = Clock.systemUTC(),
         timeZone = timeZone,
+        generator = { _, _ -> GenerationResult.Unobserved },
       )
       installAfterchimeRuntime(
         ownPackageName = packageName,

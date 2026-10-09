@@ -17,10 +17,15 @@ describe("authored world catalogue", () => {
     for (const world of WORLD_DEFINITIONS) {
       expect(world.artifacts).toHaveLength(3);
       expect(new Set(world.artifacts.map((artifact) => artifact.name))).toHaveLength(3);
-      expect(new Set(world.artifacts.map((artifact) => artifact.image))).toHaveLength(3);
+      expect(new Set(world.artifacts.map((artifact) => artifact.museumImage))).toHaveLength(3);
+      expect(new Set(world.artifacts.map((artifact) => artifact.id))).toHaveLength(3);
     }
-    expect(WORLD_ASSET_PATHS).toHaveLength(12);
-    expect(new Set(WORLD_ASSET_PATHS)).toHaveLength(12);
+    expect(WORLD_ASSET_PATHS).toHaveLength(15);
+    expect(new Set(WORLD_ASSET_PATHS)).toHaveLength(15);
+    const relic = worldDefinition("PRIMEVAL_STRATA");
+    expect(
+      relic.artifacts.every((artifact) => artifact.museumImage !== artifact.excavationImage),
+    ).toBe(true);
   });
 
   it("assigns a stable artifact and never escapes the selected world", () => {

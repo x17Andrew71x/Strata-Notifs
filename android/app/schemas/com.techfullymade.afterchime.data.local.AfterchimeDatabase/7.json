@@ -1,0 +1,540 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 7,
+    "identityHash": "196ea7f0d1231584f11900423a53b6ee",
+    "entities": [
+      {
+        "tableName": "reduced_notifications",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `occurred_at_epoch_millis` INTEGER NOT NULL, `local_date` TEXT NOT NULL, `local_hour` INTEGER NOT NULL, `category` TEXT NOT NULL, `source_token` TEXT NOT NULL, `source_colour_rgb` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "occurredAtEpochMillis",
+            "columnName": "occurred_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localDate",
+            "columnName": "local_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localHour",
+            "columnName": "local_hour",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "category",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceToken",
+            "columnName": "source_token",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceColourRgb",
+            "columnName": "source_colour_rgb",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_reduced_notifications_local_date_occurred_at_epoch_millis",
+            "unique": false,
+            "columnNames": ["local_date", "occurred_at_epoch_millis"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_reduced_notifications_local_date_occurred_at_epoch_millis` ON `${TABLE_NAME}` (`local_date`, `occurred_at_epoch_millis`)"
+          }
+        ]
+      },
+      {
+        "tableName": "day_summaries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`local_date` TEXT NOT NULL, `timezone_offset_minutes` INTEGER NOT NULL, `observation_state` TEXT NOT NULL, `generator_version` INTEGER NOT NULL, `created_at_epoch_millis` INTEGER NOT NULL, PRIMARY KEY(`local_date`))",
+        "fields": [
+          {
+            "fieldPath": "localDate",
+            "columnName": "local_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timezoneOffsetMinutes",
+            "columnName": "timezone_offset_minutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "observationState",
+            "columnName": "observation_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatorVersion",
+            "columnName": "generator_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "created_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["local_date"]
+        }
+      },
+      {
+        "tableName": "listener_access_states",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`local_date` TEXT NOT NULL, `active_at_epoch_millis` INTEGER, `disconnected_at_epoch_millis` INTEGER, `revoked_at_epoch_millis` INTEGER, `latest_state` TEXT NOT NULL, `updated_at_epoch_millis` INTEGER NOT NULL, PRIMARY KEY(`local_date`))",
+        "fields": [
+          {
+            "fieldPath": "localDate",
+            "columnName": "local_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activeAtEpochMillis",
+            "columnName": "active_at_epoch_millis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "disconnectedAtEpochMillis",
+            "columnName": "disconnected_at_epoch_millis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "revokedAtEpochMillis",
+            "columnName": "revoked_at_epoch_millis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "latestState",
+            "columnName": "latest_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtEpochMillis",
+            "columnName": "updated_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["local_date"]
+        }
+      },
+      {
+        "tableName": "specimens",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`specimen_id` TEXT NOT NULL, `anchored_local_date` TEXT NOT NULL, `generator_version` INTEGER NOT NULL, `created_at_epoch_millis` INTEGER NOT NULL, `revealed_at_epoch_millis` INTEGER, `is_locked` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`specimen_id`))",
+        "fields": [
+          {
+            "fieldPath": "specimenId",
+            "columnName": "specimen_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anchoredLocalDate",
+            "columnName": "anchored_local_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatorVersion",
+            "columnName": "generator_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "created_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revealedAtEpochMillis",
+            "columnName": "revealed_at_epoch_millis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isLocked",
+            "columnName": "is_locked",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["specimen_id"]
+        },
+        "indices": [
+          {
+            "name": "index_specimens_anchored_local_date",
+            "unique": true,
+            "columnNames": ["anchored_local_date"],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_specimens_anchored_local_date` ON `${TABLE_NAME}` (`anchored_local_date`)"
+          }
+        ]
+      },
+      {
+        "tableName": "specimen_outputs",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`specimen_id` TEXT NOT NULL, `family` TEXT NOT NULL, `tier` TEXT NOT NULL, `hue_degrees` INTEGER NOT NULL, `strata_count` INTEGER NOT NULL, `inclusion_density_percent` INTEGER NOT NULL, `relief_percent` INTEGER NOT NULL, `rotation_degrees` INTEGER NOT NULL, PRIMARY KEY(`specimen_id`), FOREIGN KEY(`specimen_id`) REFERENCES `specimens`(`specimen_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "specimenId",
+            "columnName": "specimen_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "family",
+            "columnName": "family",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tier",
+            "columnName": "tier",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hueDegrees",
+            "columnName": "hue_degrees",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "strataCount",
+            "columnName": "strata_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inclusionDensityPercent",
+            "columnName": "inclusion_density_percent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reliefPercent",
+            "columnName": "relief_percent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotationDegrees",
+            "columnName": "rotation_degrees",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["specimen_id"]
+        },
+        "foreignKeys": [
+          {
+            "table": "specimens",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": ["specimen_id"],
+            "referencedColumns": ["specimen_id"]
+          }
+        ]
+      },
+      {
+        "tableName": "inventory_items",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`item_id` TEXT NOT NULL, `source_specimen_id` TEXT, `anchored_local_date` TEXT, `generator_version` INTEGER NOT NULL, `created_at_epoch_millis` INTEGER NOT NULL, `revealed_at_epoch_millis` INTEGER, `is_locked` INTEGER NOT NULL DEFAULT 0, `collectible_state` TEXT NOT NULL, `provenance_count` INTEGER NOT NULL, `family` TEXT NOT NULL, `tier` TEXT NOT NULL, `hue_degrees` INTEGER NOT NULL, `strata_count` INTEGER NOT NULL, `inclusion_density_percent` INTEGER NOT NULL, `relief_percent` INTEGER NOT NULL, `rotation_degrees` INTEGER NOT NULL, `consumed_by_mutation_id` TEXT, PRIMARY KEY(`item_id`), FOREIGN KEY(`source_specimen_id`) REFERENCES `specimens`(`specimen_id`) ON UPDATE NO ACTION ON DELETE RESTRICT )",
+        "fields": [
+          {
+            "fieldPath": "itemId",
+            "columnName": "item_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceSpecimenId",
+            "columnName": "source_specimen_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "anchoredLocalDate",
+            "columnName": "anchored_local_date",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "generatorVersion",
+            "columnName": "generator_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "created_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revealedAtEpochMillis",
+            "columnName": "revealed_at_epoch_millis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isLocked",
+            "columnName": "is_locked",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "collectibleState",
+            "columnName": "collectible_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "provenanceCount",
+            "columnName": "provenance_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "family",
+            "columnName": "family",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tier",
+            "columnName": "tier",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hueDegrees",
+            "columnName": "hue_degrees",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "strataCount",
+            "columnName": "strata_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inclusionDensityPercent",
+            "columnName": "inclusion_density_percent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reliefPercent",
+            "columnName": "relief_percent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rotationDegrees",
+            "columnName": "rotation_degrees",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "consumedByMutationId",
+            "columnName": "consumed_by_mutation_id",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["item_id"]
+        },
+        "indices": [
+          {
+            "name": "index_inventory_items_source_specimen_id",
+            "unique": true,
+            "columnNames": ["source_specimen_id"],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_items_source_specimen_id` ON `${TABLE_NAME}` (`source_specimen_id`)"
+          },
+          {
+            "name": "index_inventory_items_consumed_by_mutation_id",
+            "unique": false,
+            "columnNames": ["consumed_by_mutation_id"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_inventory_items_consumed_by_mutation_id` ON `${TABLE_NAME}` (`consumed_by_mutation_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "specimens",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": ["source_specimen_id"],
+            "referencedColumns": ["specimen_id"]
+          }
+        ]
+      },
+      {
+        "tableName": "inventory_mutations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mutation_id` TEXT NOT NULL, `output_item_id` TEXT NOT NULL, `first_input_item_id` TEXT NOT NULL, `second_input_item_id` TEXT NOT NULL, `third_input_item_id` TEXT NOT NULL, `created_at_epoch_millis` INTEGER NOT NULL, PRIMARY KEY(`mutation_id`))",
+        "fields": [
+          {
+            "fieldPath": "mutationId",
+            "columnName": "mutation_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "outputItemId",
+            "columnName": "output_item_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstInputItemId",
+            "columnName": "first_input_item_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "secondInputItemId",
+            "columnName": "second_input_item_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "thirdInputItemId",
+            "columnName": "third_input_item_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "created_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["mutation_id"]
+        },
+        "indices": [
+          {
+            "name": "index_inventory_mutations_output_item_id",
+            "unique": true,
+            "columnNames": ["output_item_id"],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_mutations_output_item_id` ON `${TABLE_NAME}` (`output_item_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "analytics_outbox",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`event_id` TEXT NOT NULL, `ciphertext` BLOB NOT NULL, `created_at_epoch_millis` INTEGER NOT NULL, PRIMARY KEY(`event_id`))",
+        "fields": [
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ciphertext",
+            "columnName": "ciphertext",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "created_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["event_id"]
+        }
+      },
+      {
+        "tableName": "daily_excavations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`local_date` TEXT NOT NULL, `artifact_id` TEXT NOT NULL, `dug_mask` INTEGER NOT NULL, `created_at_epoch_millis` INTEGER NOT NULL, `completed_at_epoch_millis` INTEGER, `specimen_id` TEXT, PRIMARY KEY(`local_date`))",
+        "fields": [
+          {
+            "fieldPath": "localDate",
+            "columnName": "local_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "artifactId",
+            "columnName": "artifact_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dugMask",
+            "columnName": "dug_mask",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMillis",
+            "columnName": "created_at_epoch_millis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAtEpochMillis",
+            "columnName": "completed_at_epoch_millis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "specimenId",
+            "columnName": "specimen_id",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["local_date"]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '196ea7f0d1231584f11900423a53b6ee')"
+    ]
+  }
+}

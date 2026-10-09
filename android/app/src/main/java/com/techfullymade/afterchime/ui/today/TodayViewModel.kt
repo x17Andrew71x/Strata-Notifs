@@ -8,12 +8,19 @@ import com.techfullymade.afterchime.domain.FormationRepository
 import com.techfullymade.afterchime.domain.FormationSnapshot
 import com.techfullymade.afterchime.domain.MuseumSpecimen
 import java.time.Clock
+import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /** One permitted prominent action for the present formation state. */
@@ -27,6 +34,7 @@ enum class TodayPrimaryAction {
 data class TodayUiState(
   val snapshot: FormationSnapshot,
   val revealInFlight: Boolean = false,
+  val digInFlight: Boolean = false,
 ) {
   val primaryAction: TodayPrimaryAction
     get() = when {
@@ -43,9 +51,14 @@ data class TodayUiState(
     get() = snapshot.sealedSpecimen
 
   companion object {
-    fun from(snapshot: FormationSnapshot, revealInFlight: Boolean = false) = TodayUiState(
+    fun from(
+      snapshot: FormationSnapshot,
+      revealInFlight: Boolean = false,
+      digInFlight: Boolean = false,
+    ) = TodayUiState(
       snapshot = snapshot,
       revealInFlight = revealInFlight,
+      digInFlight = digInFlight,
     )
   }
 }
@@ -54,12 +67,16 @@ data class TodayUiState(
  * Owns the current local formation only. It accepts no network, analytics, notification or identity
  * dependency, so UI cannot cross the reduced repository boundary.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class TodayViewModel(
   private val repository: FormationRepository,
-  private val localDate: LocalDate = LocalDate.now(),
+  initialLocalDate: LocalDate = LocalDate.now(),
   private val clock: Clock = Clock.systemUTC(),
+  private val timeZone: ZoneId = ZoneId.systemDefault(),
 ) : ViewModel() {
   companion object {
+    private const val MINIMUM_ROLLOVER_DELAY_MILLIS = 1_000L
+
     fun factory(repository: FormationRepository): ViewModelProvider.Factory =
       object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
@@ -70,25 +87,43 @@ class TodayViewModel(
       }
   }
 
+  private val localDate = MutableStateFlow(initialLocalDate)
   private val revealInFlight = MutableStateFlow(false)
+  private val digInFlight = MutableStateFlow(false)
 
   val uiState: StateFlow<TodayUiState> = combine(
-    repository.observe(localDate),
+    localDate.flatMapLatest(repository::observe),
     revealInFlight,
-  ) { snapshot, isRevealing ->
-    TodayUiState.from(snapshot, isRevealing)
+    digInFlight,
+  ) { snapshot, isRevealing, isDigging ->
+    TodayUiState.from(snapshot, isRevealing, isDigging)
   }.stateIn(
     scope = viewModelScope,
     started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
     initialValue = TodayUiState.from(
       FormationSnapshot(
-        localDate = localDate,
+        localDate = initialLocalDate,
         observation = FormationObservation.AwaitingAccess,
         layers = emptyList(),
         sealedSpecimen = null,
       ),
     ),
   )
+
+  init {
+    viewModelScope.launch {
+      while (isActive) {
+        val now = Instant.now(clock).atZone(timeZone)
+        val nextDay = now.toLocalDate().plusDays(1).atStartOfDay(timeZone)
+        delay(maxOf(MINIMUM_ROLLOVER_DELAY_MILLIS, Duration.between(now, nextDay).toMillis()))
+        refreshDate()
+      }
+    }
+  }
+
+  fun refreshDate() {
+    localDate.value = Instant.now(clock).atZone(timeZone).toLocalDate()
+  }
 
   fun reveal() {
     val specimen = uiState.value.specimen ?: return
@@ -102,5 +137,25 @@ class TodayViewModel(
         revealInFlight.value = false
       }
     }
+  }
+
+  fun dig(tileIndex: Int): Boolean {
+    val excavation = uiState.value.snapshot.excavation ?: return false
+    if (
+      excavation.completed ||
+      tileIndex in excavation.dugTiles ||
+      excavation.energyAvailable < excavation.tileEnergyCost ||
+      digInFlight.value
+    ) return false
+
+    digInFlight.value = true
+    viewModelScope.launch {
+      try {
+        repository.dig(localDate.value, tileIndex, clock.millis())
+      } finally {
+        digInFlight.value = false
+      }
+    }
+    return true
   }
 }

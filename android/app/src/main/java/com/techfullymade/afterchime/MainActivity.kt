@@ -34,6 +34,7 @@ import com.techfullymade.afterchime.data.catalog.DataStoreWorldCatalog
 import com.techfullymade.afterchime.domain.CombineRequest
 import com.techfullymade.afterchime.domain.CombineResult
 import com.techfullymade.afterchime.domain.MuseumSpecimen
+import com.techfullymade.afterchime.gameplay.GameBalance
 import com.techfullymade.afterchime.render.World
 import com.techfullymade.afterchime.settings.UserPreferences
 import com.techfullymade.afterchime.sharing.ShareUseCase
@@ -110,6 +111,10 @@ internal fun parseBridgeRequest(raw: String?): BridgeRequest? {
 
     "museum.share" -> payload.length() == 1 && validSpecimenId(payload.opt("specimenId"))
     "museum.combine" -> payload.length() == 1 && validCombineIds(payload.optJSONArray("specimenIds"))
+    "excavation.dig" ->
+      payload.length() == 1 &&
+        payload.opt("tileIndex") is Int &&
+        payload.getInt("tileIndex") in 0 until GameBalance.EXCAVATION_TILE_COUNT
     "worlds.select", "worlds.own" ->
       payload.length() == 1 &&
         payload.opt("world") is String &&
@@ -174,6 +179,7 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     assetLoader = WebViewAssetLoader.Builder()
       .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+      .addPathHandler("/worlds/", WebViewAssetLoader.AssetsPathHandler(this))
       .build()
     shell = WebView(this).apply {
       layoutParams = ViewGroup.LayoutParams(
@@ -191,6 +197,7 @@ class MainActivity : ComponentActivity() {
 
   override fun onResume() {
     super.onResume()
+    todayViewModel.refreshDate()
     sendCapabilityState("resume")
     sendShellState("resume_state")
   }
@@ -373,6 +380,10 @@ class MainActivity : ComponentActivity() {
       "formation.reveal" -> {
         val accepted = todayViewModel.uiState.value.primaryAction.name == "REVEAL"
         if (accepted) todayViewModel.reveal()
+        postActionResult(request, accepted, proxy)
+      }
+      "excavation.dig" -> {
+        val accepted = todayViewModel.dig(request.payload?.getInt("tileIndex") ?: -1)
         postActionResult(request, accepted, proxy)
       }
       "museum.lock" -> updateSpecimenLock(request, proxy)
@@ -618,7 +629,9 @@ private fun TodayUiState.toJson(): JSONObject = JSONObject()
     ),
   )
   .put("specimen", specimen?.toJson() ?: JSONObject.NULL)
+  .put("excavation", snapshot.excavation?.toJson() ?: JSONObject.NULL)
   .put("revealInFlight", revealInFlight)
+  .put("digInFlight", digInFlight)
   .put("primaryAction", primaryAction.name)
 
 private fun MuseumSpecimen.toJson(): JSONObject = JSONObject()
@@ -632,6 +645,7 @@ private fun MuseumSpecimen.toJson(): JSONObject = JSONObject()
   .put("provenanceCount", provenanceCount)
   .put("family", family.name)
   .put("tier", tier.name)
+  .put("catalogItemId", catalogItemId ?: JSONObject.NULL)
   .put(
     "visual",
     JSONObject()
@@ -641,3 +655,18 @@ private fun MuseumSpecimen.toJson(): JSONObject = JSONObject()
       .put("reliefPercent", visual.reliefPercent)
       .put("rotationDegrees", visual.rotationDegrees),
   )
+
+private fun com.techfullymade.afterchime.domain.DailyExcavationSnapshot.toJson(): JSONObject =
+  JSONObject()
+    .put("artifactId", artifactId)
+    .put("capturedNotificationCount", capturedNotificationCount)
+    .put("eligibleNotificationCount", eligibleNotificationCount)
+    .put("energyPerNotification", energyPerNotification)
+    .put("energyEarned", energyEarned)
+    .put("energySpent", energySpent)
+    .put("energyAvailable", energyAvailable)
+    .put("tileEnergyCost", tileEnergyCost)
+    .put("gridColumns", gridColumns)
+    .put("gridRows", gridRows)
+    .put("dugTiles", JSONArray(dugTiles.sorted()))
+    .put("completedAtEpochMillis", completedAtEpochMillis ?: JSONObject.NULL)

@@ -10,7 +10,9 @@ import com.techfullymade.afterchime.generation.Family
 import com.techfullymade.afterchime.generation.Tier
 import com.techfullymade.afterchime.generation.VisualParameters
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -47,6 +49,24 @@ class TodayViewModelTest {
     collectionScope.cancel()
   }
 
+  @Test
+  fun `refresh switches the observed excavation at the local day boundary`() {
+    val repository = FakeFormationRepository()
+    val clock = MutableClock(Instant.parse("2026-10-05T23:59:00Z"))
+    val viewModel = TodayViewModel(repository, TODAY, clock, ZoneOffset.UTC)
+    val collectionScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val collection = collectionScope.launch { viewModel.uiState.collect { } }
+    shadowOf(android.os.Looper.getMainLooper()).idle()
+
+    clock.current = Instant.parse("2026-10-06T00:01:00Z")
+    viewModel.refreshDate()
+    shadowOf(android.os.Looper.getMainLooper()).idle()
+
+    assertEquals(listOf(TODAY, TODAY.plusDays(1)), repository.observedDates)
+    collection.cancel()
+    collectionScope.cancel()
+  }
+
   private class FakeFormationRepository : FormationRepository {
     private val state = MutableStateFlow(
       FormationSnapshot(
@@ -67,8 +87,12 @@ class TodayViewModelTest {
     )
     var reveals = 0
     var revealedId: String? = null
+    val observedDates = mutableListOf<LocalDate>()
 
-    override fun observe(localDate: LocalDate): Flow<FormationSnapshot> = state
+    override fun observe(localDate: LocalDate): Flow<FormationSnapshot> {
+      observedDates += localDate
+      return state
+    }
 
     override suspend fun reveal(specimenId: String, revealedAtEpochMillis: Long): RevealResult {
       reveals += 1
@@ -77,8 +101,16 @@ class TodayViewModelTest {
     }
   }
 
+  private class MutableClock(var current: Instant) : Clock() {
+    override fun getZone(): ZoneId = ZoneOffset.UTC
+
+    override fun withZone(zone: ZoneId): Clock = this
+
+    override fun instant(): Instant = current
+  }
+
   private companion object {
     val TODAY: LocalDate = LocalDate.of(2026, 10, 5)
-    val NOW = java.time.Instant.ofEpochMilli(2_000L)
+    val NOW: Instant = Instant.ofEpochMilli(2_000L)
   }
 }

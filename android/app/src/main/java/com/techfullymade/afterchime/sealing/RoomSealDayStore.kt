@@ -22,10 +22,9 @@ class RoomSealDayStore(
       ?.let(LocalDate::parse)
       ?: return emptyList()
 
-    val alreadySealedDates = (
-      database.daySummaryDao().localDatesBefore(exclusiveLocalDate) +
-        database.specimenDao().anchoredLocalDatesBefore(exclusiveLocalDate)
-      ).mapTo(mutableSetOf(), LocalDate::parse)
+    val alreadySealedDates = database.daySummaryDao()
+      .localDatesBefore(exclusiveLocalDate)
+      .mapTo(mutableSetOf(), LocalDate::parse)
 
     return generateSequence(earliestLocalDate) { localDate ->
       localDate.plusDays(1).takeIf { it < exclusiveDate }
@@ -62,14 +61,14 @@ class RoomSealDayStore(
 
   override suspend fun persist(sealedDay: SealedDay): SealDayPersistence = database.withTransaction {
     val localDate = sealedDay.localDate.toString()
-    if (
-      database.daySummaryDao().get(localDate) != null ||
-      database.specimenDao().getByAnchoredLocalDate(localDate) != null
-    ) {
+    if (database.daySummaryDao().get(localDate) != null) {
       return@withTransaction SealDayPersistence.AlreadySealed
     }
 
     database.daySummaryDao().insert(sealedDay.summary)
+    if (database.specimenDao().getByAnchoredLocalDate(localDate) != null) {
+      return@withTransaction SealDayPersistence.Persisted
+    }
     val specimen = sealedDay.specimen
     if (specimen != null) {
       database.specimenDao().insert(specimen.record)

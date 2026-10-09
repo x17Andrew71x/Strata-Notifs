@@ -1,10 +1,13 @@
-import type { World } from "./bridge";
+import type { Tier, World } from "./bridge";
 
 export type WorldTheme = "relic" | "field" | "control" | "atlas";
 
 export type Artifact = Readonly<{
+  id: string;
   name: string;
-  image: string;
+  museumImage: string;
+  excavationImage: string;
+  tier: Tier;
   description: string;
 }>;
 
@@ -32,18 +35,27 @@ export const WORLD_DEFINITIONS: readonly WorldDefinition[] = [
     formingCopy: "A new relief is being pressed into the archive. It will be ready tomorrow.",
     artifacts: [
       {
+        id: "relic-fossil-choir",
         name: "Fossil Choir",
-        image: "/worlds/relic-fossil-choir-a885cad842a6.jpg",
+        museumImage: "/worlds/relic-fossil-choir-museum-4089a53325a8.jpg",
+        excavationImage: "/worlds/relic-fossil-choir-excavation-fb847346a7cf.jpg",
+        tier: "UNCOMMON",
         description: "Compressed shells arranged as one ancient chorus.",
       },
       {
+        id: "relic-abyssal-glass",
         name: "Abyssal Glass",
-        image: "/worlds/relic-abyssal-glass-a7fd0353491a.jpg",
+        museumImage: "/worlds/relic-abyssal-glass-museum-f65a8e00a8e4.jpg",
+        excavationImage: "/worlds/relic-abyssal-glass-excavation-464607e244ad.jpg",
+        tier: "RARE",
         description: "A dark vitreous relic with a pale fossil heart.",
       },
       {
+        id: "relic-lunar-ash",
         name: "Lunar Ash",
-        image: "/worlds/relic-lunar-ash-c08cb38e7b92.jpg",
+        museumImage: "/worlds/relic-lunar-ash-museum-b6b6f2680c29.jpg",
+        excavationImage: "/worlds/relic-lunar-ash-excavation-8e46d17e54d6.jpg",
+        tier: "COMMON",
         description: "Bone-white impressions suspended in charcoal ash.",
       },
     ],
@@ -59,18 +71,27 @@ export const WORLD_DEFINITIONS: readonly WorldDefinition[] = [
     formingCopy: "Today’s field specimen is settling onto its plate. It will be ready tomorrow.",
     artifacts: [
       {
+        id: "field-verdant-crown",
         name: "Verdant Crown",
-        image: "/worlds/field-verdant-crown-16cd41ad4394.jpg",
+        museumImage: "/worlds/field-verdant-crown-16cd41ad4394.jpg",
+        excavationImage: "/worlds/field-verdant-crown-16cd41ad4394.jpg",
+        tier: "COMMON",
         description: "A dense canopy study cut through with new growth.",
       },
       {
+        id: "field-tidal-archive",
         name: "Tidal Archive",
-        image: "/worlds/field-tidal-archive-7870aabaf855.jpg",
+        museumImage: "/worlds/field-tidal-archive-7870aabaf855.jpg",
+        excavationImage: "/worlds/field-tidal-archive-7870aabaf855.jpg",
+        tier: "UNCOMMON",
         description: "A coastal plate of tide pools, shells, and salt-worn forms.",
       },
       {
+        id: "field-cinder-vale",
         name: "Cinder Vale",
-        image: "/worlds/field-cinder-vale-baba2fad26b5.jpg",
+        museumImage: "/worlds/field-cinder-vale-baba2fad26b5.jpg",
+        excavationImage: "/worlds/field-cinder-vale-baba2fad26b5.jpg",
+        tier: "RARE",
         description: "A dry volcanic survey where ember flora takes root.",
       },
     ],
@@ -86,18 +107,27 @@ export const WORLD_DEFINITIONS: readonly WorldDefinition[] = [
     formingCopy: "Today’s signal is resolving through the instrument array. It will lock tomorrow.",
     artifacts: [
       {
+        id: "control-canopy-frequency",
         name: "Canopy Frequency",
-        image: "/worlds/control-canopy-frequency-264930918583.jpg",
+        museumImage: "/worlds/control-canopy-frequency-264930918583.jpg",
+        excavationImage: "/worlds/control-canopy-frequency-264930918583.jpg",
+        tier: "COMMON",
         description: "A living frequency rendered as a precise field instrument.",
       },
       {
+        id: "control-pelagic-channel",
         name: "Pelagic Channel",
-        image: "/worlds/control-pelagic-channel-679685abf5a2.jpg",
+        museumImage: "/worlds/control-pelagic-channel-679685abf5a2.jpg",
+        excavationImage: "/worlds/control-pelagic-channel-679685abf5a2.jpg",
+        tier: "UNCOMMON",
         description: "A deep-water transmission traced across a disciplined console.",
       },
       {
+        id: "control-lunar-silence",
         name: "Lunar Silence",
-        image: "/worlds/control-lunar-silence-af1ea8ce38ec.jpg",
+        museumImage: "/worlds/control-lunar-silence-af1ea8ce38ec.jpg",
+        excavationImage: "/worlds/control-lunar-silence-af1ea8ce38ec.jpg",
+        tier: "RARE",
         description: "A near-silent survey whose smallest readings carry the record.",
       },
     ],
@@ -114,18 +144,27 @@ export const WORLD_DEFINITIONS: readonly WorldDefinition[] = [
       "Today’s terrain is being fixed in charcoal. The finished survey arrives tomorrow.",
     artifacts: [
       {
+        id: "atlas-hollow-range",
         name: "Hollow Range",
-        image: "/worlds/atlas-hollow-range-40fffccf4155.jpg",
+        museumImage: "/worlds/atlas-hollow-range-40fffccf4155.jpg",
+        excavationImage: "/worlds/atlas-hollow-range-40fffccf4155.jpg",
+        tier: "COMMON",
         description: "A folded mountain survey cut by a silent interior valley.",
       },
       {
+        id: "atlas-ember-roads",
         name: "Ember Roads",
-        image: "/worlds/atlas-ember-roads-fe87b2c52620.jpg",
+        museumImage: "/worlds/atlas-ember-roads-fe87b2c52620.jpg",
+        excavationImage: "/worlds/atlas-ember-roads-fe87b2c52620.jpg",
+        tier: "UNCOMMON",
         description: "Rust-red routes crossing a soot-dark terrestrial plan.",
       },
       {
+        id: "atlas-white-quarry",
         name: "White Quarry",
-        image: "/worlds/atlas-white-quarry-40e3ba96733d.jpg",
+        museumImage: "/worlds/atlas-white-quarry-40e3ba96733d.jpg",
+        excavationImage: "/worlds/atlas-white-quarry-40e3ba96733d.jpg",
+        tier: "RARE",
         description: "A pale excavation mapped against compressed graphite ground.",
       },
     ],
@@ -133,13 +172,24 @@ export const WORLD_DEFINITIONS: readonly WorldDefinition[] = [
 ] as const;
 
 const WORLD_BY_ID = new Map(WORLD_DEFINITIONS.map((world) => [world.id, world]));
-
-export const WORLD_ASSET_PATHS = WORLD_DEFINITIONS.flatMap((world) =>
-  world.artifacts.map((artifact) => artifact.image),
+const ARTIFACT_BY_ID = new Map(
+  WORLD_DEFINITIONS.flatMap((world) => world.artifacts).map((artifact) => [artifact.id, artifact]),
 );
+
+export const WORLD_ASSET_PATHS = [
+  ...new Set(
+    WORLD_DEFINITIONS.flatMap((world) =>
+      world.artifacts.flatMap((artifact) => [artifact.museumImage, artifact.excavationImage]),
+    ),
+  ),
+];
 
 export function worldDefinition(world: World): WorldDefinition {
   return WORLD_BY_ID.get(world) ?? WORLD_DEFINITIONS[0];
+}
+
+export function artifactById(id: string | null | undefined): Artifact | null {
+  return id ? (ARTIFACT_BY_ID.get(id) ?? null) : null;
 }
 
 export function artifactFor(world: World, specimenKey = "decorative"): Artifact {

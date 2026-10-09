@@ -14,6 +14,7 @@ const PAYLOAD_ACTIONS = [
   "museum.lock",
   "museum.share",
   "museum.combine",
+  "excavation.dig",
   "worlds.select",
   "worlds.own",
 ] as const;
@@ -58,6 +59,7 @@ export type ShellSpecimen = {
   provenanceCount: number;
   family: string;
   tier: Tier;
+  catalogItemId?: string | null;
   visual: {
     hueDegrees: number;
     strataCount: number;
@@ -84,7 +86,22 @@ export type ShellState = {
       | "SealedUnobserved";
     layers: Array<{ localHour: number; category: string; sourceColourRgb: number }>;
     specimen: ShellSpecimen | null;
+    excavation?: {
+      artifactId: string;
+      capturedNotificationCount: number;
+      eligibleNotificationCount: number;
+      energyPerNotification: number;
+      energyEarned: number;
+      energySpent: number;
+      energyAvailable: number;
+      tileEnergyCost: number;
+      gridColumns: number;
+      gridRows: number;
+      dugTiles: number[];
+      completedAtEpochMillis: number | null;
+    } | null;
     revealInFlight: boolean;
+    digInFlight?: boolean;
     primaryAction: "ENABLE_ACCESS" | "REVEAL" | "NONE";
   };
   museum: { specimens: ShellSpecimen[] };
@@ -248,16 +265,18 @@ function isPreferences(value: unknown): value is ShellPreferences {
 }
 
 function isToday(value: unknown): value is ShellState["today"] {
+  const legacyKeys = [
+    "localDate",
+    "observation",
+    "layers",
+    "specimen",
+    "revealInFlight",
+    "primaryAction",
+  ];
+  const excavationKeys = [...legacyKeys, "excavation", "digInFlight"];
   if (
     !isRecord(value) ||
-    !hasExactKeys(value, [
-      "localDate",
-      "observation",
-      "layers",
-      "specimen",
-      "revealInFlight",
-      "primaryAction",
-    ])
+    (!hasExactKeys(value, legacyKeys) && !hasExactKeys(value, excavationKeys))
   )
     return false;
   const observations = [
@@ -277,7 +296,11 @@ function isToday(value: unknown): value is ShellState["today"] {
     Array.isArray(value.layers) &&
     value.layers.every(isLayer) &&
     (value.specimen === null || isSpecimen(value.specimen)) &&
+    (value.excavation === undefined ||
+      value.excavation === null ||
+      isExcavation(value.excavation)) &&
     typeof value.revealInFlight === "boolean" &&
+    (value.digInFlight === undefined || typeof value.digInFlight === "boolean") &&
     typeof value.primaryAction === "string" &&
     actions.includes(value.primaryAction)
   );
@@ -295,22 +318,21 @@ function isLayer(value: unknown): boolean {
 }
 
 function isSpecimen(value: unknown): value is ShellSpecimen {
-  if (
-    !isRecord(value) ||
-    !hasExactKeys(value, [
-      "id",
-      "anchoredLocalDate",
-      "generatorVersion",
-      "createdAtEpochMillis",
-      "revealedAtEpochMillis",
-      "isLocked",
-      "collectibleState",
-      "provenanceCount",
-      "family",
-      "tier",
-      "visual",
-    ])
-  )
+  const legacyKeys = [
+    "id",
+    "anchoredLocalDate",
+    "generatorVersion",
+    "createdAtEpochMillis",
+    "revealedAtEpochMillis",
+    "isLocked",
+    "collectibleState",
+    "provenanceCount",
+    "family",
+    "tier",
+    "visual",
+  ];
+  const catalogKeys = [...legacyKeys, "catalogItemId"];
+  if (!isRecord(value) || (!hasExactKeys(value, legacyKeys) && !hasExactKeys(value, catalogKeys)))
     return false;
   const states = ["ORDINARY", "RESTORED", "CENTRE_PIECE"];
   const tiers = ["COMMON", "UNCOMMON", "RARE", "EXCEPTIONAL", "SINGULAR"];
@@ -331,6 +353,9 @@ function isSpecimen(value: unknown): value is ShellSpecimen {
     /^[A-Z_]{1,40}$/.test(value.family) &&
     typeof value.tier === "string" &&
     tiers.includes(value.tier) &&
+    (value.catalogItemId === undefined ||
+      value.catalogItemId === null ||
+      (typeof value.catalogItemId === "string" && /^[a-z0-9-]{1,64}$/.test(value.catalogItemId))) &&
     isVisual(value.visual)
   );
 }
@@ -350,6 +375,46 @@ function isVisual(value: unknown): boolean {
     isInteger(value.inclusionDensityPercent, 0, 100) &&
     isInteger(value.reliefPercent, 0, 100) &&
     isInteger(value.rotationDegrees, 0, 359)
+  );
+}
+
+function isExcavation(value: unknown): boolean {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, [
+      "artifactId",
+      "capturedNotificationCount",
+      "eligibleNotificationCount",
+      "energyPerNotification",
+      "energyEarned",
+      "energySpent",
+      "energyAvailable",
+      "tileEnergyCost",
+      "gridColumns",
+      "gridRows",
+      "dugTiles",
+      "completedAtEpochMillis",
+    ])
+  )
+    return false;
+  const columns = value.gridColumns;
+  const rows = value.gridRows;
+  if (!isInteger(columns, 1, 10) || !isInteger(rows, 1, 10)) return false;
+  const tileCount = (columns as number) * (rows as number);
+  return (
+    typeof value.artifactId === "string" &&
+    /^[a-z0-9-]{1,64}$/.test(value.artifactId) &&
+    isInteger(value.capturedNotificationCount, 0) &&
+    isInteger(value.eligibleNotificationCount, 0, value.capturedNotificationCount as number) &&
+    isInteger(value.energyPerNotification, 1) &&
+    isInteger(value.energyEarned, 0) &&
+    isInteger(value.energySpent, 0) &&
+    isInteger(value.energyAvailable, 0) &&
+    isInteger(value.tileEnergyCost, 1) &&
+    Array.isArray(value.dugTiles) &&
+    value.dugTiles.every((tile) => isInteger(tile, 0, tileCount - 1)) &&
+    new Set(value.dugTiles).size === value.dugTiles.length &&
+    (value.completedAtEpochMillis === null || isInteger(value.completedAtEpochMillis, 0))
   );
 }
 
@@ -404,6 +469,9 @@ function validPayload(type: string, payload: Record<string, unknown>): boolean {
       payload.specimenIds.every(validSpecimenId) &&
       new Set(payload.specimenIds).size === 3
     );
+  }
+  if (type === "excavation.dig") {
+    return hasExactKeys(payload, ["tileIndex"]) && isInteger(payload.tileIndex, 0, 99);
   }
   if (type === "worlds.select" || type === "worlds.own") {
     return hasExactKeys(payload, ["world"]) && isWorld(payload.world);

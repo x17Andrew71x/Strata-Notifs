@@ -224,7 +224,7 @@ describe("last-known-good web shell", () => {
 
     await worker.activate();
     offline = true;
-    const artwork = await worker.asset("/worlds/relic-fossil-choir-a885cad842a6.jpg");
+    const artwork = await worker.asset("/worlds/relic-fossil-choir-museum-4089a53325a8.jpg");
     expect(artwork.status).toBe(200);
     expect(artwork.headers.get("content-type")).toBe("image/jpeg");
     expect(await artwork.text()).toBe("image");
@@ -273,10 +273,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v11";',
             'const CACHE_NAME = "afterchime-shell-v10";',
-            'const CACHE_NAME = "afterchime-shell-v9";',
           )
-          .replace('  "afterchime-shell-v9",\n', ""),
+          .replace('  "afterchime-shell-v10",\n', ""),
     });
     await prior.activate();
     offline = true;

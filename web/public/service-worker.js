@@ -1,5 +1,6 @@
-const CACHE_NAME = "afterchime-shell-v10";
+const CACHE_NAME = "afterchime-shell-v11";
 const LEGACY_CACHE_NAMES = [
+  "afterchime-shell-v10",
   "afterchime-shell-v9",
   "afterchime-shell-v8",
   "afterchime-shell-v7",
@@ -12,9 +13,12 @@ const STATE_KEY = "/.afterchime/current";
 const ASSET_PATTERN =
   /^(?:\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)|\/worlds\/[a-z0-9-]{1,128}-[a-f0-9]{12}\.jpg)$/;
 const WORLD_ASSETS = [
-  "/worlds/relic-fossil-choir-a885cad842a6.jpg",
-  "/worlds/relic-abyssal-glass-a7fd0353491a.jpg",
-  "/worlds/relic-lunar-ash-c08cb38e7b92.jpg",
+  "/worlds/relic-fossil-choir-museum-4089a53325a8.jpg",
+  "/worlds/relic-abyssal-glass-museum-f65a8e00a8e4.jpg",
+  "/worlds/relic-lunar-ash-museum-b6b6f2680c29.jpg",
+  "/worlds/relic-fossil-choir-excavation-fb847346a7cf.jpg",
+  "/worlds/relic-abyssal-glass-excavation-464607e244ad.jpg",
+  "/worlds/relic-lunar-ash-excavation-8e46d17e54d6.jpg",
   "/worlds/field-verdant-crown-16cd41ad4394.jpg",
   "/worlds/field-tidal-archive-7870aabaf855.jpg",
   "/worlds/field-cinder-vale-baba2fad26b5.jpg",

@@ -24,6 +24,22 @@ describe("versioned native bridge requests", () => {
     expect(
       parseNativeRequest({
         version: 2,
+        id: "req_dig",
+        type: "excavation.dig",
+        payload: { tileIndex: 24 },
+      }),
+    ).not.toBeNull();
+    expect(
+      parseNativeRequest({
+        version: 2,
+        id: "req_bad_dig",
+        type: "excavation.dig",
+        payload: { tileIndex: -1 },
+      }),
+    ).toBeNull();
+    expect(
+      parseNativeRequest({
+        version: 2,
         id: "req_3",
         type: "museum.combine",
         payload: { specimenIds: ["one", "two", "three"] },

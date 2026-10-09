@@ -120,6 +120,16 @@ class MainActivityTest {
     assertEquals("preferences.update", preference?.type)
     assertEquals("reduceMotionEnabled", preference?.payload?.getString("key"))
     assertTrue(preference?.payload?.getBoolean("value") == true)
+    val dig = parseBridgeRequest(
+      """{"version":2,"id":"req_dig","type":"excavation.dig","payload":{"tileIndex":24}}""",
+    )
+    assertEquals("excavation.dig", dig?.type)
+    assertEquals(24, dig?.payload?.getInt("tileIndex"))
+    assertNull(
+      parseBridgeRequest(
+        """{"version":2,"id":"req_bad_dig","type":"excavation.dig","payload":{"tileIndex":25}}""",
+      ),
+    )
     val combine = parseBridgeRequest(
       """{"version":2,"id":"req_3","type":"museum.combine","payload":{"specimenIds":["one","two","three"]}}""",
     )
