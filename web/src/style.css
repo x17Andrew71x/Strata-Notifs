@@ -1088,21 +1088,56 @@ p {
 }
 
 .specimen-card {
+  --rarity-border: var(--line);
+  --rarity-glow-near: transparent;
+  --rarity-glow-far: transparent;
+  --rarity-glow-near-size: 0;
+  --rarity-glow-far-size: 0;
+
   display: grid;
   gap: 6px;
   min-width: 0;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rarity-border);
   border-radius: 18px;
   padding: 12px;
   background: #ffffff08;
   color: #edf3ed;
+  box-shadow:
+    0 10px 24px #0006,
+    0 0 var(--rarity-glow-near-size) var(--rarity-glow-near),
+    0 0 var(--rarity-glow-far-size) var(--rarity-glow-far),
+    inset 0 0 0 1px color-mix(in srgb, var(--rarity-border) 18%, transparent);
   text-align: left;
 }
 
+.specimen-card.rarity-common {
+  --rarity-border: #a96f3d;
+  --rarity-glow-near: #bd7a3426;
+  --rarity-glow-far: #a7632914;
+  --rarity-glow-near-size: 9px;
+  --rarity-glow-far-size: 18px;
+}
+
+.specimen-card.rarity-uncommon {
+  --rarity-border: #adb8c0;
+  --rarity-glow-near: #d0dae03d;
+  --rarity-glow-far: #aebdc624;
+  --rarity-glow-near-size: 15px;
+  --rarity-glow-far-size: 30px;
+}
+
+.specimen-card.rarity-rare {
+  --rarity-border: #d9ad42;
+  --rarity-glow-near: #efc65b52;
+  --rarity-glow-far: #be812c33;
+  --rarity-glow-near-size: 22px;
+  --rarity-glow-far-size: 44px;
+}
+
 .specimen-card.selected {
-  border-color: var(--mint);
+  outline: 2px solid var(--mint);
+  outline-offset: 2px;
   background: color-mix(in srgb, var(--mint) 9%, transparent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mint) 16%, transparent);
 }
 
 .specimen-card .specimen-visual {

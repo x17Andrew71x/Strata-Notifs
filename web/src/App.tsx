@@ -841,7 +841,7 @@ function Museum({
               <button
                 type="button"
                 key={artifact.id}
-                className={`specimen-card${selectedInStack.length > 0 ? " selected" : ""}`}
+                className={`specimen-card rarity-${artifact.tier.toLowerCase()}${selectedInStack.length > 0 ? " selected" : ""}`}
                 disabled={combining && !toggleCandidate}
                 onClick={() => {
                   if (!combining) onOpen(representative.id);

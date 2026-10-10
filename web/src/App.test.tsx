@@ -25,7 +25,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v16"],
+    keys: async () => ["afterchime-shell-v17"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -355,6 +355,32 @@ describe("full shell application", () => {
       type: "museum.lock",
       payload: { specimenId: specimen.id, locked: false },
     });
+  });
+
+  it("maps Museum card borders to bronze, silver, and gold rarity treatments", () => {
+    const specimens = [
+      ["common", "relic-dactylioceras-ammonite"],
+      ["uncommon", "relic-articulated-trilobite"],
+      ["rare", "relic-dinosaur-embryo-egg"],
+    ].map(([id, catalogItemId], index) => ({
+      ...specimen,
+      id,
+      catalogItemId,
+      createdAtEpochMillis: index + 1,
+      revealedAtEpochMillis: index + 2,
+    }));
+    renderWithState({ ...baseState, museum: { specimens } });
+    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
+
+    expect(screen.getByRole("button", { name: /Ribbed Jurassic Ammonite/i })).toHaveClass(
+      "rarity-common",
+    );
+    expect(screen.getByRole("button", { name: /Articulated Trilobite/i })).toHaveClass(
+      "rarity-uncommon",
+    );
+    expect(screen.getByRole("button", { name: /Dinosaur Embryo in Egg/i })).toHaveClass(
+      "rarity-rare",
+    );
   });
 
   it("stacks matching Museum artifacts and shows the owned count with one canonical rarity", () => {
