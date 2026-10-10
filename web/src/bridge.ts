@@ -10,6 +10,7 @@ const NO_PAYLOAD_ACTIONS = [
   "worlds.reset",
 ] as const;
 const PAYLOAD_ACTIONS = [
+  "catalog.update",
   "preferences.update",
   "museum.lock",
   "museum.share",
@@ -18,6 +19,30 @@ const PAYLOAD_ACTIONS = [
   "worlds.select",
   "worlds.own",
 ] as const;
+const FOSSIL_FAMILIES: ReadonlySet<string> = new Set([
+  "AMMONITE",
+  "BELEMNITE",
+  "BRACHIOPOD",
+  "BIVALVE",
+  "CRINOID",
+  "CORAL",
+  "TRILOBITE",
+  "FERN_IMPRINT",
+  "SHARK_TOOTH",
+  "STROMATOLITE",
+  "ECHINOID",
+  "FISH",
+  "STARFISH",
+  "CRAB",
+  "AMBER",
+  "DINOSAUR_EMBRYO",
+  "ARCHAEOPTERYX",
+  "TRACKWAY",
+  "GEODE",
+  "METEORITE_FRAGMENT",
+  "TRACE_PLATE",
+  "COPROLITE",
+]);
 
 export type NativeAction = (typeof NO_PAYLOAD_ACTIONS)[number] | (typeof PAYLOAD_ACTIONS)[number];
 export type PreferenceKey =
@@ -122,6 +147,7 @@ export type NativeResponse =
       bridgeVersion: 2;
       notificationAccess: boolean;
       appDetailsAction: boolean;
+      catalogUpdates?: boolean;
     }
   | {
       version: 2;
@@ -195,21 +221,25 @@ export function installResponseListener(
 
 function parseNativeResponse(value: unknown): NativeResponse | null {
   if (!isRecord(value) || value.version !== BRIDGE_VERSION || !isValidId(value.id)) return null;
-  if (
-    value.type === "capabilities.state" &&
-    hasExactKeys(value, [
+  if (value.type === "capabilities.state") {
+    const legacyKeys = [
       "version",
       "id",
       "type",
       "bridgeVersion",
       "notificationAccess",
       "appDetailsAction",
-    ]) &&
-    value.bridgeVersion === BRIDGE_VERSION &&
-    typeof value.notificationAccess === "boolean" &&
-    typeof value.appDetailsAction === "boolean"
-  ) {
-    return value as NativeResponse;
+    ];
+    const catalogKeys = [...legacyKeys, "catalogUpdates"];
+    if (
+      (hasExactKeys(value, legacyKeys) || hasExactKeys(value, catalogKeys)) &&
+      value.bridgeVersion === BRIDGE_VERSION &&
+      typeof value.notificationAccess === "boolean" &&
+      typeof value.appDetailsAction === "boolean" &&
+      (value.catalogUpdates === undefined || typeof value.catalogUpdates === "boolean")
+    ) {
+      return value as NativeResponse;
+    }
   }
   if (
     value.type === "action.result" &&
@@ -371,9 +401,9 @@ function isVisual(value: unknown): boolean {
       "rotationDegrees",
     ]) &&
     isInteger(value.hueDegrees, 0, 359) &&
-    isInteger(value.strataCount, 1, 64) &&
+    isInteger(value.strataCount, 4, 16) &&
     isInteger(value.inclusionDensityPercent, 0, 100) &&
-    isInteger(value.reliefPercent, 0, 100) &&
+    isInteger(value.reliefPercent, 30, 100) &&
     isInteger(value.rotationDegrees, 0, 359)
   );
 }
@@ -436,6 +466,7 @@ function isWorldState(value: unknown): value is ShellState["worlds"] {
 }
 
 function validPayload(type: string, payload: Record<string, unknown>): boolean {
+  if (type === "catalog.update") return isCatalogUpdate(payload);
   if (type === "preferences.update") {
     return (
       hasExactKeys(payload, ["key", "value"]) &&
@@ -477,6 +508,42 @@ function validPayload(type: string, payload: Record<string, unknown>): boolean {
     return hasExactKeys(payload, ["world"]) && isWorld(payload.world);
   }
   return false;
+}
+
+function isCatalogUpdate(payload: Record<string, unknown>): boolean {
+  if (
+    !hasExactKeys(payload, ["schemaVersion", "revision", "items"]) ||
+    payload.schemaVersion !== 1 ||
+    !isInteger(payload.revision, 1, 1_000_000) ||
+    !Array.isArray(payload.items) ||
+    payload.items.length < 1 ||
+    payload.items.length > 128
+  ) {
+    return false;
+  }
+  let totalWeight = 0;
+  const ids = new Set<string>();
+  for (const item of payload.items) {
+    if (
+      !isRecord(item) ||
+      !hasExactKeys(item, ["id", "tier", "selectionWeight", "family", "visual"]) ||
+      typeof item.id !== "string" ||
+      !/^[a-z0-9-]{1,64}$/.test(item.id) ||
+      typeof item.tier !== "string" ||
+      !["COMMON", "UNCOMMON", "RARE", "EXCEPTIONAL", "SINGULAR"].includes(item.tier) ||
+      !isInteger(item.selectionWeight, 1, 1_000_000) ||
+      typeof item.family !== "string" ||
+      !FOSSIL_FAMILIES.has(item.family) ||
+      !isVisual(item.visual) ||
+      ids.has(item.id)
+    ) {
+      return false;
+    }
+    ids.add(item.id);
+    totalWeight += item.selectionWeight as number;
+    if (totalWeight > 1_000_000) return false;
+  }
+  return true;
 }
 
 function isNativeAction(value: string): value is NativeAction {

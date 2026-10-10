@@ -224,7 +224,7 @@ The fossil’s silhouette, breaks, mineral veins and orientation must match in b
 - Andrew approved the 17-item roster and review-v4 visual treatment.
 - Each image was checked against its scientific guardrails.
 - Every excavation/Museum pair derives from one approved chroma master and the two fixed templates.
-- Production images are 960×960 progressive JPEGs at quality 86, stripped of EXIF and content-addressed by SHA-256.
+- Production images are 960×960 lossy WebP at quality 82/method 6, stripped of EXIF and content-addressed by SHA-256; measured fidelity exceeds the former quality-86 JPEG exports while total catalogue bytes are 20.5% lower.
 - Legacy fictional IDs resolve to canonical fossils so unfinished digs and existing Museum records remain usable.
 - IDs, weights, bundled assets, migration behaviour and catalogue tests changed only after approval.
 

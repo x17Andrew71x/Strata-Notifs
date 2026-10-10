@@ -12,7 +12,8 @@ import com.techfullymade.afterchime.domain.FormationRepository
 import com.techfullymade.afterchime.domain.LocalFormationRepository
 import com.techfullymade.afterchime.domain.LocalMuseumRepository
 import com.techfullymade.afterchime.domain.MuseumRepository
-import com.techfullymade.afterchime.gameplay.FossilCatalog
+import com.techfullymade.afterchime.gameplay.FossilCatalogStore
+import com.techfullymade.afterchime.gameplay.SharedPreferencesFossilCatalogPersistence
 import com.techfullymade.afterchime.generation.GenerationResult
 import com.techfullymade.afterchime.sealing.RoomSealDayStore
 import com.techfullymade.afterchime.sealing.SealDayScheduler
@@ -26,6 +27,7 @@ import com.techfullymade.afterchime.security.SharedPreferencesLocalSecretEnvelop
 import com.techfullymade.afterchime.settings.DataStoreUserPreferences
 import java.time.Clock
 import java.time.ZoneId
+import org.json.JSONObject
 
 class AfterchimeApplication : Application() {
   private val database: AfterchimeDatabase by lazy {
@@ -47,16 +49,29 @@ class AfterchimeApplication : Application() {
     )
   }
 
+  private val fossilCatalog: FossilCatalogStore by lazy {
+    FossilCatalogStore(SharedPreferencesFossilCatalogPersistence(this))
+  }
+
   internal val userPreferences: DataStoreUserPreferences by lazy { DataStoreUserPreferences(this) }
   internal val formationRepository: FormationRepository by lazy {
     LocalFormationRepository(
       database = database,
       selectDailyFossil = { localDate ->
-        FossilCatalog.selectFor(localDate, localSecretStore.loadGeneratorSecret())
+        fossilCatalog.selectFor(localDate, localSecretStore.loadGeneratorSecret())
       },
+      findFossil = fossilCatalog::find,
+      catalogItemForSpecimenId = fossilCatalog::itemForSpecimenId,
     )
   }
-  internal val museumRepository: MuseumRepository by lazy { LocalMuseumRepository(database) }
+  internal val museumRepository: MuseumRepository by lazy {
+    LocalMuseumRepository(
+      database = database,
+      catalogItemForSpecimenId = fossilCatalog::itemForSpecimenId,
+    )
+  }
+
+  internal fun updateFossilCatalog(payload: JSONObject): Boolean = fossilCatalog.apply(payload)
 
   override fun onCreate() {
     super.onCreate()

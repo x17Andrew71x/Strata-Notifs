@@ -150,6 +150,12 @@ The fossil draw may use only:
 
 Energy eligibility may use only event time and the device-local pseudonymous source token. Neither selection nor energy may use message text, titles, sender identities, contact data, raw application package names, notification actions or media.
 
+#### 5.4.1 Hosted catalogue delivery
+
+The installed Android binary contains a validated baseline catalogue for first-launch and offline fallback, but routine fossil additions are hosted-shell content releases rather than APK releases. On capability negotiation, the authenticated same-origin shell offers a strict, versioned catalogue manifest to native storage. Native accepts only bounded, append-only revisions that preserve every existing artifact identity, rejects rollback or malformed payloads, and continues using its last valid snapshot offline. A newly accepted revision applies to daily beds created after synchronisation; an already-created or partly excavated bed never changes underneath the user.
+
+Museum and excavation art use content-addressed server URLs. The hosted Service Worker verifies the filename digest, atomically promotes only a complete shell/art set, and keeps the last verified set offline. Native package releases are required only when the catalogue protocol, security boundary, persistent schema or other installed Android behaviour changes—not when approved fossils or their artwork are added. The first updater-capable Android release is therefore a one-time bootstrap for this delivery contract; subsequent catalogue growth must prove hosted deployment against that unchanged APK.
+
 ### 5.5 Fairness rules
 
 - Notification count never influences rarity or fossil identity.

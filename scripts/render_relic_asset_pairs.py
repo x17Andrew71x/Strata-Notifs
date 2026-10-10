@@ -27,9 +27,9 @@ CHROMA_MIN_GREEN = 100
 CHROMA_DOMINANCE_START = 32
 CHROMA_DOMINANCE_RANGE = 82
 # 960 px is sufficient for the 360 px WebView surface at >2.5 device pixels per CSS pixel.
-# Quality 86 preserves fine fossil edges while keeping the complete 34-image catalogue bounded.
-JPEG_QUALITY = 86
-JPEG_SUBSAMPLING = 2
+# WebP 82 improves measured fidelity over the former JPEG 86 set while cutting transport bytes.
+WEBP_QUALITY = 82
+WEBP_METHOD = 6
 
 
 def parse_args() -> argparse.Namespace:
@@ -125,19 +125,18 @@ def main() -> None:
     subject = chroma_key(args.master)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     outputs = {
-        args.output_dir / f"{args.artifact_id}-museum.jpg": render_museum(args.museum_template, subject),
-        args.output_dir / f"{args.artifact_id}-excavation.jpg": render_excavation(
+        args.output_dir / f"{args.artifact_id}-museum.webp": render_museum(args.museum_template, subject),
+        args.output_dir / f"{args.artifact_id}-excavation.webp": render_excavation(
             args.excavation_template, subject
         ),
     }
     for path, image in outputs.items():
         image.save(
             path,
-            "JPEG",
-            quality=JPEG_QUALITY,
-            subsampling=JPEG_SUBSAMPLING,
-            optimize=True,
-            progressive=True,
+            "WEBP",
+            quality=WEBP_QUALITY,
+            method=WEBP_METHOD,
+            exact=True,
             exif=b"",
         )
         print(path)

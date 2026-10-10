@@ -64,9 +64,10 @@ async function createWorker(
   const workerFetcher = async (input: RequestInfo | URL) => {
     const url = new URL(responseUrl(input), origin);
     const response = await fetcher(input);
-    if (!/^\/worlds\/[a-z0-9-]+-[a-f0-9]{12}\.jpg$/.test(url.pathname)) return response;
+    const match = url.pathname.match(/^\/worlds\/[a-z0-9-]+-[a-f0-9]{12}\.(jpg|webp)$/);
+    if (!match) return response;
     if (!response.ok && response.status !== 404) return response;
-    return imageResponse();
+    return imageResponse("image", match[1] === "webp" ? "image/webp" : "image/jpeg");
   };
   runInNewContext(script, {
     self,
@@ -137,8 +138,8 @@ function assetResponse(body = "bundle") {
   return response;
 }
 
-function imageResponse(body = "image") {
-  const response = new Response(body, { headers: { "content-type": "image/jpeg" } });
+function imageResponse(body = "image", contentType = "image/jpeg") {
+  const response = new Response(body, { headers: { "content-type": contentType } });
   Object.defineProperty(response, "type", { value: "basic" });
   return response;
 }
@@ -153,7 +154,7 @@ describe("last-known-good web shell", () => {
       .join("");
     const worker = await createWorker(async () => new Response("missing", { status: 404 }));
 
-    const response = await worker.asset(`/worlds/relic-first-load-${digest.slice(0, 12)}.jpg`);
+    const response = await worker.asset(`/worlds/relic-first-load-${digest.slice(0, 12)}.webp`);
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe(body);
@@ -162,25 +163,31 @@ describe("last-known-good web shell", () => {
   it("rejects a first-seen image whose bytes do not match its content-addressed path", async () => {
     const worker = await createWorker(async () => new Response("missing", { status: 404 }));
 
-    const response = await worker.asset("/worlds/relic-first-load-000000000000.jpg");
+    const response = await worker.asset("/worlds/relic-first-load-000000000000.webp");
 
     expect(response.type).toBe("error");
   });
 
   it("primes the first validated online shell during activation for the next offline launch", async () => {
     let offline = false;
-    const worker = await createWorker(async (input) => {
-      if (offline) throw new TypeError("offline");
-      const url = new URL(responseUrl(input), origin);
-      if (url.pathname === "/")
-        return new Response(entryHtml("/assets/main-AbCdEf123456.js"), {
-          headers: { "content-type": "text/html" },
-        });
-      if (url.pathname === "/assets/main-AbCdEf123456.js") return assetResponse();
-      return new Response("missing", { status: 404 });
-    });
+    const stores: CacheStores = new Map();
+    const worker = await createWorker(
+      async (input) => {
+        if (offline) throw new TypeError("offline");
+        const url = new URL(responseUrl(input), origin);
+        if (url.pathname === "/")
+          return new Response(entryHtml("/assets/main-AbCdEf123456.js"), {
+            headers: { "content-type": "text/html" },
+          });
+        if (url.pathname === "/assets/main-AbCdEf123456.js") return assetResponse();
+        return new Response("missing", { status: 404 });
+      },
+      { stores },
+    );
 
     await worker.activate();
+    const state = stores.get("afterchime-shell-v15")?.get(`${origin}/.afterchime/current`);
+    expect(await state?.clone().json()).toMatchObject({ catalogRevision: 1 });
     offline = true;
 
     const cached = await worker.navigate();
@@ -248,10 +255,10 @@ describe("last-known-good web shell", () => {
     await worker.activate();
     offline = true;
     const artwork = await worker.asset(
-      "/worlds/relic-dactylioceras-ammonite-museum-07245dd61006.jpg",
+      "/worlds/relic-dactylioceras-ammonite-museum-6a351e2bb9c1.webp",
     );
     expect(artwork.status).toBe(200);
-    expect(artwork.headers.get("content-type")).toBe("image/jpeg");
+    expect(artwork.headers.get("content-type")).toBe("image/webp");
     expect(await artwork.text()).toBe("image");
   });
 
@@ -298,10 +305,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v15";',
             'const CACHE_NAME = "afterchime-shell-v14";',
-            'const CACHE_NAME = "afterchime-shell-v13";',
           )
-          .replace('  "afterchime-shell-v13",\n', ""),
+          .replace('  "afterchime-shell-v14",\n', ""),
     });
     await prior.activate();
     offline = true;

@@ -112,6 +112,10 @@ class LocalFormationRepository(
   private val database: AfterchimeDatabase,
   private val clock: Clock = Clock.systemUTC(),
   private val selectDailyFossil: (LocalDate) -> FossilCatalogItem = { FossilCatalog.items.first() },
+  private val findFossil: (String) -> FossilCatalogItem? = { id -> FossilCatalog.find(id) },
+  private val catalogItemForSpecimenId: (String) -> FossilCatalogItem? = { specimenId ->
+    FossilCatalog.itemForSpecimenId(specimenId)
+  },
 ) : FormationRepository {
   override fun observe(localDate: LocalDate): Flow<FormationSnapshot> = flow {
     ensureDailyExcavation(localDate)
@@ -149,7 +153,7 @@ class LocalFormationRepository(
       }
       SealedFormationInputs(
         observationState = summary?.observationState,
-        specimen = (specimen ?: pendingPriorSpecimen)?.toMuseumSpecimen(),
+        specimen = (specimen ?: pendingPriorSpecimen)?.toMuseumSpecimen(catalogItemForSpecimenId),
       )
     }
 
@@ -231,7 +235,7 @@ class LocalFormationRepository(
         )
       }
 
-      val catalogItem = FossilCatalog.find(excavation.artifactId)
+      val catalogItem = findFossil(excavation.artifactId)
         ?: return@withTransaction DigResult.Unavailable
       val specimenId = FossilCatalog.specimenId(localDate, catalogItem)
       persistCompletedSpecimen(

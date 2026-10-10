@@ -162,14 +162,15 @@ async function registerShellRoutes(app: FastifyInstance, webRoot: string): Promi
   });
   app.get<{ Params: { asset: string } }>("/worlds/:asset", async (request, reply) => {
     const filename = request.params.asset;
-    if (!/^[a-z0-9-]{1,128}-[a-f0-9]{12}\.jpg$/.test(filename)) {
+    if (!/^[a-z0-9-]{1,128}-[a-f0-9]{12}\.(?:jpg|webp)$/.test(filename)) {
       setShellHeaders(reply, "no-store");
       return reply.code(404).send({ error: "not_found" });
     }
     try {
       const data = await readFile(path.join(webRoot, "worlds", filename));
+      const contentType = filename.endsWith(".webp") ? "image/webp" : "image/jpeg";
       setShellHeaders(reply, "public, max-age=31536000, immutable");
-      return reply.type("image/jpeg").send(data);
+      return reply.type(contentType).send(data);
     } catch {
       setShellHeaders(reply, "no-store");
       return reply.code(404).send({ error: "not_found" });

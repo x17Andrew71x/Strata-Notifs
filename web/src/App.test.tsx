@@ -1,6 +1,7 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, {
+  catalogAssetsAreCached,
   IMAGE_RETRY_DELAYS_MS,
   registerShellWorker,
   SHELL_STATE_REFRESH_MS,
@@ -8,16 +9,38 @@ import App, {
   TOAST_FADE_START_MS,
 } from "./App";
 import type { ShellState } from "./bridge";
+import { WORLD_ASSET_PATHS } from "./worlds";
 
 const native = {
   postMessage: vi.fn(),
   onmessage: null as ((event: MessageEvent<string>) => void) | null,
 };
 
+function catalogCacheStorage(
+  paths: readonly string[] = WORLD_ASSET_PATHS,
+  revision = 1,
+): CacheStorage {
+  const state = {
+    catalogRevision: revision,
+    assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
+  };
+  return {
+    keys: async () => ["afterchime-shell-v15"],
+    open: async () => ({
+      match: async () =>
+        new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
+    }),
+  } as unknown as CacheStorage;
+}
+
 beforeEach(() => {
   cleanup();
   window.location.hash = "";
   Object.defineProperty(window, "AfterchimeBridge", { configurable: true, value: native });
+  Object.defineProperty(globalThis, "caches", {
+    configurable: true,
+    value: catalogCacheStorage(),
+  });
   native.postMessage.mockClear();
   native.onmessage = null;
 });
@@ -35,6 +58,14 @@ describe("service worker registration", () => {
     await registerShellWorker(true, { register });
     expect(register).toHaveBeenCalledWith("/service-worker.js", { scope: "/" });
   });
+
+  it("authorizes a native catalogue only after the matching complete artwork set is cached", async () => {
+    expect(await catalogAssetsAreCached(1, catalogCacheStorage())).toBe(true);
+    expect(await catalogAssetsAreCached(2, catalogCacheStorage())).toBe(false);
+    expect(await catalogAssetsAreCached(1, catalogCacheStorage(WORLD_ASSET_PATHS.slice(1)))).toBe(
+      false,
+    );
+  });
 });
 
 describe("full shell application", () => {
@@ -45,6 +76,37 @@ describe("full shell application", () => {
       native.onmessage?.(new MessageEvent("message", { data: JSON.stringify(baseState) }));
     });
     expect(screen.getByRole("heading", { name: "Today is still forming" })).toBeTruthy();
+  });
+
+  it("offers the cached hosted catalogue to capable native shells without user-visible prompting", async () => {
+    render(<App />);
+    await act(async () => {
+      native.onmessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            version: 2,
+            id: "capabilities",
+            type: "capabilities.state",
+            bridgeVersion: 2,
+            notificationAccess: true,
+            appDetailsAction: true,
+            catalogUpdates: true,
+          }),
+        }),
+      );
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(requests().some((request) => request.type === "catalog.update")).toBe(true),
+    );
+    const update = requests().find((request) => request.type === "catalog.update") as {
+      type: string;
+      payload: { schemaVersion: number; revision: number; items: unknown[] };
+    };
+    expect(update.type).toBe("catalog.update");
+    expect(update.payload).toMatchObject({ schemaVersion: 1, revision: 1 });
+    expect(update.payload.items).toHaveLength(17);
   });
 
   it("requests bridge state and renders private onboarding from native state", () => {
@@ -154,7 +216,7 @@ describe("full shell application", () => {
     expect(screen.getByText(/8 captured · 6 energy earned · 3 per tile/i)).toBeTruthy();
     expect(container.querySelector(".excavation-artifact")).toHaveAttribute(
       "src",
-      "/worlds/relic-dactylioceras-ammonite-excavation-df9a1e512a2e.jpg",
+      "/worlds/relic-dactylioceras-ammonite-excavation-e191e90964c1.webp",
     );
     expect(container.querySelectorAll(".excavation-tile")).toHaveLength(25);
     expect(container.querySelectorAll(".excavation-tile.dug")).toHaveLength(1);
@@ -180,7 +242,7 @@ describe("full shell application", () => {
     expect(retryImage).not.toBe(firstImage);
     expect(retryImage).toHaveAttribute(
       "src",
-      "/worlds/relic-dactylioceras-ammonite-excavation-df9a1e512a2e.jpg",
+      "/worlds/relic-dactylioceras-ammonite-excavation-e191e90964c1.webp",
     );
     fireEvent.load(retryImage as HTMLImageElement);
     expect(retryImage).toHaveClass("is-loaded");
@@ -249,7 +311,7 @@ describe("full shell application", () => {
     expect(container.querySelector(".specimen-visual")).toHaveClass("rarity-rare");
     expect(container.querySelector(".specimen-visual img")).toHaveAttribute(
       "src",
-      "/worlds/relic-dinosaur-embryo-egg-museum-bb49f06000bc.jpg",
+      "/worlds/relic-dinosaur-embryo-egg-museum-db0ceecfe047.webp",
     );
   });
 
@@ -447,9 +509,14 @@ function sendState(state: ShellState | { preferences: ShellState["preferences"] 
   });
 }
 
+function requests(): Array<Record<string, unknown>> {
+  return native.postMessage.mock.calls.map(
+    ([raw]) => JSON.parse(raw as string) as Record<string, unknown>,
+  );
+}
+
 function lastRequest(): Record<string, unknown> {
-  const raw = native.postMessage.mock.calls.at(-1)?.[0];
-  return JSON.parse(raw ?? "null") as Record<string, unknown>;
+  return requests().at(-1) ?? {};
 }
 
 function excavationState(

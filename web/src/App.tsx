@@ -14,6 +14,9 @@ import {
   type Artifact,
   artifactById,
   artifactFor,
+  RELIC_VAULT_CATALOG_REVISION,
+  relicVaultCatalogUpdate,
+  WORLD_ASSET_PATHS,
   WORLD_DEFINITIONS,
   worldDefinition,
 } from "./worlds";
@@ -54,6 +57,53 @@ export async function registerShellWorker(
   }
 }
 
+type CatalogCacheStorage = Pick<CacheStorage, "keys" | "open">;
+
+export async function catalogAssetsAreCached(
+  revision: number,
+  storage: CatalogCacheStorage | undefined = typeof caches === "undefined" ? undefined : caches,
+): Promise<boolean> {
+  if (!storage) return false;
+  try {
+    for (const name of await storage.keys()) {
+      const stateResponse = await (await storage.open(name)).match("/.afterchime/current");
+      if (!stateResponse) continue;
+      const state = (await stateResponse.json()) as unknown;
+      if (!state || typeof state !== "object") continue;
+      const candidate = state as { catalogRevision?: unknown; assets?: unknown };
+      if (candidate.catalogRevision !== revision || !Array.isArray(candidate.assets)) continue;
+      const paths = new Set(
+        candidate.assets.flatMap((asset) =>
+          asset &&
+          typeof asset === "object" &&
+          typeof (asset as { pathname?: unknown }).pathname === "string"
+            ? [(asset as { pathname: string }).pathname]
+            : [],
+        ),
+      );
+      if (WORLD_ASSET_PATHS.every((pathname) => paths.has(pathname))) return true;
+    }
+  } catch {
+    // A partial or unreadable cache must never authorize a native catalogue revision.
+  }
+  return false;
+}
+
+export async function waitForCatalogAssets(
+  revision: number,
+  storage: CatalogCacheStorage | undefined = typeof caches === "undefined" ? undefined : caches,
+  attempts = 120,
+  delayMs = 250,
+): Promise<boolean> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (await catalogAssetsAreCached(revision, storage)) return true;
+    if (attempt + 1 < attempts) {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, delayMs));
+    }
+  }
+  return false;
+}
+
 function App() {
   const [shellState, setShellState] = useState<ShellState | null>(null);
   const [access, setAccess] = useState<boolean | null>(null);
@@ -68,6 +118,8 @@ function App() {
 
   useEffect(() => {
     const remoteOrigin = window.location.hostname !== "appassets.androidplatform.net";
+    let active = true;
+    let catalogSyncStarted = false;
     void registerShellWorker(import.meta.env.PROD && remoteOrigin);
     if (remoteOrigin) {
       void fetch("/shell/metadata", { cache: "no-store", credentials: "same-origin" })
@@ -84,7 +136,13 @@ function App() {
       } else if (response.type === "capabilities.state") {
         setAccess(response.notificationAccess);
         setAppDetailsAction(response.appDetailsAction);
-      } else if (response.type === "action.result") {
+        if (response.catalogUpdates && remoteOrigin && !catalogSyncStarted) {
+          catalogSyncStarted = true;
+          void waitForCatalogAssets(RELIC_VAULT_CATALOG_REVISION).then((ready) => {
+            if (active && ready) sendNativeRequest("catalog.update", relicVaultCatalogUpdate());
+          });
+        }
+      } else if (response.type === "action.result" && response.action !== "catalog.update") {
         setMessage(actionMessage(response.action, response.ok));
       }
     });
@@ -100,6 +158,7 @@ function App() {
     sendNativeRequest("capabilities.get");
     sendNativeRequest("state.get");
     return () => {
+      active = false;
       stop();
       window.clearInterval(refreshInterval);
       window.removeEventListener("hashchange", onHashChange);

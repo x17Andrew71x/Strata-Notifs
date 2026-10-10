@@ -8,6 +8,9 @@ import android.service.notification.NotificationListenerService
 import android.webkit.WebResourceRequest
 import androidx.webkit.WebViewFeature
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
+import com.techfullymade.afterchime.gameplay.FossilCatalog
+import com.techfullymade.afterchime.gameplay.FossilCatalogManifest
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -130,6 +133,31 @@ class MainActivityTest {
         """{"version":2,"id":"req_bad_dig","type":"excavation.dig","payload":{"tileIndex":25}}""",
       ),
     )
+    val catalogPayload = FossilCatalogManifest(
+      revision = FossilCatalog.BUNDLED_REVISION,
+      items = FossilCatalog.items,
+    ).toJson()
+    val catalog = parseBridgeRequest(
+      JSONObject()
+        .put("version", 2)
+        .put("id", "req_catalog")
+        .put("type", "catalog.update")
+        .put("payload", catalogPayload)
+        .toString(),
+    )
+    assertEquals("catalog.update", catalog?.type)
+    assertEquals(17, catalog?.payload?.getJSONArray("items")?.length())
+    catalogPayload.put("private", "text")
+    assertNull(
+      parseBridgeRequest(
+        JSONObject()
+          .put("version", 2)
+          .put("id", "req_bad_catalog")
+          .put("type", "catalog.update")
+          .put("payload", catalogPayload)
+          .toString(),
+      ),
+    )
     val combine = parseBridgeRequest(
       """{"version":2,"id":"req_3","type":"museum.combine","payload":{"specimenIds":["one","two","three"]}}""",
     )
@@ -162,6 +190,7 @@ class MainActivityTest {
     assertEquals(2, response.getInt("bridgeVersion"))
     assertEquals("capabilities.state", response.getString("type"))
     assertTrue(response.getBoolean("appDetailsAction"))
+    assertTrue(response.getBoolean("catalogUpdates"))
   }
 
   @Test

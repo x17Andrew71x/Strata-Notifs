@@ -6,6 +6,7 @@ import com.techfullymade.afterchime.data.local.AfterchimeDatabase
 import com.techfullymade.afterchime.data.local.dao.StoredSpecimenWithOutput
 import com.techfullymade.afterchime.data.local.entity.InventoryItemEntity
 import com.techfullymade.afterchime.gameplay.FossilCatalog
+import com.techfullymade.afterchime.gameplay.FossilCatalogItem
 import com.techfullymade.afterchime.generation.Family
 import com.techfullymade.afterchime.generation.Tier
 import com.techfullymade.afterchime.generation.VisualParameters
@@ -61,10 +62,14 @@ data class MuseumSpecimen(
 /** Room-backed local museum repository with no network or analytics dependency. */
 class LocalMuseumRepository(
   private val database: AfterchimeDatabase,
+  private val catalogItemForSpecimenId: (String) -> FossilCatalogItem? =
+    { specimenId -> FossilCatalog.itemForSpecimenId(specimenId) },
 ) : MuseumRepository {
   override val specimens: Flow<List<MuseumSpecimen>> = database.inventoryItemDao()
     .observeAllActive()
-    .map { records -> records.map(InventoryItemEntity::toMuseumSpecimen) }
+    .map { records ->
+      records.map { record -> record.toMuseumSpecimen(catalogItemForSpecimenId) }
+    }
 
   override suspend fun setLocked(specimenId: String, locked: Boolean): SpecimenLockResult {
     require(specimenId.isNotBlank())
@@ -173,7 +178,10 @@ class LocalMuseumRepository(
   )
 }
 
-internal fun StoredSpecimenWithOutput.toMuseumSpecimen(): MuseumSpecimen = MuseumSpecimen(
+internal fun StoredSpecimenWithOutput.toMuseumSpecimen(
+  catalogItemForSpecimenId: (String) -> FossilCatalogItem? =
+    { specimenId -> FossilCatalog.itemForSpecimenId(specimenId) },
+): MuseumSpecimen = MuseumSpecimen(
   id = specimenId,
   anchoredLocalDate = LocalDate.parse(anchoredLocalDate),
   generatorVersion = generatorVersion,
@@ -189,10 +197,13 @@ internal fun StoredSpecimenWithOutput.toMuseumSpecimen(): MuseumSpecimen = Museu
     reliefPercent = reliefPercent,
     rotationDegrees = rotationDegrees,
   ),
-  catalogItemId = FossilCatalog.itemForSpecimenId(specimenId)?.id,
+  catalogItemId = catalogItemForSpecimenId(specimenId)?.id,
 )
 
-internal fun InventoryItemEntity.toMuseumSpecimen(): MuseumSpecimen = MuseumSpecimen(
+internal fun InventoryItemEntity.toMuseumSpecimen(
+  catalogItemForSpecimenId: (String) -> FossilCatalogItem? =
+    { specimenId -> FossilCatalog.itemForSpecimenId(specimenId) },
+): MuseumSpecimen = MuseumSpecimen(
   id = itemId,
   anchoredLocalDate = anchoredLocalDate?.let(LocalDate::parse),
   generatorVersion = generatorVersion,
@@ -210,7 +221,7 @@ internal fun InventoryItemEntity.toMuseumSpecimen(): MuseumSpecimen = MuseumSpec
     reliefPercent = reliefPercent,
     rotationDegrees = rotationDegrees,
   ),
-  catalogItemId = FossilCatalog.itemForSpecimenId(itemId)?.id,
+  catalogItemId = catalogItemForSpecimenId(itemId)?.id,
 )
 
 private val CollectibleState.inputProvenanceCount: Int

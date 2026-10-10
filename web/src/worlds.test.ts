@@ -7,6 +7,8 @@ import {
   artifactFor,
   LEGACY_RELIC_ARTIFACT_ALIASES,
   RELIC_VAULT_ARTIFACTS,
+  RELIC_VAULT_CATALOG_REVISION,
+  relicVaultCatalogUpdate,
   WORLD_ASSET_PATHS,
   WORLD_DEFINITIONS,
   worldDefinition,
@@ -34,6 +36,19 @@ describe("authored world catalogue", () => {
         ({ museumImage, excavationImage }) => String(museumImage) !== String(excavationImage),
       ),
     ).toBe(true);
+  });
+
+  it("publishes the complete native draw as a versioned hosted-shell update", () => {
+    const payload = relicVaultCatalogUpdate() as {
+      schemaVersion: number;
+      revision: number;
+      items: Array<{ id: string; tier: string; selectionWeight: number; family: string }>;
+    };
+    expect(payload.schemaVersion).toBe(1);
+    expect(payload.revision).toBe(RELIC_VAULT_CATALOG_REVISION);
+    expect(payload.items.map(({ id }) => id)).toEqual(RELIC_VAULT_ARTIFACTS.map(({ id }) => id));
+    expect(payload.items.reduce((total, item) => total + item.selectionWeight, 0)).toBe(1_000);
+    expect(payload.items.every(({ family }) => /^[A-Z_]{1,40}$/.test(family))).toBe(true);
   });
 
   it("keeps three unique authored artifacts in each cosmetic world", () => {
@@ -83,14 +98,27 @@ describe("authored world catalogue", () => {
         "utf8",
       ),
     ) as {
-      output: { width: number; height: number; quality: number; totalBytes: number };
+      output: {
+        format: string;
+        width: number;
+        height: number;
+        quality: number;
+        method: number;
+        totalBytes: number;
+      };
       artifacts: Array<{
         museum: { path: string; bytes: number };
         excavation: { path: string; bytes: number };
       }>;
     };
-    expect(manifest.output).toMatchObject({ width: 960, height: 960, quality: 86 });
-    expect(manifest.output.totalBytes).toBeLessThanOrEqual(9 * 1024 * 1024);
+    expect(manifest.output).toMatchObject({
+      format: "WEBP",
+      width: 960,
+      height: 960,
+      quality: 82,
+      method: 6,
+    });
+    expect(manifest.output.totalBytes).toBeLessThanOrEqual(7 * 1024 * 1024);
     expect(
       manifest.artifacts.flatMap(({ museum, excavation }) => [museum.path, excavation.path]).sort(),
     ).toEqual(
@@ -107,12 +135,14 @@ describe("authored world catalogue", () => {
     ).toBe(manifest.output.totalBytes);
 
     const worker = await readFile(path.join(publicRoot, "service-worker.js"), "utf8");
+    expect(worker).toContain(`const CATALOG_REVISION = ${RELIC_VAULT_CATALOG_REVISION};`);
     for (const asset of WORLD_ASSET_PATHS) {
       expect(worker).toContain(`"${asset}"`);
       const bytes = await readFile(path.join(publicRoot, asset));
-      expect(bytes.byteLength).toBeGreaterThanOrEqual(120_000);
-      expect(bytes.byteLength).toBeLessThanOrEqual(420_000);
-      const expectedPrefix = path.basename(asset).match(/-([a-f0-9]{12})\.jpg$/)?.[1];
+      const relicAsset = path.basename(asset).startsWith("relic-");
+      expect(bytes.byteLength).toBeGreaterThanOrEqual(relicAsset ? 70_000 : 120_000);
+      expect(bytes.byteLength).toBeLessThanOrEqual(relicAsset ? 360_000 : 420_000);
+      const expectedPrefix = path.basename(asset).match(/-([a-f0-9]{12})\.(?:jpg|webp)$/)?.[1];
       expect(expectedPrefix).toBeTruthy();
       expect(createHash("sha256").update(bytes).digest("hex")).toMatch(
         new RegExp(`^${expectedPrefix}`),

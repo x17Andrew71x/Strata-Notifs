@@ -13,9 +13,9 @@ from pathlib import Path
 from PIL import Image
 
 from render_relic_asset_pairs import (
-    JPEG_QUALITY,
-    JPEG_SUBSAMPLING,
     OUTPUT_SIZE,
+    WEBP_METHOD,
+    WEBP_QUALITY,
     chroma_key,
     render_excavation,
     render_museum,
@@ -25,9 +25,9 @@ ROOT = Path(__file__).resolve().parents[1]
 MASTER_DIR = ROOT / "docs" / "art-direction" / "assets"
 OUTPUT_DIR = ROOT / "web" / "public" / "worlds"
 MANIFEST_PATH = ROOT / "docs" / "art-direction" / "FOSSIL_CATALOG_ASSETS.json"
-MIN_JPEG_BYTES = 120_000
-MAX_JPEG_BYTES = 420_000
-MAX_CATALOG_BYTES = 9 * 1024 * 1024
+MIN_WEBP_BYTES = 70_000
+MAX_WEBP_BYTES = 360_000
+MAX_CATALOG_BYTES = 7 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -66,14 +66,13 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def save_jpeg(path: Path, image: Image.Image) -> None:
+def save_webp(path: Path, image: Image.Image) -> None:
     image.save(
         path,
-        "JPEG",
-        quality=JPEG_QUALITY,
-        subsampling=JPEG_SUBSAMPLING,
-        optimize=True,
-        progressive=True,
+        "WEBP",
+        quality=WEBP_QUALITY,
+        method=WEBP_METHOD,
+        exact=True,
         exif=b"",
     )
     with Image.open(path) as rendered:
@@ -81,7 +80,7 @@ def save_jpeg(path: Path, image: Image.Image) -> None:
             raise SystemExit(f"invalid promoted image geometry: {path}")
         if rendered.getexif():
             raise SystemExit(f"promoted image retained EXIF metadata: {path}")
-    if not MIN_JPEG_BYTES <= path.stat().st_size <= MAX_JPEG_BYTES:
+    if not MIN_WEBP_BYTES <= path.stat().st_size <= MAX_WEBP_BYTES:
         raise SystemExit(f"promoted image outside byte budget: {path} ({path.stat().st_size})")
 
 
@@ -108,10 +107,10 @@ def main() -> None:
             }
             output_records: dict[str, object] = {}
             for kind, image in outputs.items():
-                unhashed = staging / f"{fossil.artifact_id}-{kind}.jpg"
-                save_jpeg(unhashed, image)
+                unhashed = staging / f"{fossil.artifact_id}-{kind}.webp"
+                save_webp(unhashed, image)
                 digest = sha256(unhashed)
-                filename = f"{fossil.artifact_id}-{kind}-{digest[:12]}.jpg"
+                filename = f"{fossil.artifact_id}-{kind}-{digest[:12]}.webp"
                 staged_outputs.append((unhashed, filename))
                 output_records[kind] = {
                     "path": f"/worlds/{filename}",
@@ -142,8 +141,9 @@ def main() -> None:
         if total_bytes > MAX_CATALOG_BYTES:
             raise SystemExit(f"promoted catalogue exceeds byte budget: {total_bytes}")
 
-        for stale in OUTPUT_DIR.glob("relic-*.jpg"):
-            stale.unlink()
+        for stale in OUTPUT_DIR.glob("relic-*.*"):
+            if stale.suffix in {".jpg", ".webp"}:
+                stale.unlink()
         for staged, filename in staged_outputs:
             os.replace(staged, OUTPUT_DIR / filename)
 
@@ -151,12 +151,13 @@ def main() -> None:
         "version": 1,
         "status": "approved-production-art",
         "output": {
-            "format": "JPEG",
+            "format": "WEBP",
             "width": OUTPUT_SIZE,
             "height": OUTPUT_SIZE,
-            "quality": JPEG_QUALITY,
-            "subsampling": "4:2:0",
-            "progressive": True,
+            "quality": WEBP_QUALITY,
+            "method": WEBP_METHOD,
+            "lossless": False,
+            "exact": True,
             "exif": False,
             "totalBytes": total_bytes,
             "maximumTotalBytes": MAX_CATALOG_BYTES,

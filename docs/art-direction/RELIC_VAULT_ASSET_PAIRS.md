@@ -21,10 +21,10 @@ python3 scripts/render_relic_asset_pairs.py \
   --output-dir <review-directory>
 ```
 
-The renderer chroma-keys the master and applies the same dimensions, subject bounds, contact shadow, Museum supports, JPEG settings, and exact scene pixels to every fossil. It writes:
+The renderer chroma-keys the master and applies the same dimensions, subject bounds, contact shadow, Museum supports, WebP settings, and exact scene pixels to every fossil. It writes:
 
-- `<artifact-id>-excavation.jpg` for the dig bed.
-- `<artifact-id>-museum.jpg` for the Museum pedestal.
+- `<artifact-id>-excavation.webp` for the dig bed.
+- `<artifact-id>-museum.webp` for the Museum pedestal.
 
 Only the fossil master may vary. Camera, crop, case, pedestal, bed, palette, output size, and overlay geometry remain fixed. Do not ask an image model to regenerate either scene for each item; prompts alone do not provide sufficient consistency.
 
@@ -43,6 +43,6 @@ Before promotion, inspect both outputs together, hash the accepted bytes into th
 
 The first production catalogue contains 17 paired fossils: 10 common, 5 uncommon and 2 rare. Exact IDs, source-master hashes, output hashes, dimensions and byte sizes live in `FOSSIL_CATALOG_ASSETS.json`; scientific rationale and guardrails live in `FOSSIL_CATALOG_RESEARCH.md`.
 
-Production exports are 960×960 progressive JPEGs at quality 86 with explicit 4:2:0 subsampling and no EXIF. That resolution preserves more than 2.5 source pixels per CSS pixel across the 360px WebView surface, while the complete 34-image Relic Vault catalogue is capped below 9 MiB.
+Production exports are 960×960 lossy WebP images at quality 82 with encoder method 6, exact RGB handling and no EXIF. The selected encoding measured higher fidelity than the former quality-86 JPEG set (mean PSNR 36.210 dB versus 35.616 dB; mean absolute error 2.809 versus 3.000), passed full-frame and 2× fine-detail review, and reduced the 34-image catalogue from 8,275,478 to 6,581,638 bytes. That resolution preserves more than 2.5 source pixels per CSS pixel across the 360px WebView surface, while the complete Relic Vault catalogue remains capped below 7 MiB.
 
-Run `python3 scripts/promote_fossil_catalog_assets.py` after an approved master changes. The script renders both fixed scenes, enforces geometry and byte budgets, writes content-addressed filenames, removes retired `relic-*.jpg` exports and refreshes `FOSSIL_CATALOG_ASSETS.json`. Catalogue code and the service-worker manifest must then be updated to those exact paths and verified by tests.
+Run `python3 scripts/promote_fossil_catalog_assets.py` after an approved master changes. The script renders both fixed scenes, enforces geometry and byte budgets, writes content-addressed filenames, removes retired Relic Vault JPEG/WebP exports and refreshes `FOSSIL_CATALOG_ASSETS.json`. Catalogue code and the service-worker manifest must then be updated to those exact paths and verified by tests.

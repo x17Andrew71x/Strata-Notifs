@@ -2,15 +2,16 @@
   "version": 1,
   "status": "approved-production-art",
   "output": {
-    "format": "JPEG",
+    "format": "WEBP",
     "width": 960,
     "height": 960,
-    "quality": 86,
-    "subsampling": "4:2:0",
-    "progressive": true,
+    "quality": 82,
+    "method": 6,
+    "lossless": false,
+    "exact": true,
     "exif": false,
-    "totalBytes": 8275478,
-    "maximumTotalBytes": 9437184
+    "totalBytes": 6581638,
+    "maximumTotalBytes": 7340032
   },
   "counts": {
     "common": 10,
@@ -29,16 +30,16 @@
         "bytes": 2753370
       },
       "museum": {
-        "path": "/worlds/relic-dactylioceras-ammonite-museum-07245dd61006.jpg",
-        "sha256": "07245dd61006beef5b88702362de4bdf54f02d5b561125c905ee040a3040224e",
-        "bytes": 155875,
+        "path": "/worlds/relic-dactylioceras-ammonite-museum-6a351e2bb9c1.webp",
+        "sha256": "6a351e2bb9c1313554723ecdefa43405b7056c42cbdba678bb02cbf644f3067b",
+        "bytes": 94994,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-dactylioceras-ammonite-excavation-df9a1e512a2e.jpg",
-        "sha256": "df9a1e512a2ee212a741e2f1d6d84551b1a7282b92e51486c63dfa5d3f79a4f1",
-        "bytes": 331229,
+        "path": "/worlds/relic-dactylioceras-ammonite-excavation-e191e90964c1.webp",
+        "sha256": "e191e90964c178f1e145762cfc5b8ffd57d738270b3dc4fd209d34b61fcb566d",
+        "bytes": 291124,
         "width": 960,
         "height": 960
       }
@@ -53,16 +54,16 @@
         "bytes": 2720255
       },
       "museum": {
-        "path": "/worlds/relic-belemnite-rostra-museum-266fa31b2823.jpg",
-        "sha256": "266fa31b2823dc779ec89d6d5d692951ea6ebcbdbe35ad8ed6d94e87f71bbfb2",
-        "bytes": 156205,
+        "path": "/worlds/relic-belemnite-rostra-museum-f5aba5efde48.webp",
+        "sha256": "f5aba5efde48be9fe543974a82ce5156feadd289d37bb434f6100efe486eaaba",
+        "bytes": 95280,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-belemnite-rostra-excavation-3cd7baaa3bd3.jpg",
-        "sha256": "3cd7baaa3bd334f5daabc72369f49c69db59b4baa39712dc58b90bb42cff4a70",
-        "bytes": 332727,
+        "path": "/worlds/relic-belemnite-rostra-excavation-8443912d863f.webp",
+        "sha256": "8443912d863f8c589a7ced4d189c8cc407bb7ec1bcad534676a156da9a3ad7b5",
+        "bytes": 293718,
         "width": 960,
         "height": 960
       }
@@ -77,16 +78,16 @@
         "bytes": 2331615
       },
       "museum": {
-        "path": "/worlds/relic-spiriferid-brachiopod-museum-8599c160ed48.jpg",
-        "sha256": "8599c160ed4896c84c352d8eecd4320278288ef8b55c908eafb1bf1cc893fb97",
-        "bytes": 142284,
+        "path": "/worlds/relic-spiriferid-brachiopod-museum-004f488c0763.webp",
+        "sha256": "004f488c07639e73b370a181bf55b265f2b9593f1aa851d9186ed34bb842efa7",
+        "bytes": 80354,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-spiriferid-brachiopod-excavation-3cbf83503874.jpg",
-        "sha256": "3cbf8350387413e8ad21f3eef645a1da3fa5002f4dd422f4948232a163e1e5d9",
-        "bytes": 331291,
+        "path": "/worlds/relic-spiriferid-brachiopod-excavation-c4b9d6a69e27.webp",
+        "sha256": "c4b9d6a69e27c58eedaecbdf61c1fa0b87c8cbdec40bb039492c46bc71e04375",
+        "bytes": 292484,
         "width": 960,
         "height": 960
       }
@@ -101,16 +102,16 @@
         "bytes": 2527915
       },
       "museum": {
-        "path": "/worlds/relic-gryphaea-oyster-museum-6b486d5a5ae9.jpg",
-        "sha256": "6b486d5a5ae9811367e263445951d0d3f9e53da74f4d3bc6b772f26d8e7fa129",
-        "bytes": 149165,
+        "path": "/worlds/relic-gryphaea-oyster-museum-effeafad73d8.webp",
+        "sha256": "effeafad73d842907b99adad132b90370d9adf1c0cd6e108d4509fed7728fa7f",
+        "bytes": 87142,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-gryphaea-oyster-excavation-9284358ae77c.jpg",
-        "sha256": "9284358ae77c6411948b4ff715b483e61b3ec6949f586922c6aa3b54cd541b58",
-        "bytes": 331090,
+        "path": "/worlds/relic-gryphaea-oyster-excavation-59a9be2a1cc3.webp",
+        "sha256": "59a9be2a1cc368286570c72934ebdf811ecd82f0c9aca54efbfb1bee543ae3cf",
+        "bytes": 292768,
         "width": 960,
         "height": 960
       }
@@ -125,16 +126,16 @@
         "bytes": 2819422
       },
       "museum": {
-        "path": "/worlds/relic-crinoid-columnals-museum-a31486e257b8.jpg",
-        "sha256": "a31486e257b81d8606989ee663d7b8b0cb0a5c41022af7015dd63ab15f5ce807",
-        "bytes": 161938,
+        "path": "/worlds/relic-crinoid-columnals-museum-29e80d02b875.webp",
+        "sha256": "29e80d02b8752814ab0e30f97335255af087e18f1736a7627b5719441c16b6c0",
+        "bytes": 100620,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-crinoid-columnals-excavation-450ea7925a62.jpg",
-        "sha256": "450ea7925a6237c261c1569f25ea8380b7ea401c89130dd863fd7f9486286817",
-        "bytes": 332735,
+        "path": "/worlds/relic-crinoid-columnals-excavation-1de79a61ca50.webp",
+        "sha256": "1de79a61ca50e83727791c41e46c1b28efbcd482fce4496c37fd05fe4f730fd2",
+        "bytes": 293316,
         "width": 960,
         "height": 960
       }
@@ -149,16 +150,16 @@
         "bytes": 2217140
       },
       "museum": {
-        "path": "/worlds/relic-rugose-horn-coral-museum-e9636c0b7768.jpg",
-        "sha256": "e9636c0b7768eb7c99ab81e070e412885e27ace4e4003a4dfa9e9b0bd5005d38",
-        "bytes": 139697,
+        "path": "/worlds/relic-rugose-horn-coral-museum-be8aaef85cef.webp",
+        "sha256": "be8aaef85ceff9333c3b0a4e13e9caaf97a6e3aca1515eb3ab0a288e48b810b9",
+        "bytes": 79154,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-rugose-horn-coral-excavation-a7106a236fb8.jpg",
-        "sha256": "a7106a236fb84c2f3320b0bc11c4044aba278467a92af99e663cc2d84f37b542",
-        "bytes": 330204,
+        "path": "/worlds/relic-rugose-horn-coral-excavation-4ace1de1f75f.webp",
+        "sha256": "4ace1de1f75f2f6af7b7a1a9d213e4480d1c0f659201191db69c3a5a43ae37f8",
+        "bytes": 291462,
         "width": 960,
         "height": 960
       }
@@ -173,16 +174,16 @@
         "bytes": 2110465
       },
       "museum": {
-        "path": "/worlds/relic-lamniform-shark-tooth-museum-68e30be26fe3.jpg",
-        "sha256": "68e30be26fe3b790c498dd88fbac94c95eef1fc2d99c731123c905f1ae0114bd",
-        "bytes": 142781,
+        "path": "/worlds/relic-lamniform-shark-tooth-museum-d30b4b4049c8.webp",
+        "sha256": "d30b4b4049c83adff0eec241d48c8ea0d31ae49fc7a44697164c20c5cbb6620c",
+        "bytes": 83620,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-lamniform-shark-tooth-excavation-8d15042e0105.jpg",
-        "sha256": "8d15042e01054005936b965746da531b538460af96e7cb55cc851aecdcba66c1",
-        "bytes": 336309,
+        "path": "/worlds/relic-lamniform-shark-tooth-excavation-12dd64c30e62.webp",
+        "sha256": "12dd64c30e6210eba5e13de7aba46c80118753f66732731fa1a3a41de326c5b6",
+        "bytes": 299644,
         "width": 960,
         "height": 960
       }
@@ -197,16 +198,16 @@
         "bytes": 2910569
       },
       "museum": {
-        "path": "/worlds/relic-carbonised-fern-frond-museum-8d3ae7438557.jpg",
-        "sha256": "8d3ae7438557e1b5556baeba7f8e7cefafa7a08dc66dca393417b4f89f5185b0",
-        "bytes": 151182,
+        "path": "/worlds/relic-carbonised-fern-frond-museum-cf7f16401d3c.webp",
+        "sha256": "cf7f16401d3c7ab45ee9569c7d8724e442e65c771e68354f4b51b477f31ef7a9",
+        "bytes": 89210,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-carbonised-fern-frond-excavation-152d3a6ffff1.jpg",
-        "sha256": "152d3a6ffff13a7811ae334b7277a202b5a8bf88c49bfda9523c03b545f01bf9",
-        "bytes": 328011,
+        "path": "/worlds/relic-carbonised-fern-frond-excavation-bf0f796f5125.webp",
+        "sha256": "bf0f796f51254455d35199444f5022d1101fcf4c6412a1b5cd6179c617f50cb3",
+        "bytes": 288676,
         "width": 960,
         "height": 960
       }
@@ -221,16 +222,16 @@
         "bytes": 2697804
       },
       "museum": {
-        "path": "/worlds/relic-domal-stromatolite-museum-a7338bacd3fa.jpg",
-        "sha256": "a7338bacd3fa802438a6f979c65e09a3ee58aed560faef25df6989993ba51d97",
-        "bytes": 150784,
+        "path": "/worlds/relic-domal-stromatolite-museum-d04e006b69cc.webp",
+        "sha256": "d04e006b69cca22d0298f66919881a86c76fbfffc52047ea15a2e2c041f47179",
+        "bytes": 88698,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-domal-stromatolite-excavation-c5163e7036a4.jpg",
-        "sha256": "c5163e7036a4792251740dc2714f4496a65532606205a0a23aad93e7fdbab131",
-        "bytes": 328418,
+        "path": "/worlds/relic-domal-stromatolite-excavation-d472af058429.webp",
+        "sha256": "d472af0584291c1ca518b4f6af72a76303eac5ab8c511299822af14e1908a4f2",
+        "bytes": 288926,
         "width": 960,
         "height": 960
       }
@@ -245,16 +246,16 @@
         "bytes": 2749777
       },
       "museum": {
-        "path": "/worlds/relic-echinocorys-echinoid-museum-d03bc3c73a92.jpg",
-        "sha256": "d03bc3c73a9222ee77e6086d804546a1c08424b0a2c4936ac878fd51280b1b3a",
-        "bytes": 153888,
+        "path": "/worlds/relic-echinocorys-echinoid-museum-b7d1d344cd30.webp",
+        "sha256": "b7d1d344cd30b7093fd41b0ff166b292ff5f57c7c59dea3f0b733ab3d0007d3f",
+        "bytes": 94126,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-echinocorys-echinoid-excavation-e40eefb92545.jpg",
-        "sha256": "e40eefb92545eb35219567b2d7bf3fffa1e13a0e4388e59a6f9da8d86419ea0e",
-        "bytes": 334824,
+        "path": "/worlds/relic-echinocorys-echinoid-excavation-5d74c69e7db7.webp",
+        "sha256": "5d74c69e7db7683a6c45758b7732a8532e7b1021e6d21db2117000b7d9b28f7f",
+        "bytes": 295776,
         "width": 960,
         "height": 960
       }
@@ -269,16 +270,16 @@
         "bytes": 2877228
       },
       "museum": {
-        "path": "/worlds/relic-articulated-trilobite-museum-5d6a97612201.jpg",
-        "sha256": "5d6a97612201956b42e0b957d92100bbdecb27f59495a074f711798f3d55e61c",
-        "bytes": 156584,
+        "path": "/worlds/relic-articulated-trilobite-museum-3a5690b7a828.webp",
+        "sha256": "3a5690b7a8282634b0e7b665c70079854a5bcd9fb159b3d9ea9189a6c5188d82",
+        "bytes": 96566,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-articulated-trilobite-excavation-727119dbe563.jpg",
-        "sha256": "727119dbe56344b5ec5eca31ebe4da8ae89f5dd1e03780b082e9c75412f2892f",
-        "bytes": 333920,
+        "path": "/worlds/relic-articulated-trilobite-excavation-2e72ac83c032.webp",
+        "sha256": "2e72ac83c03268ceae9a41e55895d5d3668670d76167da8b8ee9cd21decb88e3",
+        "bytes": 295328,
         "width": 960,
         "height": 960
       }
@@ -293,16 +294,16 @@
         "bytes": 2703136
       },
       "museum": {
-        "path": "/worlds/relic-articulated-fossil-fish-museum-2a21e3feb7da.jpg",
-        "sha256": "2a21e3feb7da6179070e38c503e87d85f044ccaab05acb6802bae4d4c9e6e186",
-        "bytes": 151091,
+        "path": "/worlds/relic-articulated-fossil-fish-museum-6f4bfdf3d18a.webp",
+        "sha256": "6f4bfdf3d18ace6ca2694b4ffb093bf6ed37ce7fc72e082df4bdfa213ce8a6fe",
+        "bytes": 89242,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-articulated-fossil-fish-excavation-c9d7a358910a.jpg",
-        "sha256": "c9d7a358910a795bbc087564d6621decb2c95febe74b7e590f6d01ee66f12402",
-        "bytes": 334288,
+        "path": "/worlds/relic-articulated-fossil-fish-excavation-cfa630aac0d6.webp",
+        "sha256": "cfa630aac0d6edccb32252d8a1cd2d2da825256f30585cbe778f98b9458d86ea",
+        "bytes": 295706,
         "width": 960,
         "height": 960
       }
@@ -317,16 +318,16 @@
         "bytes": 2929128
       },
       "museum": {
-        "path": "/worlds/relic-complete-starfish-museum-1734b61d2fa3.jpg",
-        "sha256": "1734b61d2fa30e172f58c4a0ae118a36e229947bce7a95d0751902c6d32b80c2",
-        "bytes": 161719,
+        "path": "/worlds/relic-complete-starfish-museum-2ff6426b0f62.webp",
+        "sha256": "2ff6426b0f622098c5859ecf8c68ce7ffee2f29e4f154d5cb37cd217dad2cad9",
+        "bytes": 101746,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-complete-starfish-excavation-e09cdf8b3af6.jpg",
-        "sha256": "e09cdf8b3af6f6a2c5c69064ce092f6c5ede8e232b13e0da0a1c65f0dfeb2839",
-        "bytes": 336743,
+        "path": "/worlds/relic-complete-starfish-excavation-ccc514baeb39.webp",
+        "sha256": "ccc514baeb3924e8cf4eb81ae8167b9367186acad83fb520d854ccd7a4c31b3d",
+        "bytes": 299898,
         "width": 960,
         "height": 960
       }
@@ -341,16 +342,16 @@
         "bytes": 3181564
       },
       "museum": {
-        "path": "/worlds/relic-articulated-fossil-crab-museum-ef7aed36704b.jpg",
-        "sha256": "ef7aed36704baf4c4c03f934a23a11c18eaafc18e69a8d1eb575531686f1b3f4",
-        "bytes": 162525,
+        "path": "/worlds/relic-articulated-fossil-crab-museum-6ec3a14500c2.webp",
+        "sha256": "6ec3a14500c2c8336162cd188ef6d0d4ae825630b8af6a56468631d70d809493",
+        "bytes": 101438,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-articulated-fossil-crab-excavation-a96dda0a68fe.jpg",
-        "sha256": "a96dda0a68fe5267b94f50dd2e64fb05f5d273e4057fc5b8f9290a03b365f92d",
-        "bytes": 335233,
+        "path": "/worlds/relic-articulated-fossil-crab-excavation-d57c39d5c9d0.webp",
+        "sha256": "d57c39d5c9d0ea288ab6e4d0e7595ab2bcc314de3861c24002c6b774199bf277",
+        "bytes": 298616,
         "width": 960,
         "height": 960
       }
@@ -365,16 +366,16 @@
         "bytes": 2546462
       },
       "museum": {
-        "path": "/worlds/relic-insect-amber-museum-1c9d8be45749.jpg",
-        "sha256": "1c9d8be457496a2fd7cdae2b46f13b5414917764844480b7cabdc57d31b91da1",
-        "bytes": 156239,
+        "path": "/worlds/relic-insect-amber-museum-e0486f183aa8.webp",
+        "sha256": "e0486f183aa819da3e0f2d63417005f46f2e211815d7a6f823d7325e7489e01b",
+        "bytes": 96680,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-insect-amber-excavation-05f377832582.jpg",
-        "sha256": "05f37783258236479dc255f05d624d9d66b0d85b28f13a7d9c6816d2469a9821",
-        "bytes": 333961,
+        "path": "/worlds/relic-insect-amber-excavation-9149c88a34ea.webp",
+        "sha256": "9149c88a34ea8be17e4c8098e7a0bc023346988f6c559d6ffb25bd59c2e74708",
+        "bytes": 297150,
         "width": 960,
         "height": 960
       }
@@ -389,16 +390,16 @@
         "bytes": 2759789
       },
       "museum": {
-        "path": "/worlds/relic-dinosaur-embryo-egg-museum-bb49f06000bc.jpg",
-        "sha256": "bb49f06000bc20dcb864e9eb6e71992f566f3ce9f2ada821beb6b01b8f24a4e8",
-        "bytes": 167929,
+        "path": "/worlds/relic-dinosaur-embryo-egg-museum-db0ceecfe047.webp",
+        "sha256": "db0ceecfe047a20c3598d866ce9b8daa597c233714437fced750757bf1ca8c30",
+        "bytes": 107292,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-dinosaur-embryo-egg-excavation-84b7863fdbf4.jpg",
-        "sha256": "84b7863fdbf4e2e6de8e5e855577c129ab52645777a01b9f602b14d2d770d27b",
-        "bytes": 340029,
+        "path": "/worlds/relic-dinosaur-embryo-egg-excavation-da03275b4f32.webp",
+        "sha256": "da03275b4f32f8b2fff4393cd84220e9e67c96210c3f463c9c145ecbefd67732",
+        "bytes": 302550,
         "width": 960,
         "height": 960
       }
@@ -413,16 +414,16 @@
         "bytes": 2962524
       },
       "museum": {
-        "path": "/worlds/relic-archaeopteryx-slab-museum-2f4084bf3ebb.jpg",
-        "sha256": "2f4084bf3ebb5106210472ca7eb4674fc378a8ebf07253e1390338097c8a4fcb",
-        "bytes": 159672,
+        "path": "/worlds/relic-archaeopteryx-slab-museum-492a72012ed0.webp",
+        "sha256": "492a72012ed0c24aff2da9193c90862c55685689d3ce0e94d1c7d1637e3456fc",
+        "bytes": 96564,
         "width": 960,
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-archaeopteryx-slab-excavation-d5ae028c3a42.jpg",
-        "sha256": "d5ae028c3a422ecfc35cdff87f649ac31a05fd05bf430345f82dc64dc0e75cec",
-        "bytes": 324908,
+        "path": "/worlds/relic-archaeopteryx-slab-excavation-23601b1f8a98.webp",
+        "sha256": "23601b1f8a98f9f3802a061097795be15651d8470b0b82e58af379272ff51db2",
+        "bytes": 281770,
         "width": 960,
         "height": 960
       }

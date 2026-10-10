@@ -12,7 +12,7 @@ DIST = ROOT / "web" / "dist"
 DEST = ROOT / "android" / "app" / "src" / "main" / "assets" / "web"
 ANDROID_ASSETS = DEST.parent
 ASSET_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$")
-WORLD_ASSET_PATTERN = re.compile(r"^[a-z0-9-]{1,128}-[a-f0-9]{12}\.jpg$")
+WORLD_ASSET_PATTERN = re.compile(r"^[a-z0-9-]{1,128}-[a-f0-9]{12}\.(?:jpg|webp)$")
 CSP = (
     "default-src 'none'; script-src 'self'; style-src 'self'; "
     "style-src-attr 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; "
@@ -51,8 +51,8 @@ def main() -> None:
     destination_assets.mkdir(parents=True, exist_ok=True)
     for asset in assets:
         shutil.copyfile(asset, destination_assets / asset.name)
-    for stale_world_asset in ANDROID_ASSETS.glob("*.jpg"):
-        if WORLD_ASSET_PATTERN.fullmatch(stale_world_asset.name):
+    for stale_world_asset in ANDROID_ASSETS.iterdir():
+        if stale_world_asset.is_file() and WORLD_ASSET_PATTERN.fullmatch(stale_world_asset.name):
             stale_world_asset.unlink()
     for world_asset in world_assets:
         shutil.copyfile(world_asset, ANDROID_ASSETS / world_asset.name)

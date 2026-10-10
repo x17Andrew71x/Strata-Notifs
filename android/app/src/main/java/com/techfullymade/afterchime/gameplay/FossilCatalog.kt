@@ -18,18 +18,21 @@ data class FossilCatalogItem(
 ) {
   init {
     require(id.matches(ARTIFACT_ID_PATTERN))
-    require(selectionWeight > 0)
+    require(selectionWeight in 1..MAX_SELECTION_WEIGHT)
   }
 
   private companion object {
     val ARTIFACT_ID_PATTERN = Regex("[a-z0-9-]{1,64}")
+    const val MAX_SELECTION_WEIGHT = 1_000_000
   }
 }
 
 object FossilCatalog {
+  const val BUNDLED_REVISION = 1
+
   /**
-   * Research-backed initial tuning: 86% common, 12% uncommon, 2% rare.
-   * Equal weights within each tier keep the approved launch set unbiased.
+   * Research-backed offline baseline: 86% common, 12% uncommon, 2% rare.
+   * The hosted shell may append validated entries for future daily beds without another APK.
    */
   val items: List<FossilCatalogItem> = listOf(
     fossil("relic-dactylioceras-ammonite", Tier.COMMON, 86, Family.AMMONITE, 32, 8, 30, 50, 0),
@@ -52,7 +55,7 @@ object FossilCatalog {
   )
 
   private val itemById = items.associateBy(FossilCatalogItem::id)
-  private val legacyAliases = mapOf(
+  internal val legacyAliases = mapOf(
     "relic-fossil-choir" to "relic-dactylioceras-ammonite",
     "relic-lunar-ash" to "relic-domal-stromatolite",
     "relic-abyssal-glass" to "relic-dinosaur-embryo-egg",
@@ -67,19 +70,38 @@ object FossilCatalog {
     require(legacyAliases.values.all(itemById::containsKey))
   }
 
-  fun find(id: String): FossilCatalogItem? = itemById[id] ?: legacyAliases[id]?.let(itemById::get)
+  fun find(id: String): FossilCatalogItem? = find(items, id)
 
-  fun selectByTicket(ticket: Int): FossilCatalogItem {
+  internal fun find(catalogItems: List<FossilCatalogItem>, id: String): FossilCatalogItem? {
+    val itemById = catalogItems.associateBy(FossilCatalogItem::id)
+    return itemById[id] ?: legacyAliases[id]?.let(itemById::get)
+  }
+
+  fun selectByTicket(ticket: Int): FossilCatalogItem = selectByTicket(items, ticket)
+
+  internal fun selectByTicket(
+    catalogItems: List<FossilCatalogItem>,
+    ticket: Int,
+  ): FossilCatalogItem {
+    val totalSelectionWeight = catalogItems.sumOf(FossilCatalogItem::selectionWeight)
     require(ticket in 0 until totalSelectionWeight)
     var remaining = ticket
-    for (item in items) {
+    for (item in catalogItems) {
       if (remaining < item.selectionWeight) return item
       remaining -= item.selectionWeight
     }
     error("Catalog ticket escaped the configured weight total")
   }
 
-  fun selectFor(localDate: LocalDate, localSecret: ByteArray): FossilCatalogItem {
+  fun selectFor(localDate: LocalDate, localSecret: ByteArray): FossilCatalogItem =
+    selectFor(items, localDate, localSecret)
+
+  internal fun selectFor(
+    catalogItems: List<FossilCatalogItem>,
+    localDate: LocalDate,
+    localSecret: ByteArray,
+  ): FossilCatalogItem {
+    require(catalogItems.isNotEmpty())
     require(localSecret.size == LOCAL_SECRET_BYTES)
     val mac = Mac.getInstance("HmacSHA256")
     mac.init(SecretKeySpec(localSecret, "HmacSHA256"))
@@ -90,18 +112,27 @@ object FossilCatalog {
       ((entropy[1].toLong() and BYTE_MASK) shl 16) or
       ((entropy[2].toLong() and BYTE_MASK) shl 8) or
       (entropy[3].toLong() and BYTE_MASK)
-    return selectByTicket((unsignedWord % totalSelectionWeight).toInt())
+    val totalSelectionWeight = catalogItems.sumOf(FossilCatalogItem::selectionWeight)
+    return selectByTicket(catalogItems, (unsignedWord % totalSelectionWeight).toInt())
   }
 
   fun specimenId(localDate: LocalDate, item: FossilCatalogItem): String =
     "excavation-${localDate.toString().replace("-", "")}-${item.id}"
 
   fun itemForSpecimenId(specimenId: String): FossilCatalogItem? =
-    items.firstOrNull { item -> specimenId.endsWith("-${item.id}") }
+    itemForSpecimenId(items, specimenId)
+
+  internal fun itemForSpecimenId(
+    catalogItems: List<FossilCatalogItem>,
+    specimenId: String,
+  ): FossilCatalogItem? {
+    val itemById = catalogItems.associateBy(FossilCatalogItem::id)
+    return catalogItems.firstOrNull { item -> specimenId.endsWith("-${item.id}") }
       ?: legacyAliases.entries
         .firstOrNull { alias -> specimenId.endsWith("-${alias.key}") }
         ?.value
         ?.let(itemById::get)
+  }
 
   private fun fossil(
     id: String,

@@ -27,6 +27,7 @@ async function shellRoot(): Promise<string> {
   );
   await writeFile(path.join(root, "assets", "main-AbCdEf123456.js"), "safe asset");
   await writeFile(path.join(root, "worlds", "relic-fossil-aaaaaaaaaaaa.jpg"), "safe image");
+  await writeFile(path.join(root, "worlds", "relic-fossil-bbbbbbbbbbbb.webp"), "safe webp");
   return root;
 }
 
@@ -78,6 +79,13 @@ describe("web shell routes", () => {
     expect(image.statusCode).toBe(200);
     expect(image.headers["content-type"]).toBe("image/jpeg");
     expect(image.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
+    const webp = await app.inject({
+      method: "GET",
+      url: "/worlds/relic-fossil-bbbbbbbbbbbb.webp",
+    });
+    expect(webp.statusCode).toBe(200);
+    expect(webp.headers["content-type"]).toBe("image/webp");
+    expect(webp.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
     const unhashed = await app.inject({ method: "GET", url: "/assets/unhashed.js" });
     expect(unhashed.statusCode).toBe(404);
     expect(unhashed.headers["cache-control"]).not.toContain("immutable");

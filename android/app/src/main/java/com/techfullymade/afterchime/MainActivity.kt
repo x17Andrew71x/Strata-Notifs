@@ -34,6 +34,7 @@ import com.techfullymade.afterchime.data.catalog.DataStoreWorldCatalog
 import com.techfullymade.afterchime.domain.CombineRequest
 import com.techfullymade.afterchime.domain.CombineResult
 import com.techfullymade.afterchime.domain.MuseumSpecimen
+import com.techfullymade.afterchime.gameplay.FossilCatalogManifest
 import com.techfullymade.afterchime.gameplay.GameBalance
 import com.techfullymade.afterchime.render.World
 import com.techfullymade.afterchime.settings.UserPreferences
@@ -50,7 +51,7 @@ import org.json.JSONObject
 
 private const val BRIDGE_NAME = "AfterchimeBridge"
 private const val BRIDGE_VERSION = 2
-private const val MAX_BRIDGE_REQUEST = 8 * 1024
+private const val MAX_BRIDGE_REQUEST = 128 * 1024
 internal const val LOCAL_ORIGIN = "https://appassets.androidplatform.net"
 internal const val LOCAL_ENTRY_URL = "$LOCAL_ORIGIN/assets/web/index.html"
 private const val REMOTE_READY_TIMEOUT_MS = 5_000L
@@ -98,6 +99,7 @@ internal fun parseBridgeRequest(raw: String?): BridgeRequest? {
   }
   if (request.length() != 4 || payload == null) return null
   val validPayload = when (type) {
+    "catalog.update" -> FossilCatalogManifest.parse(payload) != null
     "preferences.update" ->
       payload.length() == 2 &&
         payload.opt("key") is String &&
@@ -376,6 +378,11 @@ class MainActivity : ComponentActivity() {
         userPreferences.update { it.copy(onboardingComplete = true) }
         postActionResult(request, true, proxy)
       }
+      "catalog.update" -> postActionResult(
+        request,
+        applicationState.updateFossilCatalog(request.payload ?: return false),
+        proxy,
+      )
       "preferences.update" -> updatePreference(request, proxy)
       "formation.reveal" -> {
         val accepted = todayViewModel.uiState.value.primaryAction.name == "REVEAL"
@@ -513,6 +520,7 @@ class MainActivity : ComponentActivity() {
     .put("bridgeVersion", BRIDGE_VERSION)
     .put("notificationAccess", notificationAccessEnabled())
     .put("appDetailsAction", true)
+    .put("catalogUpdates", true)
 
   private fun sendCapabilityState(id: String) {
     replyProxy?.postMessage(capabilitiesResponse(id).toString())

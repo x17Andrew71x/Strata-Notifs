@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { installResponseListener, parseNativeRequest, type ShellState } from "./bridge";
+import { relicVaultCatalogUpdate } from "./worlds";
 
 describe("versioned native bridge requests", () => {
   it("accepts only exact bounded v2 actions", () => {
@@ -40,9 +41,35 @@ describe("versioned native bridge requests", () => {
     expect(
       parseNativeRequest({
         version: 2,
+        id: "req_catalog",
+        type: "catalog.update",
+        payload: relicVaultCatalogUpdate(),
+      }),
+    ).not.toBeNull();
+    expect(
+      parseNativeRequest({
+        version: 2,
         id: "req_3",
         type: "museum.combine",
         payload: { specimenIds: ["one", "two", "three"] },
+      }),
+    ).not.toBeNull();
+  });
+
+  it("accepts a future append-only catalogue revision without changing the bridge version", () => {
+    const baseline = relicVaultCatalogUpdate() as { items: Array<Record<string, unknown>> };
+    const future = {
+      ...baseline,
+      revision: 2,
+      items: [...baseline.items, { ...baseline.items[0], id: "relic-future-trace-fossil" }],
+    };
+
+    expect(
+      parseNativeRequest({
+        version: 2,
+        id: "req_future_catalog",
+        type: "catalog.update",
+        payload: future,
       }),
     ).not.toBeNull();
   });
