@@ -1139,6 +1139,18 @@ p {
   font-size: 10px;
 }
 
+.specimen-card .specimen-count {
+  justify-self: start;
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--mint) 26%, transparent);
+  border-radius: 999px;
+  padding: 3px 7px;
+  background: color-mix(in srgb, var(--mint) 8%, transparent);
+  color: var(--mint-strong);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
 .empty-state,
 .placeholder-screen {
   display: grid;

@@ -10,7 +10,13 @@ import {
   type Tier,
   type World,
 } from "./bridge";
-import { artifactById, artifactFor, WORLD_DEFINITIONS, worldDefinition } from "./worlds";
+import {
+  type Artifact,
+  artifactById,
+  artifactFor,
+  WORLD_DEFINITIONS,
+  worldDefinition,
+} from "./worlds";
 
 type ShellWorkerRegistrar = {
   register(scriptURL: string, options?: RegistrationOptions): Promise<unknown>;
@@ -703,10 +709,9 @@ function Museum({
   onReviewCombine(): void;
 }) {
   const world = worldDefinition(state.worlds.selected);
-  const specimens = state.museum.specimens
-    .filter((specimen) => specimen.revealedAtEpochMillis !== null)
-    .filter((specimen) => tier === "ALL" || specimen.tier === tier)
-    .sort((a, b) => b.createdAtEpochMillis - a.createdAtEpochMillis || a.id.localeCompare(b.id));
+  const stacks = stackMuseumSpecimens(state.worlds.selected, state.museum.specimens).filter(
+    (stack) => tier === "ALL" || stack.artifact.tier === tier,
+  );
   const selected = combineIds
     .map((id) => state.museum.specimens.find((specimen) => specimen.id === id))
     .filter((specimen): specimen is ShellSpecimen => specimen !== undefined);
@@ -750,7 +755,7 @@ function Museum({
           ),
         )}
       </fieldset>
-      {specimens.length === 0 ? (
+      {stacks.length === 0 ? (
         <div className="empty-state">
           <SpecimenVisual decorative compact />
           <h2>Your shelves are waiting.</h2>
@@ -758,24 +763,45 @@ function Museum({
         </div>
       ) : (
         <div className="specimen-grid">
-          {specimens.map((specimen) => {
-            const artifact = artifactForSpecimen(state.worlds.selected, specimen);
+          {stacks.map((stack) => {
+            const { artifact, representative, specimens } = stack;
             const combining = combineIds.length > 0;
-            const selectable =
-              !combining || canAddToCombine(combineIds, specimen, state.museum.specimens);
+            const selectedInStack = specimens.filter((specimen) =>
+              combineIds.includes(specimen.id),
+            );
+            const nextCandidate = specimens.find(
+              (specimen) =>
+                !combineIds.includes(specimen.id) &&
+                canAddToCombine(combineIds, specimen, state.museum.specimens),
+            );
+            const toggleCandidate = nextCandidate ?? selectedInStack.at(-1);
+            const countLabel = `${specimens.length} owned${
+              combining && selectedInStack.length > 0 ? ` · ${selectedInStack.length} selected` : ""
+            }`;
             return (
               <button
                 type="button"
-                key={specimen.id}
-                className={`specimen-card${combineIds.includes(specimen.id) ? " selected" : ""}`}
-                disabled={!selectable}
-                onClick={() => (combining ? onToggleCombine(specimen) : onOpen(specimen.id))}
+                key={artifact.id}
+                className={`specimen-card${selectedInStack.length > 0 ? " selected" : ""}`}
+                disabled={combining && !toggleCandidate}
+                onClick={() => {
+                  if (!combining) onOpen(representative.id);
+                  else if (toggleCandidate) onToggleCombine(toggleCandidate);
+                }}
               >
-                <SpecimenVisual specimen={specimen} world={state.worlds.selected} compact />
+                <SpecimenVisual
+                  specimen={representative}
+                  world={state.worlds.selected}
+                  displayTier={artifact.tier}
+                  compact
+                />
                 <strong>{artifact.name}</strong>
-                <span>{formatName(specimen.tier)}</span>
-                <small>
-                  {specimen.anchoredLocalDate ? formatDate(specimen.anchoredLocalDate) : "Restored"}
+                <span>{formatName(artifact.tier)}</span>
+                {specimens.length > 1 && <small className="specimen-count">{countLabel}</small>}
+                <small className="specimen-date">
+                  {representative.anchoredLocalDate
+                    ? formatDate(representative.anchoredLocalDate)
+                    : "Restored"}
                 </small>
               </button>
             );
@@ -821,7 +847,7 @@ function SpecimenDetail({
       <p className="eyebrow">{worldDefinition(world).name}</p>
       <h1 id="detail-title">{artifact.name}</h1>
       <div className="detail-card">
-        <SpecimenVisual specimen={specimen} world={world} />
+        <SpecimenVisual specimen={specimen} world={world} displayTier={artifact.tier} />
         <dl>
           <div>
             <dt>Artifact</dt>
@@ -833,7 +859,7 @@ function SpecimenDetail({
           </div>
           <div>
             <dt>Rarity</dt>
-            <dd>{formatName(specimen.tier)}</dd>
+            <dd>{formatName(artifact.tier)}</dd>
           </div>
           <div>
             <dt>{specimen.anchoredLocalDate ? "Sealed" : "Restored"}</dt>
@@ -1130,30 +1156,54 @@ function artifactForSpecimen(world: World, specimen: ShellSpecimen) {
     : artifactFor(world, specimen.id);
 }
 
+type SpecimenStack = {
+  artifact: Artifact;
+  representative: ShellSpecimen;
+  specimens: ShellSpecimen[];
+};
+
+function stackMuseumSpecimens(world: World, specimens: ShellSpecimen[]): SpecimenStack[] {
+  const stacks = new Map<string, SpecimenStack>();
+  const revealed = specimens
+    .filter((specimen) => specimen.revealedAtEpochMillis !== null)
+    .sort((a, b) => b.createdAtEpochMillis - a.createdAtEpochMillis || a.id.localeCompare(b.id));
+
+  for (const specimen of revealed) {
+    const artifact = artifactForSpecimen(world, specimen);
+    const stack = stacks.get(artifact.id);
+    if (stack) stack.specimens.push(specimen);
+    else stacks.set(artifact.id, { artifact, representative: specimen, specimens: [specimen] });
+  }
+  return [...stacks.values()];
+}
+
 function SpecimenVisual({
   specimen,
   world = "PRIMEVAL_STRATA",
   decorative = false,
   compact = false,
+  displayTier,
 }: {
   specimen?: ShellSpecimen;
   world?: World;
   decorative?: boolean;
   compact?: boolean;
+  displayTier?: Tier;
 }) {
   const artifact = specimen
     ? artifactForSpecimen(world, specimen)
     : artifactFor(world, "decorative");
   const definition = worldDefinition(world);
+  const visualTier = displayTier ?? specimen?.tier ?? artifact.tier;
   const accessibility = decorative
     ? { "aria-hidden": true }
     : {
         role: "img" as const,
-        "aria-label": `${formatName(specimen?.tier ?? "COMMON")} ${artifact.name} artifact from ${definition.name}`,
+        "aria-label": `${formatName(visualTier)} ${artifact.name} artifact from ${definition.name}`,
       };
   return (
     <figure
-      className={`specimen-visual theme-${definition.theme} rarity-${(specimen?.tier ?? artifact.tier).toLowerCase()}${compact ? " compact" : ""}`}
+      className={`specimen-visual theme-${definition.theme} rarity-${visualTier.toLowerCase()}${compact ? " compact" : ""}`}
       {...accessibility}
     >
       <img src={artifact.museumImage} alt="" draggable="false" />

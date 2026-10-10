@@ -284,20 +284,41 @@ describe("full shell application", () => {
     });
   });
 
+  it("stacks matching Museum artifacts and shows the owned count with one canonical rarity", () => {
+    const duplicates = ["old-common", "new-uncommon", "third-copy"].map((id, index) => ({
+      ...specimen,
+      id,
+      catalogItemId: "relic-fossil-choir",
+      tier: index === 0 ? ("COMMON" as const) : ("UNCOMMON" as const),
+      createdAtEpochMillis: index + 1,
+      revealedAtEpochMillis: index + 2,
+    }));
+    renderWithState({ ...baseState, museum: { specimens: duplicates } });
+    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
+
+    const cards = screen.getAllByRole("button", { name: /artifact from Relic Vault/i });
+    expect(cards).toHaveLength(1);
+    expect(within(cards[0]).getByText("3 owned")).toBeTruthy();
+    expect(within(cards[0]).getByText("Uncommon")).toBeTruthy();
+    expect(within(cards[0]).queryByText("Common")).toBeNull();
+  });
+
   it("uses an in-shell confirmation for irreversible combining", () => {
     const specimens = ["a", "b", "c"].map((id, index) => ({
       ...specimen,
       id,
+      catalogItemId: "relic-fossil-choir",
       createdAtEpochMillis: index + 1,
       revealedAtEpochMillis: index + 2,
     }));
     renderWithState({ ...baseState, museum: { specimens } });
     fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
-    fireEvent.click(screen.getAllByRole("button", { name: /artifact from Relic Vault/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /artifact from Relic Vault/i }));
     fireEvent.click(screen.getByRole("button", { name: "Combine three" }));
-    const cards = screen.getAllByRole("button", { name: /artifact from Relic Vault/i });
-    fireEvent.click(cards[1]);
-    fireEvent.click(cards[2]);
+    const stack = screen.getByRole("button", { name: /artifact from Relic Vault/i });
+    fireEvent.click(stack);
+    fireEvent.click(stack);
+    expect(within(stack).getByText("3 owned · 3 selected")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review" }));
     const dialog = screen.getByRole("dialog", { name: /restore these three/i });
     fireEvent.click(within(dialog).getByRole("button", { name: "Restore specimen" }));

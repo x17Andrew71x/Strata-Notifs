@@ -1,5 +1,6 @@
-const CACHE_NAME = "afterchime-shell-v12";
+const CACHE_NAME = "afterchime-shell-v13";
 const LEGACY_CACHE_NAMES = [
+  "afterchime-shell-v12",
   "afterchime-shell-v11",
   "afterchime-shell-v10",
   "afterchime-shell-v9",
