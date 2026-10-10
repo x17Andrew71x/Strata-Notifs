@@ -1112,26 +1112,26 @@ p {
 
 .specimen-card.rarity-common {
   --rarity-border: #a96f3d;
-  --rarity-glow-near: #bd7a3420;
-  --rarity-glow-far: #a763290d;
-  --rarity-glow-near-size: 7px;
-  --rarity-glow-far-size: 12px;
+  --rarity-glow-near: #bd7a3423;
+  --rarity-glow-far: #a7632911;
+  --rarity-glow-near-size: 8px;
+  --rarity-glow-far-size: 15px;
 }
 
 .specimen-card.rarity-uncommon {
   --rarity-border: #adb8c0;
-  --rarity-glow-near: #d0dae030;
-  --rarity-glow-far: #aebdc618;
-  --rarity-glow-near-size: 10px;
-  --rarity-glow-far-size: 20px;
+  --rarity-glow-near: #d0dae037;
+  --rarity-glow-far: #aebdc61e;
+  --rarity-glow-near-size: 13px;
+  --rarity-glow-far-size: 25px;
 }
 
 .specimen-card.rarity-rare {
   --rarity-border: #d9ad42;
-  --rarity-glow-near: #efc65b40;
-  --rarity-glow-far: #be812c20;
-  --rarity-glow-near-size: 14px;
-  --rarity-glow-far-size: 28px;
+  --rarity-glow-near: #efc65b49;
+  --rarity-glow-far: #be812c2a;
+  --rarity-glow-near-size: 18px;
+  --rarity-glow-far-size: 36px;
 }
 
 .specimen-card.selected {
@@ -1143,11 +1143,11 @@ p {
 .specimen-card .specimen-visual {
   justify-self: center;
   margin-bottom: 7px;
-  border-color: #303230;
+  border-color: #080808;
   border-width: 2px;
   box-shadow:
     0 12px 28px #000a,
-    inset 0 0 0 1px #ffffff0a;
+    inset 0 0 0 1px #000d;
 }
 
 .specimen-card strong,

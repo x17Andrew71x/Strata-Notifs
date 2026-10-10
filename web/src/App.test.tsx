@@ -25,7 +25,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v18"],
+    keys: async () => ["afterchime-shell-v19"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),

@@ -14,19 +14,19 @@ function declarationBlock(selector: string): string {
 describe("Museum rarity card styling", () => {
   it("keeps the rarity glow compact while preserving its low-medium-high ladder", () => {
     expect(declarationBlock(".specimen-card.rarity-common")).toContain(
-      "--rarity-glow-far-size: 12px",
+      "--rarity-glow-far-size: 15px",
     );
     expect(declarationBlock(".specimen-card.rarity-uncommon")).toContain(
-      "--rarity-glow-far-size: 20px",
+      "--rarity-glow-far-size: 25px",
     );
     expect(declarationBlock(".specimen-card.rarity-rare")).toContain(
-      "--rarity-glow-far-size: 28px",
+      "--rarity-glow-far-size: 36px",
     );
   });
 
   it("uses one neutral dark image frame for every Museum rarity", () => {
     const frame = declarationBlock(".specimen-card .specimen-visual");
-    expect(frame).toContain("border-color: #303230");
+    expect(frame).toContain("border-color: #080808");
     expect(frame).toContain("box-shadow:");
   });
 });
