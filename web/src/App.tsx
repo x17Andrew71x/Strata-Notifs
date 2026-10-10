@@ -906,16 +906,13 @@ function SpecimenDetail({
       <p className="eyebrow">{worldDefinition(world).name}</p>
       <h1 id="detail-title">{artifact.name}</h1>
       <div className="detail-card">
-        <SpecimenVisual specimen={specimen} world={world} displayTier={artifact.tier} />
+        <SpecimenVisual
+          specimen={specimen}
+          world={world}
+          displayTier={artifact.tier}
+          showCaption={false}
+        />
         <dl>
-          <div>
-            <dt>Artifact</dt>
-            <dd>{artifact.name}</dd>
-          </div>
-          <div>
-            <dt>Source pattern</dt>
-            <dd>{formatName(specimen.family)}</dd>
-          </div>
           <div>
             <dt>Rarity</dt>
             <dd>{formatName(artifact.tier)}</dd>
@@ -928,12 +925,6 @@ function SpecimenDetail({
                 : formatName(specimen.collectibleState)}
             </dd>
           </div>
-          {specimen.isLocked && (
-            <div>
-              <dt>Protection</dt>
-              <dd>Protected</dd>
-            </div>
-          )}
         </dl>
         <div className="action-row">
           <button type="button" className="secondary" onClick={() => onShare(specimen)}>
@@ -1241,12 +1232,14 @@ function SpecimenVisual({
   world = "PRIMEVAL_STRATA",
   decorative = false,
   compact = false,
+  showCaption = true,
   displayTier,
 }: {
   specimen?: ShellSpecimen;
   world?: World;
   decorative?: boolean;
   compact?: boolean;
+  showCaption?: boolean;
   displayTier?: Tier;
 }) {
   const artifact = specimen
@@ -1266,7 +1259,7 @@ function SpecimenVisual({
       {...accessibility}
     >
       <img src={artifact.museumImage} alt="" draggable="false" />
-      {!compact && <figcaption>{artifact.name}</figcaption>}
+      {!compact && showCaption && <figcaption>{artifact.name}</figcaption>}
     </figure>
   );
 }

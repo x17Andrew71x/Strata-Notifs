@@ -25,7 +25,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v15"],
+    keys: async () => ["afterchime-shell-v16"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -329,20 +329,31 @@ describe("full shell application", () => {
     expect(lastRequest()).toMatchObject({ version: 2, type: "formation.reveal" });
   });
 
-  it("navigates the Museum and controls a specimen through bridge actions", () => {
-    renderWithState({
+  it("keeps one fossil name and only rarity and sealed facts on the Museum detail", () => {
+    const { container } = renderWithState({
       ...baseState,
-      museum: { specimens: [{ ...specimen, revealedAtEpochMillis: 2 }] },
+      museum: {
+        specimens: [{ ...specimen, revealedAtEpochMillis: 2, isLocked: true }],
+      },
     });
     fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
     expect(screen.getByRole("heading", { name: "Vault" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Ribbed Jurassic Ammonite/i }));
+
     expect(screen.getByRole("heading", { name: "Ribbed Jurassic Ammonite" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Protect specimen" }));
+    expect(screen.getAllByText("Ribbed Jurassic Ammonite", { exact: true })).toHaveLength(1);
+    const detail = container.querySelector(".detail-card");
+    expect(detail).toBeTruthy();
+    expect(detail?.querySelector(".specimen-visual figcaption")).toBeNull();
+    expect(
+      Array.from(detail?.querySelectorAll("dt") ?? []).map((term) => term.textContent),
+    ).toEqual(["Rarity", "Sealed"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove protection" }));
     expect(lastRequest()).toMatchObject({
       version: 2,
       type: "museum.lock",
-      payload: { specimenId: specimen.id, locked: true },
+      payload: { specimenId: specimen.id, locked: false },
     });
   });
 
