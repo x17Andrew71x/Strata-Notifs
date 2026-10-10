@@ -1,5 +1,5 @@
 ---
-source: docs/art-direction/assets/source-relic-fossil-choir-excavation-5539fd0591ac.jpg
+source_asset: docs/art-direction/assets/relic-excavation-template.png
 output_role: fixed-excavation-template
 aspect: 1:1
 ---

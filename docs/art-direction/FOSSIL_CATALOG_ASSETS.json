@@ -1,0 +1,431 @@
+{
+  "version": 1,
+  "status": "approved-production-art",
+  "output": {
+    "format": "JPEG",
+    "width": 960,
+    "height": 960,
+    "quality": 86,
+    "subsampling": "4:2:0",
+    "progressive": true,
+    "exif": false,
+    "totalBytes": 8275478,
+    "maximumTotalBytes": 9437184
+  },
+  "counts": {
+    "common": 10,
+    "uncommon": 5,
+    "rare": 2,
+    "pairs": 34
+  },
+  "artifacts": [
+    {
+      "id": "relic-dactylioceras-ammonite",
+      "name": "Ribbed Jurassic Ammonite",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-dactylioceras-ammonite-master-chroma.png",
+        "sha256": "f7699bbea43a1bff62c8dd2522f4fd2bde0ff367a061e3e422c3ab9d237c46b4",
+        "bytes": 2753370
+      },
+      "museum": {
+        "path": "/worlds/relic-dactylioceras-ammonite-museum-07245dd61006.jpg",
+        "sha256": "07245dd61006beef5b88702362de4bdf54f02d5b561125c905ee040a3040224e",
+        "bytes": 155875,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-dactylioceras-ammonite-excavation-df9a1e512a2e.jpg",
+        "sha256": "df9a1e512a2ee212a741e2f1d6d84551b1a7282b92e51486c63dfa5d3f79a4f1",
+        "bytes": 331229,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-belemnite-rostra",
+      "name": "Belemnite Rostra",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-belemnite-rostra-master-chroma.png",
+        "sha256": "0e29721620c317b11767fc3ecc7964a0115f7a328757670495618d9ba6d6ed85",
+        "bytes": 2720255
+      },
+      "museum": {
+        "path": "/worlds/relic-belemnite-rostra-museum-266fa31b2823.jpg",
+        "sha256": "266fa31b2823dc779ec89d6d5d692951ea6ebcbdbe35ad8ed6d94e87f71bbfb2",
+        "bytes": 156205,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-belemnite-rostra-excavation-3cd7baaa3bd3.jpg",
+        "sha256": "3cd7baaa3bd334f5daabc72369f49c69db59b4baa39712dc58b90bb42cff4a70",
+        "bytes": 332727,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-spiriferid-brachiopod",
+      "name": "Spiriferid Brachiopod",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-spiriferid-brachiopod-master-chroma.png",
+        "sha256": "60872b5416bf303cd3bf9eb3a058e1d903a84263897cd49e6a9b1955f7e60c50",
+        "bytes": 2331615
+      },
+      "museum": {
+        "path": "/worlds/relic-spiriferid-brachiopod-museum-8599c160ed48.jpg",
+        "sha256": "8599c160ed4896c84c352d8eecd4320278288ef8b55c908eafb1bf1cc893fb97",
+        "bytes": 142284,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-spiriferid-brachiopod-excavation-3cbf83503874.jpg",
+        "sha256": "3cbf8350387413e8ad21f3eef645a1da3fa5002f4dd422f4948232a163e1e5d9",
+        "bytes": 331291,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-gryphaea-oyster",
+      "name": "Gryphaea Oyster",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-gryphaea-oyster-master-chroma.png",
+        "sha256": "7d24f6d7cfa94dd29703c6b7971d4eff5d0ac6bcb7ac689c87ab826eedbb7555",
+        "bytes": 2527915
+      },
+      "museum": {
+        "path": "/worlds/relic-gryphaea-oyster-museum-6b486d5a5ae9.jpg",
+        "sha256": "6b486d5a5ae9811367e263445951d0d3f9e53da74f4d3bc6b772f26d8e7fa129",
+        "bytes": 149165,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-gryphaea-oyster-excavation-9284358ae77c.jpg",
+        "sha256": "9284358ae77c6411948b4ff715b483e61b3ec6949f586922c6aa3b54cd541b58",
+        "bytes": 331090,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-crinoid-columnals",
+      "name": "Crinoid Columnals",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-crinoid-columnals-master-chroma.png",
+        "sha256": "bb06360f90e9f9a9815d4edc82b459e9688f20fc10c71ff2edbb21dcd6d22366",
+        "bytes": 2819422
+      },
+      "museum": {
+        "path": "/worlds/relic-crinoid-columnals-museum-a31486e257b8.jpg",
+        "sha256": "a31486e257b81d8606989ee663d7b8b0cb0a5c41022af7015dd63ab15f5ce807",
+        "bytes": 161938,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-crinoid-columnals-excavation-450ea7925a62.jpg",
+        "sha256": "450ea7925a6237c261c1569f25ea8380b7ea401c89130dd863fd7f9486286817",
+        "bytes": 332735,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-rugose-horn-coral",
+      "name": "Rugose Horn Coral",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-rugose-horn-coral-master-chroma.png",
+        "sha256": "55f2b56184927f23e8226ffdec10d4fad33f1ed39f062f145ed9eb7225d76400",
+        "bytes": 2217140
+      },
+      "museum": {
+        "path": "/worlds/relic-rugose-horn-coral-museum-e9636c0b7768.jpg",
+        "sha256": "e9636c0b7768eb7c99ab81e070e412885e27ace4e4003a4dfa9e9b0bd5005d38",
+        "bytes": 139697,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-rugose-horn-coral-excavation-a7106a236fb8.jpg",
+        "sha256": "a7106a236fb84c2f3320b0bc11c4044aba278467a92af99e663cc2d84f37b542",
+        "bytes": 330204,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-lamniform-shark-tooth",
+      "name": "Lamniform Shark Tooth",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-lamniform-shark-tooth-master-chroma.png",
+        "sha256": "cc164cb3b79243addd6e0097a688e42ee637988a3ee241de883c69918448e5b6",
+        "bytes": 2110465
+      },
+      "museum": {
+        "path": "/worlds/relic-lamniform-shark-tooth-museum-68e30be26fe3.jpg",
+        "sha256": "68e30be26fe3b790c498dd88fbac94c95eef1fc2d99c731123c905f1ae0114bd",
+        "bytes": 142781,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-lamniform-shark-tooth-excavation-8d15042e0105.jpg",
+        "sha256": "8d15042e01054005936b965746da531b538460af96e7cb55cc851aecdcba66c1",
+        "bytes": 336309,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-carbonised-fern-frond",
+      "name": "Carbonised Fern Frond",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-carbonised-fern-frond-master-chroma.png",
+        "sha256": "3d2354208a4a40dd7ce110b8524078c63c0edcbb1d1e32e5312c972534717e20",
+        "bytes": 2910569
+      },
+      "museum": {
+        "path": "/worlds/relic-carbonised-fern-frond-museum-8d3ae7438557.jpg",
+        "sha256": "8d3ae7438557e1b5556baeba7f8e7cefafa7a08dc66dca393417b4f89f5185b0",
+        "bytes": 151182,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-carbonised-fern-frond-excavation-152d3a6ffff1.jpg",
+        "sha256": "152d3a6ffff13a7811ae334b7277a202b5a8bf88c49bfda9523c03b545f01bf9",
+        "bytes": 328011,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-domal-stromatolite",
+      "name": "Domal Stromatolite",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-domal-stromatolite-master-chroma.png",
+        "sha256": "a08aac5babffe8c6d38520c23cc9a6f09fffdd28ed971eae81818c3e410f461f",
+        "bytes": 2697804
+      },
+      "museum": {
+        "path": "/worlds/relic-domal-stromatolite-museum-a7338bacd3fa.jpg",
+        "sha256": "a7338bacd3fa802438a6f979c65e09a3ee58aed560faef25df6989993ba51d97",
+        "bytes": 150784,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-domal-stromatolite-excavation-c5163e7036a4.jpg",
+        "sha256": "c5163e7036a4792251740dc2714f4496a65532606205a0a23aad93e7fdbab131",
+        "bytes": 328418,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-echinocorys-echinoid",
+      "name": "Chalk Echinoid",
+      "tier": "COMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-echinocorys-echinoid-master-chroma.png",
+        "sha256": "bcc85fe744dcea1f9ea0a3cf99f222921aef5d6566c9961f3d3f114de5842776",
+        "bytes": 2749777
+      },
+      "museum": {
+        "path": "/worlds/relic-echinocorys-echinoid-museum-d03bc3c73a92.jpg",
+        "sha256": "d03bc3c73a9222ee77e6086d804546a1c08424b0a2c4936ac878fd51280b1b3a",
+        "bytes": 153888,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-echinocorys-echinoid-excavation-e40eefb92545.jpg",
+        "sha256": "e40eefb92545eb35219567b2d7bf3fffa1e13a0e4388e59a6f9da8d86419ea0e",
+        "bytes": 334824,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-articulated-trilobite",
+      "name": "Articulated Trilobite",
+      "tier": "UNCOMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-articulated-trilobite-master-chroma.png",
+        "sha256": "288e4671622e3f144e5324908beeef42466b405981769b7a8a2dad74e469c9b7",
+        "bytes": 2877228
+      },
+      "museum": {
+        "path": "/worlds/relic-articulated-trilobite-museum-5d6a97612201.jpg",
+        "sha256": "5d6a97612201956b42e0b957d92100bbdecb27f59495a074f711798f3d55e61c",
+        "bytes": 156584,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-articulated-trilobite-excavation-727119dbe563.jpg",
+        "sha256": "727119dbe56344b5ec5eca31ebe4da8ae89f5dd1e03780b082e9c75412f2892f",
+        "bytes": 333920,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-articulated-fossil-fish",
+      "name": "Articulated Fossil Fish",
+      "tier": "UNCOMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-articulated-fossil-fish-master-chroma.png",
+        "sha256": "bb71355ca25fac31a90835b8e5d7b65dd30c810655c94bc4f32c71d5b63964ff",
+        "bytes": 2703136
+      },
+      "museum": {
+        "path": "/worlds/relic-articulated-fossil-fish-museum-2a21e3feb7da.jpg",
+        "sha256": "2a21e3feb7da6179070e38c503e87d85f044ccaab05acb6802bae4d4c9e6e186",
+        "bytes": 151091,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-articulated-fossil-fish-excavation-c9d7a358910a.jpg",
+        "sha256": "c9d7a358910a795bbc087564d6621decb2c95febe74b7e590f6d01ee66f12402",
+        "bytes": 334288,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-complete-starfish",
+      "name": "Complete Fossil Starfish",
+      "tier": "UNCOMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-complete-starfish-master-chroma.png",
+        "sha256": "cd30dc31a6383fa96e022c98a0f7d93dc579845229260f65a0f525a8b67b359c",
+        "bytes": 2929128
+      },
+      "museum": {
+        "path": "/worlds/relic-complete-starfish-museum-1734b61d2fa3.jpg",
+        "sha256": "1734b61d2fa30e172f58c4a0ae118a36e229947bce7a95d0751902c6d32b80c2",
+        "bytes": 161719,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-complete-starfish-excavation-e09cdf8b3af6.jpg",
+        "sha256": "e09cdf8b3af6f6a2c5c69064ce092f6c5ede8e232b13e0da0a1c65f0dfeb2839",
+        "bytes": 336743,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-articulated-fossil-crab",
+      "name": "Articulated Fossil Crab",
+      "tier": "UNCOMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-articulated-fossil-crab-master-chroma.png",
+        "sha256": "778551aacefedc676ecb14fccf128a9636ac7c298b24e632bad3551f8e2446f9",
+        "bytes": 3181564
+      },
+      "museum": {
+        "path": "/worlds/relic-articulated-fossil-crab-museum-ef7aed36704b.jpg",
+        "sha256": "ef7aed36704baf4c4c03f934a23a11c18eaafc18e69a8d1eb575531686f1b3f4",
+        "bytes": 162525,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-articulated-fossil-crab-excavation-a96dda0a68fe.jpg",
+        "sha256": "a96dda0a68fe5267b94f50dd2e64fb05f5d273e4057fc5b8f9290a03b365f92d",
+        "bytes": 335233,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-insect-amber",
+      "name": "Insect in Amber",
+      "tier": "UNCOMMON",
+      "master": {
+        "path": "docs/art-direction/assets/relic-insect-amber-master-chroma.png",
+        "sha256": "9bcb9a7d2c14b03bc5872945bc9b9ff1bf12ea0b8fb108cad94c30505162ac54",
+        "bytes": 2546462
+      },
+      "museum": {
+        "path": "/worlds/relic-insect-amber-museum-1c9d8be45749.jpg",
+        "sha256": "1c9d8be457496a2fd7cdae2b46f13b5414917764844480b7cabdc57d31b91da1",
+        "bytes": 156239,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-insect-amber-excavation-05f377832582.jpg",
+        "sha256": "05f37783258236479dc255f05d624d9d66b0d85b28f13a7d9c6816d2469a9821",
+        "bytes": 333961,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-dinosaur-embryo-egg",
+      "name": "Dinosaur Embryo in Egg",
+      "tier": "RARE",
+      "master": {
+        "path": "docs/art-direction/assets/relic-dinosaur-embryo-egg-master-chroma.png",
+        "sha256": "259fe765803c532b539f384442e442819385f6f2b44f15fca0c699fcad643f54",
+        "bytes": 2759789
+      },
+      "museum": {
+        "path": "/worlds/relic-dinosaur-embryo-egg-museum-bb49f06000bc.jpg",
+        "sha256": "bb49f06000bc20dcb864e9eb6e71992f566f3ce9f2ada821beb6b01b8f24a4e8",
+        "bytes": 167929,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-dinosaur-embryo-egg-excavation-84b7863fdbf4.jpg",
+        "sha256": "84b7863fdbf4e2e6de8e5e855577c129ab52645777a01b9f602b14d2d770d27b",
+        "bytes": 340029,
+        "width": 960,
+        "height": 960
+      }
+    },
+    {
+      "id": "relic-archaeopteryx-slab",
+      "name": "Archaeopteryx Slab",
+      "tier": "RARE",
+      "master": {
+        "path": "docs/art-direction/assets/relic-archaeopteryx-slab-master-chroma.png",
+        "sha256": "c1ecbfb2cd1700afc28128fa24ee891a53e08abcfaecf6ea2c1c9f84537d462f",
+        "bytes": 2962524
+      },
+      "museum": {
+        "path": "/worlds/relic-archaeopteryx-slab-museum-2f4084bf3ebb.jpg",
+        "sha256": "2f4084bf3ebb5106210472ca7eb4674fc378a8ebf07253e1390338097c8a4fcb",
+        "bytes": 159672,
+        "width": 960,
+        "height": 960
+      },
+      "excavation": {
+        "path": "/worlds/relic-archaeopteryx-slab-excavation-d5ae028c3a42.jpg",
+        "sha256": "d5ae028c3a422ecfc35cdff87f649ac31a05fd05bf430345f82dc64dc0e75cec",
+        "bytes": 324908,
+        "width": 960,
+        "height": 960
+      }
+    }
+  ]
+}

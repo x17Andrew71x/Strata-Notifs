@@ -3,6 +3,7 @@ package com.techfullymade.afterchime.domain
 import androidx.room.Room
 import com.techfullymade.afterchime.capture.CoarseNotificationCategory
 import com.techfullymade.afterchime.data.local.AfterchimeDatabase
+import com.techfullymade.afterchime.data.local.entity.DailyExcavationEntity
 import com.techfullymade.afterchime.data.local.entity.ReducedNotificationEntity
 import com.techfullymade.afterchime.gameplay.FossilCatalog
 import com.techfullymade.afterchime.gameplay.GameBalance
@@ -45,7 +46,7 @@ class DailyExcavationRepositoryTest {
     repository = LocalFormationRepository(
       database = database,
       clock = Clock.fixed(now, ZoneOffset.UTC),
-      selectDailyFossil = { FossilCatalog.find("relic-fossil-choir")!! },
+      selectDailyFossil = { FossilCatalog.find("relic-dactylioceras-ammonite")!! },
     )
   }
 
@@ -69,7 +70,7 @@ class DailyExcavationRepositoryTest {
     assertEquals(3, snapshot.eligibleNotificationCount)
     assertEquals(3, snapshot.energyEarned)
     assertEquals(GameBalance.ENERGY_PER_TILE, snapshot.energyAvailable)
-    assertEquals("relic-fossil-choir", snapshot.artifactId)
+    assertEquals("relic-dactylioceras-ammonite", snapshot.artifactId)
   }
 
   @Test
@@ -121,9 +122,38 @@ class DailyExcavationRepositoryTest {
     assertTrue(excavation.completed)
     assertEquals(GameBalance.EXCAVATION_TILE_COUNT, excavation.dugTiles.size)
     assertNotNull(snapshot.sealedSpecimen)
-    assertEquals("relic-fossil-choir", snapshot.sealedSpecimen?.catalogItemId)
+    assertEquals("relic-dactylioceras-ammonite", snapshot.sealedSpecimen?.catalogItemId)
     assertEquals(now.plusSeconds(24).toEpochMilli(), snapshot.sealedSpecimen?.revealedAtEpochMillis)
     assertEquals(1, database.inventoryItemDao().observeAllActive().first().size)
+  }
+
+  @Test
+  fun `an unfinished fictional fossil completes as its canonical replacement`() = runBlocking {
+    database.dailyExcavationDao().insertIfAbsent(
+      DailyExcavationEntity(
+        localDate = localDate.toString(),
+        artifactId = "relic-fossil-choir",
+        dugMask = (1L shl (GameBalance.EXCAVATION_TILE_COUNT - 1)) - 1L,
+        createdAtEpochMillis = now.toEpochMilli(),
+        completedAtEpochMillis = null,
+        specimenId = null,
+      ),
+    )
+    repeat(GameBalance.EXCAVATION_TOTAL_ENERGY) { index ->
+      insertNotification("legacy-event-$index", index.toString(16).padStart(64, '0'), now.toEpochMilli())
+    }
+
+    val result = repository.dig(
+      localDate,
+      GameBalance.EXCAVATION_TILE_COUNT - 1,
+      now.plusSeconds(30).toEpochMilli(),
+    )
+
+    assertTrue(result is DigResult.Completed)
+    assertEquals(
+      "relic-dactylioceras-ammonite",
+      repository.observe(localDate).first().sealedSpecimen?.catalogItemId,
+    )
   }
 
   private suspend fun insertNotification(id: String, sourceToken: String, occurredAtEpochMillis: Long) {

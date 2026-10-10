@@ -1,7 +1,16 @@
+import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { artifactFor, WORLD_ASSET_PATHS, WORLD_DEFINITIONS, worldDefinition } from "./worlds";
+import {
+  artifactById,
+  artifactFor,
+  LEGACY_RELIC_ARTIFACT_ALIASES,
+  RELIC_VAULT_ARTIFACTS,
+  WORLD_ASSET_PATHS,
+  WORLD_DEFINITIONS,
+  worldDefinition,
+} from "./worlds";
 
 describe("authored world catalogue", () => {
   it("exposes only the four approved worlds with Relic Vault as the baseline", () => {
@@ -13,19 +22,36 @@ describe("authored world catalogue", () => {
     ]);
   });
 
-  it("keeps exactly three unique authored artifacts in every world", () => {
-    for (const world of WORLD_DEFINITIONS) {
+  it("publishes the approved 10 common, 5 uncommon and 2 rare Relic Vault fossils", () => {
+    expect(RELIC_VAULT_ARTIFACTS).toHaveLength(17);
+    expect(RELIC_VAULT_ARTIFACTS.filter(({ tier }) => tier === "COMMON")).toHaveLength(10);
+    expect(RELIC_VAULT_ARTIFACTS.filter(({ tier }) => tier === "UNCOMMON")).toHaveLength(5);
+    expect(RELIC_VAULT_ARTIFACTS.filter(({ tier }) => tier === "RARE")).toHaveLength(2);
+    expect(new Set(RELIC_VAULT_ARTIFACTS.map(({ id }) => id))).toHaveLength(17);
+    expect(new Set(RELIC_VAULT_ARTIFACTS.map(({ name }) => name))).toHaveLength(17);
+    expect(
+      RELIC_VAULT_ARTIFACTS.every(
+        ({ museumImage, excavationImage }) => String(museumImage) !== String(excavationImage),
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps three unique authored artifacts in each cosmetic world", () => {
+    for (const world of WORLD_DEFINITIONS.slice(1)) {
       expect(world.artifacts).toHaveLength(3);
       expect(new Set(world.artifacts.map((artifact) => artifact.name))).toHaveLength(3);
       expect(new Set(world.artifacts.map((artifact) => artifact.museumImage))).toHaveLength(3);
       expect(new Set(world.artifacts.map((artifact) => artifact.id))).toHaveLength(3);
     }
-    expect(WORLD_ASSET_PATHS).toHaveLength(15);
-    expect(new Set(WORLD_ASSET_PATHS)).toHaveLength(15);
-    const relic = worldDefinition("PRIMEVAL_STRATA");
-    expect(
-      relic.artifacts.every((artifact) => artifact.museumImage !== artifact.excavationImage),
-    ).toBe(true);
+    expect(WORLD_ASSET_PATHS).toHaveLength(43);
+    expect(new Set(WORLD_ASSET_PATHS)).toHaveLength(43);
+  });
+
+  it("maps retired fictional fossil ids onto canonical research-backed identities", () => {
+    for (const [legacyId, canonicalId] of Object.entries(LEGACY_RELIC_ARTIFACT_ALIASES)) {
+      expect(artifactById(legacyId)).toBe(artifactById(canonicalId));
+      expect(artifactById(legacyId)?.id).toBe(canonicalId);
+    }
   });
 
   it("assigns a stable artifact and never escapes the selected world", () => {
@@ -46,15 +72,51 @@ describe("authored world catalogue", () => {
     );
   });
 
-  it("keeps the exact artwork inventory present and offline-authorized", async () => {
+  it("keeps the exact quality-bounded content-addressed artwork inventory offline-authorized", async () => {
     const publicRoot = path.resolve(process.cwd(), "public");
     const files = (await readdir(path.join(publicRoot, "worlds"))).sort();
     expect(files).toEqual(WORLD_ASSET_PATHS.map((asset) => path.basename(asset)).sort());
 
+    const manifest = JSON.parse(
+      await readFile(
+        path.resolve(process.cwd(), "../docs/art-direction/FOSSIL_CATALOG_ASSETS.json"),
+        "utf8",
+      ),
+    ) as {
+      output: { width: number; height: number; quality: number; totalBytes: number };
+      artifacts: Array<{
+        museum: { path: string; bytes: number };
+        excavation: { path: string; bytes: number };
+      }>;
+    };
+    expect(manifest.output).toMatchObject({ width: 960, height: 960, quality: 86 });
+    expect(manifest.output.totalBytes).toBeLessThanOrEqual(9 * 1024 * 1024);
+    expect(
+      manifest.artifacts.flatMap(({ museum, excavation }) => [museum.path, excavation.path]).sort(),
+    ).toEqual(
+      RELIC_VAULT_ARTIFACTS.flatMap(({ museumImage, excavationImage }) => [
+        museumImage,
+        excavationImage,
+      ]).sort(),
+    );
+    expect(
+      manifest.artifacts.reduce(
+        (total, { museum, excavation }) => total + museum.bytes + excavation.bytes,
+        0,
+      ),
+    ).toBe(manifest.output.totalBytes);
+
     const worker = await readFile(path.join(publicRoot, "service-worker.js"), "utf8");
     for (const asset of WORLD_ASSET_PATHS) {
       expect(worker).toContain(`"${asset}"`);
-      expect((await readFile(path.join(publicRoot, asset))).byteLength).toBeGreaterThan(100_000);
+      const bytes = await readFile(path.join(publicRoot, asset));
+      expect(bytes.byteLength).toBeGreaterThanOrEqual(120_000);
+      expect(bytes.byteLength).toBeLessThanOrEqual(420_000);
+      const expectedPrefix = path.basename(asset).match(/-([a-f0-9]{12})\.jpg$/)?.[1];
+      expect(expectedPrefix).toBeTruthy();
+      expect(createHash("sha256").update(bytes).digest("hex")).toMatch(
+        new RegExp(`^${expectedPrefix}`),
+      );
     }
   });
 });

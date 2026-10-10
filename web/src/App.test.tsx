@@ -132,7 +132,7 @@ describe("full shell application", () => {
       today: {
         ...baseState.today,
         excavation: {
-          artifactId: "relic-fossil-choir",
+          artifactId: "relic-dactylioceras-ammonite",
           capturedNotificationCount: 8,
           eligibleNotificationCount: 6,
           energyPerNotification: 1,
@@ -154,7 +154,7 @@ describe("full shell application", () => {
     expect(screen.getByText(/8 captured · 6 energy earned · 3 per tile/i)).toBeTruthy();
     expect(container.querySelector(".excavation-artifact")).toHaveAttribute(
       "src",
-      "/worlds/relic-fossil-choir-excavation-fb847346a7cf.jpg",
+      "/worlds/relic-dactylioceras-ammonite-excavation-df9a1e512a2e.jpg",
     );
     expect(container.querySelectorAll(".excavation-tile")).toHaveLength(25);
     expect(container.querySelectorAll(".excavation-tile.dug")).toHaveLength(1);
@@ -180,7 +180,7 @@ describe("full shell application", () => {
     expect(retryImage).not.toBe(firstImage);
     expect(retryImage).toHaveAttribute(
       "src",
-      "/worlds/relic-fossil-choir-excavation-fb847346a7cf.jpg",
+      "/worlds/relic-dactylioceras-ammonite-excavation-df9a1e512a2e.jpg",
     );
     fireEvent.load(retryImage as HTMLImageElement);
     expect(retryImage).toHaveClass("is-loaded");
@@ -213,12 +213,12 @@ describe("full shell application", () => {
         ...baseState.today,
         specimen: {
           ...specimen,
-          catalogItemId: "relic-abyssal-glass",
+          catalogItemId: "relic-dinosaur-embryo-egg",
           tier: "RARE",
           revealedAtEpochMillis: 25,
         },
         excavation: {
-          artifactId: "relic-abyssal-glass",
+          artifactId: "relic-dinosaur-embryo-egg",
           capturedNotificationCount: 80,
           eligibleNotificationCount: 75,
           energyPerNotification: 1,
@@ -237,7 +237,7 @@ describe("full shell application", () => {
         specimens: [
           {
             ...specimen,
-            catalogItemId: "relic-abyssal-glass",
+            catalogItemId: "relic-dinosaur-embryo-egg",
             tier: "RARE",
             revealedAtEpochMillis: 25,
           },
@@ -249,7 +249,7 @@ describe("full shell application", () => {
     expect(container.querySelector(".specimen-visual")).toHaveClass("rarity-rare");
     expect(container.querySelector(".specimen-visual img")).toHaveAttribute(
       "src",
-      "/worlds/relic-abyssal-glass-museum-f65a8e00a8e4.jpg",
+      "/worlds/relic-dinosaur-embryo-egg-museum-bb49f06000bc.jpg",
     );
   });
 
@@ -274,8 +274,8 @@ describe("full shell application", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
     expect(screen.getByRole("heading", { name: "Vault" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Fossil Choir/i }));
-    expect(screen.getByRole("heading", { name: "Fossil Choir" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Ribbed Jurassic Ammonite/i }));
+    expect(screen.getByRole("heading", { name: "Ribbed Jurassic Ammonite" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Protect specimen" }));
     expect(lastRequest()).toMatchObject({
       version: 2,
@@ -288,7 +288,7 @@ describe("full shell application", () => {
     const duplicates = ["old-common", "new-uncommon", "third-copy"].map((id, index) => ({
       ...specimen,
       id,
-      catalogItemId: "relic-fossil-choir",
+      catalogItemId: "relic-dactylioceras-ammonite",
       tier: index === 0 ? ("COMMON" as const) : ("UNCOMMON" as const),
       createdAtEpochMillis: index + 1,
       revealedAtEpochMillis: index + 2,
@@ -299,15 +299,15 @@ describe("full shell application", () => {
     const cards = screen.getAllByRole("button", { name: /artifact from Relic Vault/i });
     expect(cards).toHaveLength(1);
     expect(within(cards[0]).getByText("3 owned")).toBeTruthy();
-    expect(within(cards[0]).getByText("Uncommon")).toBeTruthy();
-    expect(within(cards[0]).queryByText("Common")).toBeNull();
+    expect(within(cards[0]).getByText("Common")).toBeTruthy();
+    expect(within(cards[0]).queryByText("Uncommon")).toBeNull();
   });
 
   it("uses an in-shell confirmation for irreversible combining", () => {
     const specimens = ["a", "b", "c"].map((id, index) => ({
       ...specimen,
       id,
-      catalogItemId: "relic-fossil-choir",
+      catalogItemId: "relic-dactylioceras-ammonite",
       createdAtEpochMillis: index + 1,
       revealedAtEpochMillis: index + 2,
     }));
@@ -379,7 +379,7 @@ describe("full shell application", () => {
       screen.queryByText(/Primeval Strata|Deep Space|Botanical Archive|The Abyss/i),
     ).toBeNull();
     expect(screen.getAllByRole("button", { name: "Unlock for testing" })).toHaveLength(3);
-    expect(screen.getByText("Fossil Choir")).toBeTruthy();
+    expect(screen.getByText("Ribbed Jurassic Ammonite")).toBeTruthy();
     expect(screen.getByText("Tidal Archive")).toBeTruthy();
     expect(screen.getByText("Pelagic Channel")).toBeTruthy();
     expect(screen.getByText("Hollow Range")).toBeTruthy();
@@ -460,7 +460,7 @@ function excavationState(
     today: {
       ...baseState.today,
       excavation: {
-        artifactId: "relic-fossil-choir",
+        artifactId: "relic-dactylioceras-ammonite",
         capturedNotificationCount: 8,
         eligibleNotificationCount: 6,
         energyPerNotification: 1,
@@ -481,6 +481,7 @@ function excavationState(
 
 const specimen = {
   id: "specimen_1",
+  catalogItemId: "relic-dactylioceras-ammonite",
   anchoredLocalDate: "2026-10-06",
   generatorVersion: 1,
   createdAtEpochMillis: 1,
@@ -489,7 +490,7 @@ const specimen = {
   collectibleState: "ORDINARY" as const,
   provenanceCount: 1,
   family: "AMMONITE",
-  tier: "UNCOMMON" as const,
+  tier: "COMMON" as const,
   visual: {
     hueDegrees: 42,
     strataCount: 7,

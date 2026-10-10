@@ -28,49 +28,34 @@ data class FossilCatalogItem(
 
 object FossilCatalog {
   /**
-   * Initial deliberately generous tuning: 60% common, 30% medium, 10% rare.
-   * Every future item owns its own weight; review the complete total whenever the list changes.
+   * Research-backed initial tuning: 86% common, 12% uncommon, 2% rare.
+   * Equal weights within each tier keep the approved launch set unbiased.
    */
   val items: List<FossilCatalogItem> = listOf(
-    FossilCatalogItem(
-      id = "relic-lunar-ash",
-      tier = Tier.COMMON,
-      selectionWeight = 60,
-      family = Family.METEORITE_FRAGMENT,
-      visual = VisualParameters(
-        hueDegrees = 35,
-        strataCount = 6,
-        inclusionDensityPercent = 24,
-        reliefPercent = 42,
-        rotationDegrees = 18,
-      ),
-    ),
-    FossilCatalogItem(
-      id = "relic-fossil-choir",
-      tier = Tier.UNCOMMON,
-      selectionWeight = 30,
-      family = Family.AMMONITE,
-      visual = VisualParameters(
-        hueDegrees = 34,
-        strataCount = 9,
-        inclusionDensityPercent = 52,
-        reliefPercent = 68,
-        rotationDegrees = 8,
-      ),
-    ),
-    FossilCatalogItem(
-      id = "relic-abyssal-glass",
-      tier = Tier.RARE,
-      selectionWeight = 10,
-      family = Family.AMMONITE,
-      visual = VisualParameters(
-        hueDegrees = 198,
-        strataCount = 12,
-        inclusionDensityPercent = 78,
-        reliefPercent = 88,
-        rotationDegrees = 23,
-      ),
-    ),
+    fossil("relic-dactylioceras-ammonite", Tier.COMMON, 86, Family.AMMONITE, 32, 8, 30, 50, 0),
+    fossil("relic-belemnite-rostra", Tier.COMMON, 86, Family.BELEMNITE, 36, 6, 28, 44, 8),
+    fossil("relic-spiriferid-brachiopod", Tier.COMMON, 86, Family.BRACHIOPOD, 30, 7, 32, 48, 0),
+    fossil("relic-gryphaea-oyster", Tier.COMMON, 86, Family.BIVALVE, 28, 6, 34, 52, 14),
+    fossil("relic-crinoid-columnals", Tier.COMMON, 86, Family.CRINOID, 34, 9, 38, 55, 0),
+    fossil("relic-rugose-horn-coral", Tier.COMMON, 86, Family.CORAL, 26, 8, 36, 58, 22),
+    fossil("relic-lamniform-shark-tooth", Tier.COMMON, 86, Family.SHARK_TOOTH, 24, 5, 30, 50, 0),
+    fossil("relic-carbonised-fern-frond", Tier.COMMON, 86, Family.FERN_IMPRINT, 30, 10, 42, 46, 0),
+    fossil("relic-domal-stromatolite", Tier.COMMON, 86, Family.STROMATOLITE, 32, 12, 40, 54, 0),
+    fossil("relic-echinocorys-echinoid", Tier.COMMON, 86, Family.ECHINOID, 38, 8, 34, 52, 0),
+    fossil("relic-articulated-trilobite", Tier.UNCOMMON, 24, Family.TRILOBITE, 28, 10, 52, 70, 0),
+    fossil("relic-articulated-fossil-fish", Tier.UNCOMMON, 24, Family.FISH, 30, 12, 56, 74, 0),
+    fossil("relic-complete-starfish", Tier.UNCOMMON, 24, Family.STARFISH, 34, 10, 58, 72, 0),
+    fossil("relic-articulated-fossil-crab", Tier.UNCOMMON, 24, Family.CRAB, 28, 11, 60, 76, 0),
+    fossil("relic-insect-amber", Tier.UNCOMMON, 24, Family.AMBER, 38, 9, 62, 70, 0),
+    fossil("relic-dinosaur-embryo-egg", Tier.RARE, 10, Family.DINOSAUR_EMBRYO, 24, 13, 72, 88, 0),
+    fossil("relic-archaeopteryx-slab", Tier.RARE, 10, Family.ARCHAEOPTERYX, 32, 14, 76, 92, 0),
+  )
+
+  private val itemById = items.associateBy(FossilCatalogItem::id)
+  private val legacyAliases = mapOf(
+    "relic-fossil-choir" to "relic-dactylioceras-ammonite",
+    "relic-lunar-ash" to "relic-domal-stromatolite",
+    "relic-abyssal-glass" to "relic-dinosaur-embryo-egg",
   )
 
   val totalSelectionWeight: Int = items.sumOf(FossilCatalogItem::selectionWeight)
@@ -78,9 +63,11 @@ object FossilCatalog {
   init {
     require(items.map(FossilCatalogItem::id).toSet().size == items.size)
     require(totalSelectionWeight > 0)
+    require(legacyAliases.keys.none(itemById::containsKey))
+    require(legacyAliases.values.all(itemById::containsKey))
   }
 
-  fun find(id: String): FossilCatalogItem? = items.firstOrNull { item -> item.id == id }
+  fun find(id: String): FossilCatalogItem? = itemById[id] ?: legacyAliases[id]?.let(itemById::get)
 
   fun selectByTicket(ticket: Int): FossilCatalogItem {
     require(ticket in 0 until totalSelectionWeight)
@@ -111,8 +98,36 @@ object FossilCatalog {
 
   fun itemForSpecimenId(specimenId: String): FossilCatalogItem? =
     items.firstOrNull { item -> specimenId.endsWith("-${item.id}") }
+      ?: legacyAliases.entries
+        .firstOrNull { alias -> specimenId.endsWith("-${alias.key}") }
+        ?.value
+        ?.let(itemById::get)
+
+  private fun fossil(
+    id: String,
+    tier: Tier,
+    selectionWeight: Int,
+    family: Family,
+    hueDegrees: Int,
+    strataCount: Int,
+    inclusionDensityPercent: Int,
+    reliefPercent: Int,
+    rotationDegrees: Int,
+  ): FossilCatalogItem = FossilCatalogItem(
+    id = id,
+    tier = tier,
+    selectionWeight = selectionWeight,
+    family = family,
+    visual = VisualParameters(
+      hueDegrees = hueDegrees,
+      strataCount = strataCount,
+      inclusionDensityPercent = inclusionDensityPercent,
+      reliefPercent = reliefPercent,
+      rotationDegrees = rotationDegrees,
+    ),
+  )
 
   private const val LOCAL_SECRET_BYTES = 32
   private const val BYTE_MASK = 0xffL
-  private val DAILY_FOSSIL_DOMAIN = "afterchime:daily-fossil:v1\u0000".toByteArray(UTF_8)
+  private val DAILY_FOSSIL_DOMAIN = "afterchime:daily-fossil:v2\u0000".toByteArray(UTF_8)
 }

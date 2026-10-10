@@ -1,5 +1,5 @@
 ---
-source: docs/art-direction/assets/source-relic-fossil-choir-a885cad842a6.jpg
+source_asset: docs/art-direction/assets/relic-museum-template.png
 output_role: fixed-museum-template
 aspect: 1:1
 ---

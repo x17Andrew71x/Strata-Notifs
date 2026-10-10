@@ -155,7 +155,7 @@ Energy eligibility may use only event time and the device-local pseudonymous sou
 - Notification count never influences rarity or fossil identity.
 - Repeated events from one source inside the configured rolling cooldown earn no energy.
 - Every gameplay number—energy earned, tile cost, grid dimensions and cooldown—lives in the central balance constants; item rarity is tuned through per-item catalogue weights.
-- The initial launch-set weights are Lunar Ash 60, Fossil Choir 30 and Abyssal Glass 10. These are starting values for feasibility testing, not a permanent economy.
+- The approved 17-fossil catalogue uses an 86% common, 12% uncommon and 2% rare tier distribution, with equal item weights inside each tier.
 - A paid world uses the same underlying specimen class and rarity as the free world.
 - Changing device time, replaying sync or reinstalling must not create duplicate ordinary rewards.
 

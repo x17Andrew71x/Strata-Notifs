@@ -1,0 +1,13 @@
+.git
+.github
+.hermes
+.ruff_cache
+android
+docs
+**/node_modules
+**/dist
+**/build
+**/.gradle
+**/.kotlin
+*.apk
+*.zip

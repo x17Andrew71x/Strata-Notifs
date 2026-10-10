@@ -8,7 +8,7 @@ Every collectible is produced from **one fossil master** and two fixed scene tem
 - `docs/art-direction/assets/relic-museum-template.png` — immutable front-facing black-stone Museum case and pedestal.
 - `docs/art-direction/assets/relic-excavation-template.png` — immutable top-down dark earthen excavation tray.
 
-The saved prompt beside each master is its reproducibility record. A generated checkerboard is not transparency; require the uniform chroma master so removal is deterministic.
+`FOSSIL_CATALOG_GENERATION.json` records the accepted generation request and treatment, while `FOSSIL_CATALOG_ASSETS.json` records every approved master and output digest. A generated checkerboard is not transparency; require the uniform chroma master so removal is deterministic.
 
 ## Deterministic composition
 
@@ -34,17 +34,15 @@ Before promotion, inspect both outputs together, hash the accepted bytes into th
 
 - One isolated physical specimen, centred, orthographic/front-facing enough to work in both scenes.
 - No scenic background, frame, text, labels, glass, hands, tools, people, baked shadow, or checkerboard.
-- Common: recognisable natural material, modest silhouette, restrained colour and sparkle.
-- Uncommon/medium: stronger silhouette, richer mineral detail, one memorable feature.
-- Rare: immediate visual surprise, exceptional material or preservation, richer internal light and detail without becoming gaudy.
+- Common: recognisable natural material with visibly adhered dry-earth clumps, grit or smears; faded, matte and low-saturation rather than merely recoloured brown.
+- Uncommon/medium: stronger anatomical completeness, still weathered and dusty, with modestly clearer detail than common.
+- Rare: exceptional preservation and meticulous preparation with controlled museum-natural colour; never oversaturated or jewel-like.
 - Exceptional and singular: reserve unmistakable one-off geometry/material phenomena; do not achieve rarity merely by adding glow.
 
-## Initial launch set
+## Approved production set
 
-The three launch pairs were rendered from their saved chroma masters through the fixed templates above:
+The first production catalogue contains 17 paired fossils: 10 common, 5 uncommon and 2 rare. Exact IDs, source-master hashes, output hashes, dimensions and byte sizes live in `FOSSIL_CATALOG_ASSETS.json`; scientific rationale and guardrails live in `FOSSIL_CATALOG_RESEARCH.md`.
 
-- `relic-lunar-ash`: common, selection weight 60.
-- `relic-fossil-choir`: uncommon/medium, selection weight 30.
-- `relic-abyssal-glass`: rare, selection weight 10.
+Production exports are 960×960 progressive JPEGs at quality 86 with explicit 4:2:0 subsampling and no EXIF. That resolution preserves more than 2.5 source pixels per CSS pixel across the 360px WebView surface, while the complete 34-image Relic Vault catalogue is capped below 9 MiB.
 
-These are tuning values in `FossilCatalog.kt`, not hard-coded probability branches. Adding an item changes the total and therefore requires reviewing every item's weight.
+Run `python3 scripts/promote_fossil_catalog_assets.py` after an approved master changes. The script renders both fixed scenes, enforces geometry and byte budgets, writes content-addressed filenames, removes retired `relic-*.jpg` exports and refreshes `FOSSIL_CATALOG_ASSETS.json`. Catalogue code and the service-worker manifest must then be updated to those exact paths and verified by tests.

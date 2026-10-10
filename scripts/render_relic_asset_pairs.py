@@ -26,7 +26,10 @@ SHADOW_OPACITY = 105
 CHROMA_MIN_GREEN = 100
 CHROMA_DOMINANCE_START = 32
 CHROMA_DOMINANCE_RANGE = 82
-JPEG_QUALITY = 90
+# 960 px is sufficient for the 360 px WebView surface at >2.5 device pixels per CSS pixel.
+# Quality 86 preserves fine fossil edges while keeping the complete 34-image catalogue bounded.
+JPEG_QUALITY = 86
+JPEG_SUBSAMPLING = 2
 
 
 def parse_args() -> argparse.Namespace:
@@ -128,7 +131,15 @@ def main() -> None:
         ),
     }
     for path, image in outputs.items():
-        image.save(path, "JPEG", quality=JPEG_QUALITY, optimize=True, progressive=True, exif=b"")
+        image.save(
+            path,
+            "JPEG",
+            quality=JPEG_QUALITY,
+            subsampling=JPEG_SUBSAMPLING,
+            optimize=True,
+            progressive=True,
+            exif=b"",
+        )
         print(path)
 
 

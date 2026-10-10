@@ -8,26 +8,51 @@ import org.junit.Test
 
 class FossilCatalogTest {
   @Test
-  fun `initial weights are individually tunable and total one hundred`() {
-    assertEquals(
-      listOf(
-        Triple("relic-lunar-ash", Tier.COMMON, 60),
-        Triple("relic-fossil-choir", Tier.UNCOMMON, 30),
-        Triple("relic-abyssal-glass", Tier.RARE, 10),
-      ),
-      FossilCatalog.items.map { item -> Triple(item.id, item.tier, item.selectionWeight) },
-    )
-    assertEquals(100, FossilCatalog.totalSelectionWeight)
+  fun `approved catalogue has ten common five uncommon and two rare fossils`() {
+    assertEquals(17, FossilCatalog.items.size)
+    assertEquals(10, FossilCatalog.items.count { item -> item.tier == Tier.COMMON })
+    assertEquals(5, FossilCatalog.items.count { item -> item.tier == Tier.UNCOMMON })
+    assertEquals(2, FossilCatalog.items.count { item -> item.tier == Tier.RARE })
+    assertEquals(17, FossilCatalog.items.map { item -> item.id }.toSet().size)
   }
 
   @Test
-  fun `weighted ticket boundaries select the configured item`() {
-    assertEquals("relic-lunar-ash", FossilCatalog.selectByTicket(0).id)
-    assertEquals("relic-lunar-ash", FossilCatalog.selectByTicket(59).id)
-    assertEquals("relic-fossil-choir", FossilCatalog.selectByTicket(60).id)
-    assertEquals("relic-fossil-choir", FossilCatalog.selectByTicket(89).id)
-    assertEquals("relic-abyssal-glass", FossilCatalog.selectByTicket(90).id)
-    assertEquals("relic-abyssal-glass", FossilCatalog.selectByTicket(99).id)
+  fun `tier weights total eighty six twelve and two percent`() {
+    assertEquals(1_000, FossilCatalog.totalSelectionWeight)
+    assertEquals(
+      mapOf(Tier.COMMON to 860, Tier.UNCOMMON to 120, Tier.RARE to 20),
+      FossilCatalog.items.groupBy { item -> item.tier }
+        .mapValues { (_, items) -> items.sumOf { item -> item.selectionWeight } },
+    )
+    assertEquals(setOf(86), FossilCatalog.items.filter { item -> item.tier == Tier.COMMON }.map { item -> item.selectionWeight }.toSet())
+    assertEquals(setOf(24), FossilCatalog.items.filter { item -> item.tier == Tier.UNCOMMON }.map { item -> item.selectionWeight }.toSet())
+    assertEquals(setOf(10), FossilCatalog.items.filter { item -> item.tier == Tier.RARE }.map { item -> item.selectionWeight }.toSet())
+  }
+
+  @Test
+  fun `weighted ticket boundaries select the configured tiers`() {
+    assertEquals("relic-dactylioceras-ammonite", FossilCatalog.selectByTicket(0).id)
+    assertEquals("relic-echinocorys-echinoid", FossilCatalog.selectByTicket(859).id)
+    assertEquals("relic-articulated-trilobite", FossilCatalog.selectByTicket(860).id)
+    assertEquals("relic-insect-amber", FossilCatalog.selectByTicket(979).id)
+    assertEquals("relic-dinosaur-embryo-egg", FossilCatalog.selectByTicket(980).id)
+    assertEquals("relic-archaeopteryx-slab", FossilCatalog.selectByTicket(999).id)
+  }
+
+  @Test
+  fun `retired fictional ids resolve to canonical fossils for unfinished and museum records`() {
+    assertEquals(
+      "relic-dactylioceras-ammonite",
+      FossilCatalog.find("relic-fossil-choir")?.id,
+    )
+    assertEquals(
+      "relic-domal-stromatolite",
+      FossilCatalog.itemForSpecimenId("excavation-20261009-relic-lunar-ash")?.id,
+    )
+    assertEquals(
+      "relic-dinosaur-embryo-egg",
+      FossilCatalog.itemForSpecimenId("excavation-20261009-relic-abyssal-glass")?.id,
+    )
   }
 
   @Test

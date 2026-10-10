@@ -65,7 +65,7 @@ class DailyExcavationDaoTest {
     val localDate = LocalDate.parse("2026-10-09")
     val entity = DailyExcavationEntity(
       localDate = localDate.toString(),
-      artifactId = "relic-lunar-ash",
+      artifactId = "relic-domal-stromatolite",
       dugMask = 1L shl 7,
       createdAtEpochMillis = 10L,
       completedAtEpochMillis = null,

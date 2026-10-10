@@ -1,6 +1,6 @@
 # Relic Vault fossil catalogue research
 
-Status: research and approval candidate only. None of the 17 fossils below is approved for the production catalogue yet.
+Status: approved for production on 2026-10-10. The official catalogue uses the 17 fossils below.
 
 Research date: 2026-10-09
 
@@ -8,7 +8,7 @@ Research date: 2026-10-09
 
 Replace the three invented Relic Vault fossils with a broad, recognisable and semi-realistic fossil catalogue. The visual reward should come from authentic anatomy, preservation quality and mineral character—not from assigning different rarity labels to the same picture.
 
-The proposed first catalogue contains exactly:
+The approved first catalogue contains exactly:
 
 - 10 common fossils
 - 5 uncommon fossils
@@ -24,7 +24,7 @@ This is a game-facing preservation tier, not a price guide and not a claim that 
 - Local geology matters. A fossil common in one formation can be absent elsewhere; these tiers are deliberately broad rather than pretending to be global occurrence statistics.
 - The catalogue should never assign two rarities to one unchanged asset. Rarity belongs to the catalogue item and its fixed paired artwork.
 
-## Proposed catalogue
+## Approved catalogue
 
 ### Common — 10
 
@@ -191,18 +191,18 @@ This is a game-facing preservation tier, not a price guide and not a claim that 
 - **Complete crinoid crown:** scientifically strong as an uncommon preservation state, but it would duplicate the crinoid identity already represented by common stem columnals.
 - **Megalodon tooth:** visually impressive but too easy to make every shark-tooth reward feel oversized; the initial common item should establish a more ordinary baseline.
 
-## Distribution guidance
+## Distribution
 
-The requested 10/5/2 catalogue is a content mix, not itself a probability table. Item weights remain individually tunable in `FossilCatalog.kt` after approval.
+The 10/5/2 catalogue is a content mix, not itself a probability table. Item weights remain individually tunable in `FossilCatalog.kt`.
 
-Recommended initial roll behaviour for later implementation:
+The approved initial roll behaviour is:
 
-- common tier: approximately 84–88% total
-- uncommon tier: approximately 10–14% total
-- rare tier: approximately 2% total
-- equal weights within a tier only as the first baseline; duplicate protection should later reduce immediate repeats without letting users influence the pre-rolled daily result
+- common tier: 86% total, with weight 86 for each of ten fossils
+- uncommon tier: 12% total, with weight 24 for each of five fossils
+- rare tier: 2% total, with weight 10 for each of two fossils
+- duplicate protection may later reduce immediate repeats without letting users influence the pre-rolled daily result
 
-This slightly increases access to visually stronger finds while preserving a meaningful rare reveal. The exact weights require simulation against expected daily retention before production.
+This preserves a meaningful rare reveal while giving the ten-fossil common pool enough variety for daily use.
 
 ## Paired-art contract
 
@@ -215,17 +215,18 @@ The fossil’s silhouette, breaks, mineral veins and orientation must match in b
 
 ### Rarity must be visible without labels
 
-- **Common:** one readable specimen, ordinary matrix, matte calcite/iron colours, low ornament.
-- **Uncommon:** greater anatomical completeness, a stronger silhouette, finer preparation and limited pyrite/calcite detail.
-- **Rare:** exceptional anatomy or preservation immediately visible at thumbnail size, with premium museum lighting and scale—but no fantasy aura, levitation, neon or invented gemstone body.
+- **Common:** one readable specimen with visibly adhered dry-earth clumps, grit or smears, ordinary matrix, faded matte calcite/iron colours and low ornament.
+- **Uncommon:** greater anatomical completeness with a weathered, dusty, imperfect preparation that remains modestly clearer than common.
+- **Rare:** exceptional anatomy or preservation, meticulous preparation and controlled museum-natural colour—but no oversaturation, fantasy aura, levitation, neon or invented gemstone body.
 
-## Approval gates before production
+## Completed approval gates
 
-- Andrew approves the 17-item roster and each visual identity.
-- Each image is checked against its scientific guardrails.
-- Excavation/Museum pairs are proven to derive from the same master.
-- No temporary review image is placed under `web/public/worlds`, Android assets or the service-worker manifest.
-- Only after approval are IDs, weights, bundled assets, migration behaviour and catalogue tests changed.
+- Andrew approved the 17-item roster and review-v4 visual treatment.
+- Each image was checked against its scientific guardrails.
+- Every excavation/Museum pair derives from one approved chroma master and the two fixed templates.
+- Production images are 960×960 progressive JPEGs at quality 86, stripped of EXIF and content-addressed by SHA-256.
+- Legacy fictional IDs resolve to canonical fossils so unfinished digs and existing Museum records remain usable.
+- IDs, weights, bundled assets, migration behaviour and catalogue tests changed only after approval.
 
 ## Sources
 

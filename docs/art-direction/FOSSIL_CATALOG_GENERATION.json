@@ -1,0 +1,180 @@
+{
+  "reviewVersion": 4,
+  "status": "approved-production-art",
+  "productionImported": true,
+  "generatedAt": "2026-10-10",
+  "model": "openai-codex/gpt-image-2-medium",
+  "pairRenderer": "scripts/render_relic_asset_pairs.py",
+  "templates": {
+    "museum": "docs/art-direction/assets/relic-museum-template.png",
+    "excavation": "docs/art-direction/assets/relic-excavation-template.png"
+  },
+  "counts": {
+    "common": 10,
+    "uncommon": 5,
+    "rare": 2,
+    "masters": 17,
+    "pairedImages": 34
+  },
+  "items": [
+    {
+      "id": "relic-dactylioceras-ammonite",
+      "name": "Dactylioceras-like ammonite",
+      "tier": "COMMON",
+      "requestId": "862a4e3d-bffb-4aa1-92c2-2000791f802c",
+      "promptIntent": "Ribbed Jurassic ammonite shell; matte charcoal-brown calcite; ordinary preservation; no crystal cavity.",
+      "baseRequestId": "56ac7668-7120-448b-a5c0-7adb6969f15e",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-belemnite-rostra",
+      "name": "Belemnite rostra",
+      "tier": "COMMON",
+      "requestId": "5a689945-9e61-4dab-9c06-0beb775c457e",
+      "promptIntent": "Three bullet-shaped calcitic guards on one small Jurassic limestone matrix; no soft squid body.",
+      "baseRequestId": "978544e2-92dc-4ede-aa5d-edb6a8c2ef04",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-spiriferid-brachiopod",
+      "name": "Spiriferid brachiopod",
+      "tier": "COMMON",
+      "requestId": "201cf887-d554-4d1f-967a-c5cc0b2d04b5",
+      "promptIntent": "Broad winged shell with fold, sulcus and radiating ribs; matte calcite.",
+      "baseRequestId": "85842d8b-9d92-498d-bc9f-65b1fb61c6a0",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-gryphaea-oyster",
+      "name": "Gryphaea oyster",
+      "tier": "COMMON",
+      "requestId": "a1ad2275-b135-4fb3-a155-b08a1b6629ad",
+      "promptIntent": "Single heavy recurved Jurassic oyster valve with layered growth bands.",
+      "baseRequestId": "1b07f724-87eb-4ff9-a8aa-6613d610445e",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-crinoid-columnals",
+      "name": "Crinoid columnals",
+      "tier": "COMMON",
+      "requestId": "e1fadd60-9833-42f4-8a88-0abef29a0edf",
+      "promptIntent": "Short articulated stem and loose star-holed ossicles embedded in one limestone slab.",
+      "baseRequestId": "fdbcecf3-a231-4eca-bcfe-79d13102c1a5",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-rugose-horn-coral",
+      "name": "Rugose horn coral",
+      "tier": "COMMON",
+      "requestId": "36c1cec0-dc59-47b2-a61d-6988a01ff509",
+      "promptIntent": "Solitary tapered horn coral with visible calice and radial septa.",
+      "baseRequestId": "526bdc02-2946-472e-8387-8545c66a3193",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-lamniform-shark-tooth",
+      "name": "Lamniform shark tooth",
+      "tier": "COMMON",
+      "requestId": "03273cc0-53cb-4399-9206-113793716e94",
+      "promptIntent": "Modest complete triangular tooth with mineral crown and porous root; explicitly not megalodon scale.",
+      "baseRequestId": "c61a9e81-f44a-47c7-bde0-74fd45f8ee4a",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-carbonised-fern-frond",
+      "name": "Carbonised fern frond",
+      "tier": "COMMON",
+      "requestId": "8b851812-dd7a-4eab-9f0a-f3ce99755107",
+      "promptIntent": "Flat black carbon film of a branching seed-fern-like frond on split grey shale.",
+      "baseRequestId": "a0ebe37f-ff8f-4ee1-8e87-f84fad013070",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-domal-stromatolite",
+      "name": "Domal stromatolite",
+      "tier": "COMMON",
+      "requestId": "43110c52-a110-49f9-b68d-32b132617a69",
+      "promptIntent": "Cut low dome with nested microbial sediment laminae; no agate or tree-ring appearance.",
+      "baseRequestId": "5f089478-f5b2-4193-a9fb-9a7a001f92ab",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-echinocorys-echinoid",
+      "name": "Echinocorys-like echinoid",
+      "tier": "COMMON",
+      "requestId": "7b5ab3e2-46d2-44ed-b146-e991ce835f4e",
+      "promptIntent": "Oval chalk echinoid test with five petaloid ambulacra and pore rows; no living spines.",
+      "baseRequestId": "d5dcca7b-479d-4164-a180-a852fad92c7f",
+      "styleTreatment": "Faded common-tier specimen with physically distinct residual excavation dirt adhering across roughly 15\u201320 percent."
+    },
+    {
+      "id": "relic-articulated-trilobite",
+      "name": "Articulated trilobite",
+      "tier": "UNCOMMON",
+      "requestId": "6a4d849c-2faf-4509-b921-6a910fa800ba",
+      "promptIntent": "Complete dorsal trilobite on split shale with coherent segments and three longitudinal lobes.",
+      "baseRequestId": "97a477de-8e43-4dd5-8ac1-5c0e3ea535cd",
+      "styleTreatment": "Weathered uncommon-tier restyle; dusty, imperfect and medium-low saturation while remaining a modest step above common."
+    },
+    {
+      "id": "relic-articulated-fossil-fish",
+      "name": "Articulated fossil fish",
+      "tier": "UNCOMMON",
+      "requestId": "32000966-6f12-4f75-b4c1-2d156e575d4f",
+      "promptIntent": "Complete small ray-finned fish skeleton in anatomical order on laminated limestone.",
+      "baseRequestId": "7e9a7ca1-02c4-4628-9669-9bb952af360a",
+      "styleTreatment": "Weathered uncommon-tier restyle; dusty, imperfect and medium-low saturation while remaining a modest step above common."
+    },
+    {
+      "id": "relic-complete-starfish",
+      "name": "Complete starfish",
+      "tier": "UNCOMMON",
+      "requestId": "90e8f0e2-14c7-40ab-9711-cdc6d3c5cce0",
+      "promptIntent": "Whole articulated five-armed asteroid made of calcitic ossicles on dark marine slab.",
+      "baseRequestId": "bd9031e1-7ae7-48a0-a402-7a8777c8187d",
+      "styleTreatment": "Weathered uncommon-tier restyle; dusty, imperfect and medium-low saturation while remaining a modest step above common."
+    },
+    {
+      "id": "relic-articulated-fossil-crab",
+      "name": "Articulated fossil crab",
+      "tier": "UNCOMMON",
+      "requestId": "1d6c839b-12f8-4088-96c0-c5be206d7a9b",
+      "promptIntent": "Complete brachyuran carapace, claws and walking legs in one round dark limestone concretion.",
+      "baseRequestId": "76919857-cc5a-434d-8a89-8d8ee30f38a8",
+      "styleTreatment": "Weathered uncommon-tier restyle; dusty, imperfect and medium-low saturation while remaining a modest step above common."
+    },
+    {
+      "id": "relic-insect-amber",
+      "name": "Insect in amber",
+      "tier": "UNCOMMON",
+      "requestId": "b2e42dd6-fed9-44cd-9dcf-6d581c6b9924",
+      "promptIntent": "Irregular honey amber with a small plausible winged midge inclusion, resin flow and bubbles.",
+      "baseRequestId": "8ba97d95-7a23-4df7-804f-0d5931392d3d",
+      "styleTreatment": "Weathered uncommon-tier restyle; dusty, imperfect and medium-low saturation while remaining a modest step above common."
+    },
+    {
+      "id": "relic-dinosaur-embryo-egg",
+      "name": "Dinosaur embryo in egg",
+      "tier": "RARE",
+      "requestId": "c629f967-8206-411b-a1d9-2f1df2e822df",
+      "promptIntent": "Naturally fractured mineral egg exposing a compact curled embryonic skeleton in calcite matrix.",
+      "baseRequestId": "324e0d01-ede6-4dd5-9a32-8f0335d5c5aa",
+      "styleTreatment": "Clean rare-tier restyle with restrained museum-natural colour and premium detail, reducing v2 oversaturation."
+    },
+    {
+      "id": "relic-archaeopteryx-slab",
+      "name": "Archaeopteryx slab",
+      "tier": "RARE",
+      "requestId": "3f3b811f-34f0-4990-9905-53db66c7eea1",
+      "promptIntent": "Plausible original Archaeopteryx slab with articulated skeleton, long tail and delicate asymmetric feather halo.",
+      "baseRequestId": "dea8003e-f3dc-4889-8d09-8f87adcea7d4",
+      "styleTreatment": "Clean rare-tier restyle with restrained museum-natural colour and premium detail, reducing v2 oversaturation."
+    }
+  ],
+  "visualProgression": {
+    "COMMON": "Dirty, faded and matte with clearly visible residual dry earth clumps, grit and smears adhering to the fossil.",
+    "UNCOMMON": "Weathered and imperfect with dust and sediment; moderately faded but clearer than common.",
+    "RARE": "Meticulously clean and premium, with controlled natural colour rather than oversaturation."
+  },
+  "approvedReviewVersion": 4
+}
