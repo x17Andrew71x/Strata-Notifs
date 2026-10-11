@@ -186,7 +186,7 @@ describe("last-known-good web shell", () => {
     );
 
     await worker.activate();
-    const state = stores.get("afterchime-shell-v23")?.get(`${origin}/.afterchime/current`);
+    const state = stores.get("afterchime-shell-v24")?.get(`${origin}/.afterchime/current`);
     expect(await state?.clone().json()).toMatchObject({ catalogRevision: 1 });
     offline = true;
 
@@ -305,10 +305,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v24";',
             'const CACHE_NAME = "afterchime-shell-v23";',
-            'const CACHE_NAME = "afterchime-shell-v22";',
           )
-          .replace('  "afterchime-shell-v22",\n', ""),
+          .replace('  "afterchime-shell-v23",\n', ""),
     });
     await prior.activate();
     offline = true;

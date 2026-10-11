@@ -11,6 +11,14 @@ function declarationBlock(selector: string): string {
   return match[1];
 }
 
+function lastDeclarationBlock(selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const matches = [...styles.matchAll(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, "gs"))];
+  const match = matches.at(-1);
+  if (!match) throw new Error(`Missing CSS rule for ${selector}`);
+  return match[1];
+}
+
 describe("Museum rarity card styling", () => {
   it("keeps the rarity glow compact while preserving its low-medium-high ladder", () => {
     expect(declarationBlock(".specimen-card.rarity-common")).toContain(
@@ -32,20 +40,36 @@ describe("Museum rarity card styling", () => {
 });
 
 describe("excavation motion", () => {
-  it("animates excavation clearing and the final specimen reveal", () => {
-    expect(declarationBlock(".excavation-tile.dug")).toContain("transform: scale(0.68)");
-    expect(declarationBlock(".excavation-tile.dug")).toContain("filter:");
-    expect(declarationBlock(".specimen-visual.specimen-reveal")).toContain(
-      "animation: specimen-reveal",
+  it("gives new digs a bounded brush-away, grit burst, and energy pulse", () => {
+    expect(declarationBlock(".excavation-tile.dug.is-clearing")).toContain(
+      "animation: excavation-brush-away 600ms",
     );
+    expect(declarationBlock(".excavation-tile.dug.is-clearing::before")).toContain(
+      "animation: excavation-brush-sweep 600ms",
+    );
+    expect(lastDeclarationBlock(".excavation-tile.dug.is-clearing::after")).toContain(
+      "animation: excavation-grit 600ms",
+    );
+    expect(declarationBlock(".excavation-hud strong.energy-gained")).toContain(
+      "animation: dig-energy-gain 700ms",
+    );
+  });
+
+  it("lifts a dark cover through bronze light for the final specimen reveal", () => {
+    expect(declarationBlock(".specimen-visual.specimen-reveal")).toContain(
+      "animation: specimen-reveal 1.4s",
+    );
+    expect(declarationBlock(".specimen-visual.specimen-reveal::before")).toContain(
+      "animation: specimen-bronze-light 1.4s",
+    );
+    expect(styles).toContain("animation: specimen-cover-lift 1.4s");
   });
 
   it("keeps the existing reduce-motion override as the master off switch", () => {
     expect(styles).toContain(".reduce-motion *");
-    expect(declarationBlock(".reduce-motion .specimen-visual.specimen-reveal")).toContain(
-      "animation: none",
-    );
+    expect(styles).toContain(".reduce-motion .excavation-tile.dug.is-clearing");
+    expect(styles).toContain(".reduce-motion .excavation-hud strong.energy-gained");
+    expect(styles).toContain(".reduce-motion .specimen-visual.specimen-reveal::after");
     expect(declarationBlock(".reduce-motion .excavation-tile")).toContain("transition: none");
-    expect(styles).toContain(".specimen-reveal,");
   });
 });

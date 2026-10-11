@@ -404,7 +404,7 @@ Game character comes from reveal choreography, collection shelves, restoration a
 - Minimum touch targets.
 - Contrast that meets WCAG AA for text and essential controls.
 - Colour never carries state alone.
-- Reduce-motion option disables formation, excavation, reveal and interface transitions.
+- Reduce-motion option disables formation, excavation, reveal and interface transitions. Excavation uses a 600 ms brush-away/grit burst, energy gain uses one 700 ms pulse, and the completed specimen uses a 1.4 s dark-cover lift with restrained bronze light; none loop.
 - Do not expose haptics or audio settings until the corresponding effects are implemented and user-observable; no no-op controls.
 - TalkBack flow verified for core paths.
 - Phone portrait is primary; landscape and tablet layouts must remain usable.

@@ -2,6 +2,8 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, {
   catalogAssetsAreCached,
+  ENERGY_GAIN_PULSE_MS,
+  EXCAVATION_CLEAR_MS,
   IMAGE_RETRY_DELAYS_MS,
   registerShellWorker,
   SHELL_STATE_REFRESH_MS,
@@ -25,7 +27,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v23"],
+    keys: async () => ["afterchime-shell-v24"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -290,6 +292,26 @@ describe("full shell application", () => {
     expect(retryImage).toHaveClass("is-loaded");
   });
 
+  it("brushes away only a newly cleared excavation tile", () => {
+    vi.useFakeTimers();
+    const { container } = renderWithState(excavationState());
+    expect(container.querySelector('[data-tile-index="12"]')).not.toHaveClass("is-clearing");
+
+    sendState(
+      excavationState({
+        energySpent: 6,
+        energyAvailable: 0,
+        dugTiles: [12, 13],
+      }),
+    );
+    const clearedTile = container.querySelector('[data-tile-index="13"]');
+    expect(clearedTile).toHaveClass("dug", "is-clearing");
+
+    act(() => vi.advanceTimersByTime(EXCAVATION_CLEAR_MS));
+    expect(clearedTile).toHaveClass("dug");
+    expect(clearedTile).not.toHaveClass("is-clearing");
+  });
+
   it("updates dig energy from a native push and requests a visible-state fallback refresh", () => {
     vi.useFakeTimers();
     renderWithState(excavationState());
@@ -303,7 +325,19 @@ describe("full shell application", () => {
         energyAvailable: 4,
       }),
     );
-    expect(screen.getByText("4", { selector: ".excavation-hud strong" })).toBeTruthy();
+    const gainedEnergy = screen.getByText("4", { selector: ".excavation-hud strong" });
+    expect(gainedEnergy).toHaveClass("energy-gained");
+
+    sendState(excavationState({ energySpent: 6, energyAvailable: 1 }));
+    expect(screen.getByText("1", { selector: ".excavation-hud strong" })).not.toHaveClass(
+      "energy-gained",
+    );
+    sendState(excavationState({ energySpent: 6, energyAvailable: 2 }));
+    const secondGain = screen.getByText("2", { selector: ".excavation-hud strong" });
+    expect(secondGain).toHaveClass("energy-gained");
+
+    act(() => vi.advanceTimersByTime(ENERGY_GAIN_PULSE_MS));
+    expect(secondGain).not.toHaveClass("energy-gained");
 
     native.postMessage.mockClear();
     act(() => vi.advanceTimersByTime(SHELL_STATE_REFRESH_MS));

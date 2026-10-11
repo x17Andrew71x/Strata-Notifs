@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   installResponseListener,
   type NativeAction,
@@ -45,6 +45,8 @@ export const TOAST_FADE_START_MS = 2_700;
 export const TOAST_DURATION_MS = 3_000;
 export const SHELL_STATE_REFRESH_MS = 2_000;
 export const IMAGE_RETRY_DELAYS_MS = [250, 750, 1_500, 3_000, 5_000] as const;
+export const EXCAVATION_CLEAR_MS = 600;
+export const ENERGY_GAIN_PULSE_MS = 700;
 const EXCAVATION_TILE_IDS = Array.from(
   { length: 100 },
   (_, tileIndex) => `excavation-tile-${tileIndex}`,
@@ -506,6 +508,69 @@ function Excavation({
   digInFlight: boolean;
   onDig(tileIndex: number): void;
 }) {
+  const previousDugTiles = useRef(new Set(excavation.dugTiles));
+  const clearingTimers = useRef(new Map<number, number>());
+  const energyTimer = useRef<number | null>(null);
+  const previousEnergy = useRef(excavation.energyAvailable);
+  const [clearingTiles, setClearingTiles] = useState<Set<number>>(() => new Set());
+  const [energyGained, setEnergyGained] = useState(false);
+
+  useLayoutEffect(() => {
+    const currentDugTiles = new Set(excavation.dugTiles);
+    const newlyDugTiles = excavation.dugTiles.filter(
+      (tileIndex) => !previousDugTiles.current.has(tileIndex),
+    );
+    previousDugTiles.current = currentDugTiles;
+    if (newlyDugTiles.length === 0) return;
+
+    setClearingTiles((current) => new Set([...current, ...newlyDugTiles]));
+    for (const tileIndex of newlyDugTiles) {
+      const existingTimer = clearingTimers.current.get(tileIndex);
+      if (existingTimer !== undefined) window.clearTimeout(existingTimer);
+      clearingTimers.current.set(
+        tileIndex,
+        window.setTimeout(() => {
+          setClearingTiles((current) => {
+            if (!current.has(tileIndex)) return current;
+            const next = new Set(current);
+            next.delete(tileIndex);
+            return next;
+          });
+          clearingTimers.current.delete(tileIndex);
+        }, EXCAVATION_CLEAR_MS),
+      );
+    }
+  }, [excavation.dugTiles]);
+
+  useLayoutEffect(() => {
+    const previous = previousEnergy.current;
+    const gained = excavation.energyAvailable > previous;
+    previousEnergy.current = excavation.energyAvailable;
+    if (!gained) {
+      if (excavation.energyAvailable < previous && energyTimer.current !== null) {
+        window.clearTimeout(energyTimer.current);
+        energyTimer.current = null;
+        setEnergyGained(false);
+      }
+      return;
+    }
+
+    setEnergyGained(true);
+    if (energyTimer.current !== null) window.clearTimeout(energyTimer.current);
+    energyTimer.current = window.setTimeout(() => {
+      setEnergyGained(false);
+      energyTimer.current = null;
+    }, ENERGY_GAIN_PULSE_MS);
+  }, [excavation.energyAvailable]);
+
+  useEffect(
+    () => () => {
+      for (const timer of clearingTimers.current.values()) window.clearTimeout(timer);
+      if (energyTimer.current !== null) window.clearTimeout(energyTimer.current);
+    },
+    [],
+  );
+
   const artifact =
     world === "PRIMEVAL_STRATA"
       ? artifactById(excavation.artifactId)
@@ -540,7 +605,7 @@ function Excavation({
             <button
               type="button"
               key={tileId}
-              className={`excavation-tile${dug ? " dug" : ""}`}
+              className={`excavation-tile${dug ? " dug" : ""}${clearingTiles.has(tileIndex) ? " is-clearing" : ""}`}
               data-tile-index={tileIndex}
               aria-label={
                 dug
@@ -558,7 +623,9 @@ function Excavation({
       <div className="excavation-hud">
         <div>
           <span>Dig energy</span>
-          <strong>{excavation.energyAvailable}</strong>
+          <strong className={energyGained ? "energy-gained" : undefined}>
+            {excavation.energyAvailable}
+          </strong>
         </div>
         <div>
           <span>Excavated</span>
