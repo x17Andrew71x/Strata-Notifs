@@ -25,7 +25,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v20"],
+    keys: async () => ["afterchime-shell-v21"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -396,6 +396,46 @@ describe("full shell application", () => {
     expect(within(cards[0]).getByText("3 owned")).toBeTruthy();
     expect(within(cards[0]).getByText("Common")).toBeTruthy();
     expect(within(cards[0]).queryByText("Uncommon")).toBeNull();
+  });
+
+  it("unlocks fossil reference information from a three-specimen stack", () => {
+    const duplicates = ["a", "b", "c"].map((id, index) => ({
+      ...specimen,
+      id,
+      catalogItemId: "relic-dactylioceras-ammonite",
+      createdAtEpochMillis: index + 1,
+      revealedAtEpochMillis: index + 2,
+    }));
+    renderWithState({ ...baseState, museum: { specimens: duplicates } });
+    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /artifact from Relic Vault/i }));
+
+    expect(screen.getByRole("heading", { name: "Reference series" })).toBeTruthy();
+    expect(screen.getByText("3 owned")).toBeTruthy();
+    expect(screen.getByText(/extinct coiled shell form/i)).toBeTruthy();
+    expect(screen.getByText("6 specimens")).toBeTruthy();
+    expect(screen.getByText("10 specimens")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Combine three" })).toBeNull();
+  });
+
+  it("unlocks the complete reference series without consuming ten duplicates", () => {
+    const duplicates = Array.from({ length: 10 }, (_, index) => ({
+      ...specimen,
+      id: `ammonite-${index}`,
+      catalogItemId: "relic-dactylioceras-ammonite",
+      createdAtEpochMillis: index + 1,
+      revealedAtEpochMillis: index + 2,
+    }));
+    renderWithState({ ...baseState, museum: { specimens: duplicates } });
+    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /artifact from Relic Vault/i }));
+
+    expect(screen.getByText("10 owned")).toBeTruthy();
+    expect(screen.getByText(/extinct coiled shell form/i)).toBeTruthy();
+    expect(screen.getByText(/occur worldwide/i)).toBeTruthy();
+    expect(screen.getByText(/durable shell only/i)).toBeTruthy();
+    expect(screen.queryByText("Locked")).toBeNull();
+    expect(requests().some(({ type }) => type === "museum.combine")).toBe(false);
   });
 
   it("keeps optional online settings off and sends one explicit preference mutation", () => {

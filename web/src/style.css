@@ -1059,28 +1059,6 @@ p {
   color: var(--mint-strong);
 }
 
-.combine-bar {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 10px;
-  align-items: center;
-  margin-top: 20px;
-  border: 1px solid color-mix(in srgb, var(--mint) 28%, transparent);
-  border-radius: 16px;
-  padding: 13px;
-  background: color-mix(in srgb, var(--mint) 7%, transparent);
-}
-
-.combine-bar div {
-  display: grid;
-  gap: 3px;
-}
-
-.combine-bar span {
-  color: var(--muted);
-  font-size: 11px;
-}
-
 .specimen-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
@@ -1233,6 +1211,13 @@ p {
   justify-self: center;
 }
 
+.detail-copy {
+  display: grid;
+  gap: 22px;
+  align-self: stretch;
+  align-content: start;
+}
+
 .detail-card dl {
   display: grid;
   gap: 17px;
@@ -1260,10 +1245,95 @@ p {
   font-weight: 700;
 }
 
-.action-row {
+.reference-series {
+  overflow: hidden;
+  border: 1px solid #a96f3d80;
+  border-radius: 18px;
+  background: #080808;
+  box-shadow:
+    0 14px 34px #0007,
+    inset 0 0 0 1px #ffffff08;
+}
+
+.reference-series-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 15px 12px;
+  background: linear-gradient(120deg, #a96f3d1c, transparent 70%);
+}
+
+.reference-series-heading h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 19px;
+  font-weight: 500;
+}
+
+.reference-series-heading > strong {
+  color: #d4aa79;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.reference-notes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reference-note {
   display: grid;
-  gap: 9px;
-  margin-top: 20px;
+  gap: 7px;
+  border-top: 1px solid var(--line);
+  padding: 12px 15px 13px;
+}
+
+.reference-note.unlocked {
+  box-shadow: inset 2px 0 #a96f3d;
+}
+
+.reference-note.locked {
+  opacity: 0.58;
+}
+
+.reference-note-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reference-note-heading > strong {
+  color: #f1eadf;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.reference-note-threshold,
+.reference-lock,
+.reference-note cite {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.reference-note p {
+  margin: 0;
+  color: #d8dfd8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.reference-note cite {
+  font-style: normal;
+  letter-spacing: 0.02em;
+}
+
+.reference-lock {
+  text-transform: uppercase;
 }
 
 .coming-soon {
@@ -1675,14 +1745,6 @@ p {
 
   .formation {
     height: min(100%, 354px);
-  }
-
-  .combine-bar {
-    grid-template-columns: 1fr auto;
-  }
-
-  .combine-bar .primary {
-    grid-column: 1 / -1;
   }
 
   .specimen-grid {

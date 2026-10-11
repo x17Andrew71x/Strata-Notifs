@@ -34,7 +34,7 @@ Each qualifying notification earns one unit of dig energy. The user decides when
 - Turn an otherwise disposable stream of interruptions into personal generative art.
 - Receive one finite, meaningful reward per day without chores or attention traps.
 - Build a museum whose objects reflect personal rhythm without exposing private content.
-- Contribute unwanted duplicates to shared artworks and receive the finished work.
+- Build deeper research records as duplicate specimens accumulate.
 - Re-render existing history through optional cosmetic worlds without losing progress.
 
 ### 2.2 Product principles
@@ -198,14 +198,13 @@ Scientific labels must be clearly presented as stylised game taxonomy rather tha
 
 The tier belongs to the selected catalogue item. Common fossils use restrained natural materials; medium tiers gain stronger silhouettes and richer mineral detail; rare and higher tiers must provide an immediate visual “wow” without relying only on glow. The weighted draw is deterministic for a date and local secret, cannot be purchased, and cannot be altered by notification volume.
 
-### 6.3 Restoration and combining
+### 6.3 Reference series and duplicates
 
-- Three identical ordinary specimens combine into one **Restored** specimen.
-- Three identical Restored specimens combine into one **Centre Piece**.
-- Combining is explicit, previewed and confirmed.
-- The operation is transactional and idempotent.
-- Restored and Centre Piece items retain provenance counts but not sensitive source data.
-- A user may lock favourites to prevent accidental combining or donation.
+- Duplicate fossils remain truthful individual specimens and stack under their canonical catalogue item.
+- Three owned specimens unlock the **Identity** note, six unlock the **Fossil record** note and ten unlock the **Recognition** note.
+- Every unlocked note is concise, fossil-specific and grounded in the approved catalogue research sources.
+- Unlocks are automatic, non-destructive and derived from local owned count; no selection, confirmation, protection or network access is required.
+- Identical fossils never combine into an invented upgraded fossil. Legacy Restored and Centre Piece records remain readable for backwards compatibility, but the public creation controls are retired.
 
 ### 6.4 Weekly displays
 
@@ -216,7 +215,7 @@ Seven sealed local days can be arranged into a weekly diorama. Dioramas do not c
 The museum is the long-term home for:
 
 - daily specimens;
-- restored specimens and centre pieces;
+- fossil reference-series notes;
 - weekly dioramas;
 - completed community artworks;
 - seasonal contributor editions;
@@ -257,7 +256,7 @@ Later candidates are Clockwork, Arcane Cabinet and Stained Glass. They are not l
 
 ### 8.1 Purpose
 
-Community play gives duplicates and unwanted high-level pieces a satisfying destination without exposing social profiles or creating a popularity contest.
+Community play gives opted-in surplus activity a satisfying shared destination without exposing social profiles or creating a popularity contest.
 
 ### 8.2 Seasonal exhibitions
 
@@ -556,13 +555,12 @@ The beta must define and test events for:
 - `specimen_unlocked`
 - `weekly_diorama_created`
 
-**Museum and restoration**
+**Museum and reference series**
 - `museum_viewed`
 - `museum_filter_changed`
 - `specimen_detail_viewed`
-- `combine_previewed`
-- `combine_completed`
-- `combine_cancelled`
+- `reference_series_viewed`
+- `reference_note_unlocked`
 - `community_art_viewed`
 
 **Worlds and commerce**
@@ -628,7 +626,7 @@ Scheduled aggregation creates or refreshes:
 - `analytics_notification_volume`
 - `analytics_specimen_distribution`
 - `analytics_collection_progress`
-- `analytics_combine_usage`
+- `analytics_reference_series`
 - `analytics_community_campaign`
 - `analytics_world_interest`
 - `analytics_purchase_funnel`
@@ -642,7 +640,7 @@ These must support at least:
 - consent and permission completion rates;
 - notifications per installation per local day;
 - true global notifications per UTC day;
-- specimens generated, revealed, combined and donated;
+- specimens generated, revealed and stacked, plus reference notes unlocked;
 - family/tier distribution by generator version;
 - campaign participation and completion velocity;
 - artwork award delivery success;

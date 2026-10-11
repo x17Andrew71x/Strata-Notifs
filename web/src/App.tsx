@@ -10,6 +10,7 @@ import {
   type Tier,
   type World,
 } from "./bridge";
+import { referenceNotesFor } from "./relic-reference";
 import {
   type Artifact,
   artifactById,
@@ -113,8 +114,6 @@ function App() {
   const [metadata, setMetadata] = useState<ShellMetadata | null>(null);
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
   const [tier, setTier] = useState<Tier | "ALL">("ALL");
-  const [combineIds, setCombineIds] = useState<string[]>([]);
-  const [confirmCombine, setConfirmCombine] = useState(false);
 
   useEffect(() => {
     const remoteOrigin = window.location.hostname !== "appassets.androidplatform.net";
@@ -187,12 +186,6 @@ function App() {
     return () => window.clearTimeout(dismissTimeout);
   }, [toastExiting]);
 
-  useEffect(() => {
-    if (!shellState) return;
-    const ownedIds = new Set(shellState.museum.specimens.map((specimen) => specimen.id));
-    setCombineIds((current) => current.filter((id) => ownedIds.has(id)));
-  }, [shellState]);
-
   const navigate = (next: Route) => {
     const nextHash = `#${next}`;
     setRoute(next);
@@ -250,6 +243,11 @@ function App() {
   const selectedSpecimen = selectedSpecimenId
     ? (shellState.museum.specimens.find((specimen) => specimen.id === selectedSpecimenId) ?? null)
     : null;
+  const selectedStack = selectedSpecimen
+    ? stackMuseumSpecimens(shellState.worlds.selected, shellState.museum.specimens).find(
+        ({ specimens }) => specimens.some(({ id }) => id === selectedSpecimen.id),
+      )
+    : null;
   const selectedRoot = rootFor(route);
   const selectedWorld = worldDefinition(shellState.worlds.selected);
 
@@ -287,16 +285,8 @@ function App() {
           <Museum
             state={shellState}
             tier={tier}
-            combineIds={combineIds}
             onTier={setTier}
             onOpen={(id) => navigate(`specimen/${id}`)}
-            onToggleCombine={(specimen) =>
-              setCombineIds((current) =>
-                toggleCombine(current, specimen, shellState.museum.specimens),
-              )
-            }
-            onCancelCombine={() => setCombineIds([])}
-            onReviewCombine={() => setConfirmCombine(true)}
           />
         )}
         {route === "community" && <Community />}
@@ -327,6 +317,7 @@ function App() {
           <SpecimenDetail
             specimen={selectedSpecimen}
             world={shellState.worlds.selected}
+            ownedCount={selectedStack?.specimens.length ?? 0}
             onBack={() => history.back()}
           />
         )}
@@ -351,19 +342,6 @@ function App() {
         <div className={`toast${toastExiting ? " exiting" : ""}`} role="status">
           {message}
         </div>
-      )}
-      {confirmCombine && (
-        <CombineDialog
-          specimens={combineIds
-            .map((id) => shellState.museum.specimens.find((specimen) => specimen.id === id))
-            .filter((specimen): specimen is ShellSpecimen => specimen !== undefined)}
-          onCancel={() => setConfirmCombine(false)}
-          onConfirm={() => {
-            const sent = act("museum.combine", { specimenIds: combineIds }, "Restoring specimen…");
-            if (sent) setCombineIds([]);
-            setConfirmCombine(false);
-          }}
-        />
       )}
     </div>
   );
@@ -737,55 +715,25 @@ function FormationImprint({ theme }: { theme: ReturnType<typeof worldDefinition>
 function Museum({
   state,
   tier,
-  combineIds,
   onTier,
   onOpen,
-  onToggleCombine,
-  onCancelCombine,
-  onReviewCombine,
 }: {
   state: ShellState;
   tier: Tier | "ALL";
-  combineIds: string[];
   onTier(value: Tier | "ALL"): void;
   onOpen(id: string): void;
-  onToggleCombine(specimen: ShellSpecimen): void;
-  onCancelCombine(): void;
-  onReviewCombine(): void;
 }) {
   const world = worldDefinition(state.worlds.selected);
   const stacks = stackMuseumSpecimens(state.worlds.selected, state.museum.specimens).filter(
     (stack) => tier === "ALL" || stack.artifact.tier === tier,
   );
-  const selected = combineIds
-    .map((id) => state.museum.specimens.find((specimen) => specimen.id === id))
-    .filter((specimen): specimen is ShellSpecimen => specimen !== undefined);
-  const canReview = combineOutput(selected) !== null;
   return (
     <section className="screen museum-screen" aria-labelledby="museum-title">
       <div className="screen-heading compact">
         <p className="eyebrow">{world.eyebrow}</p>
         <h1 id="museum-title">{world.collectionName}</h1>
       </div>
-      {combineIds.length > 0 && (
-        <div className="combine-bar">
-          <div>
-            <strong>Restore a specimen</strong>
-            <span>{combineIds.length} of 3 matching specimens selected</span>
-          </div>
-          <button type="button" className="text-button" onClick={onCancelCombine}>
-            Cancel
-          </button>
-          <button
-            type="button"
-            className="primary small"
-            disabled={!canReview}
-            onClick={onReviewCombine}
-          >
-            Review
-          </button>
-        </div>
-      )}
+
       <fieldset className="filter-row" aria-label="Filter by rarity">
         {(["ALL", "COMMON", "UNCOMMON", "RARE", "EXCEPTIONAL", "SINGULAR"] as const).map(
           (value) => (
@@ -810,29 +758,12 @@ function Museum({
         <div className="specimen-grid">
           {stacks.map((stack) => {
             const { artifact, representative, specimens } = stack;
-            const combining = combineIds.length > 0;
-            const selectedInStack = specimens.filter((specimen) =>
-              combineIds.includes(specimen.id),
-            );
-            const nextCandidate = specimens.find(
-              (specimen) =>
-                !combineIds.includes(specimen.id) &&
-                canAddToCombine(combineIds, specimen, state.museum.specimens),
-            );
-            const toggleCandidate = nextCandidate ?? selectedInStack.at(-1);
-            const countLabel = `${specimens.length} owned${
-              combining && selectedInStack.length > 0 ? ` · ${selectedInStack.length} selected` : ""
-            }`;
             return (
               <button
                 type="button"
                 key={artifact.id}
-                className={`specimen-card rarity-${artifact.tier.toLowerCase()}${selectedInStack.length > 0 ? " selected" : ""}`}
-                disabled={combining && !toggleCandidate}
-                onClick={() => {
-                  if (!combining) onOpen(representative.id);
-                  else if (toggleCandidate) onToggleCombine(toggleCandidate);
-                }}
+                className={`specimen-card rarity-${artifact.tier.toLowerCase()}`}
+                onClick={() => onOpen(representative.id)}
               >
                 <SpecimenVisual
                   specimen={representative}
@@ -842,7 +773,9 @@ function Museum({
                 />
                 <strong>{artifact.name}</strong>
                 <span>{formatName(artifact.tier)}</span>
-                {specimens.length > 1 && <small className="specimen-count">{countLabel}</small>}
+                {specimens.length > 1 && (
+                  <small className="specimen-count">{specimens.length} owned</small>
+                )}
                 <small className="specimen-date">
                   {representative.anchoredLocalDate
                     ? formatDate(representative.anchoredLocalDate)
@@ -860,10 +793,12 @@ function Museum({
 function SpecimenDetail({
   specimen,
   world,
+  ownedCount,
   onBack,
 }: {
   specimen: ShellSpecimen | null;
   world: World;
+  ownedCount: number;
   onBack(): void;
 }) {
   if (!specimen || specimen.revealedAtEpochMillis === null) {
@@ -892,21 +827,61 @@ function SpecimenDetail({
           displayTier={artifact.tier}
           showCaption={false}
         />
-        <dl>
-          <div>
-            <dt>Rarity</dt>
-            <dd>{formatName(artifact.tier)}</dd>
-          </div>
-          <div>
-            <dt>{specimen.anchoredLocalDate ? "Sealed" : "Restored"}</dt>
-            <dd>
-              {specimen.anchoredLocalDate
-                ? formatDate(specimen.anchoredLocalDate)
-                : formatName(specimen.collectibleState)}
-            </dd>
-          </div>
-        </dl>
+        <div className="detail-copy">
+          <dl>
+            <div>
+              <dt>Rarity</dt>
+              <dd>{formatName(artifact.tier)}</dd>
+            </div>
+            <div>
+              <dt>{specimen.anchoredLocalDate ? "Sealed" : "Restored"}</dt>
+              <dd>
+                {specimen.anchoredLocalDate
+                  ? formatDate(specimen.anchoredLocalDate)
+                  : formatName(specimen.collectibleState)}
+              </dd>
+            </div>
+          </dl>
+          <ReferenceSeries artifactId={artifact.id} ownedCount={ownedCount} />
+        </div>
       </div>
+    </section>
+  );
+}
+
+function ReferenceSeries({ artifactId, ownedCount }: { artifactId: string; ownedCount: number }) {
+  const notes = referenceNotesFor(artifactId);
+  if (notes.length === 0) return null;
+  return (
+    <section className="reference-series" aria-labelledby="reference-series-title">
+      <div className="reference-series-heading">
+        <h2 id="reference-series-title">Reference series</h2>
+        <strong>{ownedCount} owned</strong>
+      </div>
+      <ol className="reference-notes">
+        {notes.map((note) => {
+          const unlocked = ownedCount >= note.requiredOwned;
+          return (
+            <li
+              key={note.requiredOwned}
+              className={`reference-note ${unlocked ? "unlocked" : "locked"}`}
+            >
+              <div className="reference-note-heading">
+                <strong>{note.label}</strong>
+                <span className="reference-note-threshold">{note.requiredOwned} specimens</span>
+              </div>
+              {unlocked ? (
+                <>
+                  <p>{note.text}</p>
+                  <cite title={note.sourceUrl}>Source · {note.source}</cite>
+                </>
+              ) : (
+                <span className="reference-lock">Locked</span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }
@@ -1131,38 +1106,6 @@ function Worlds({
   );
 }
 
-function CombineDialog({
-  specimens,
-  onCancel,
-  onConfirm,
-}: {
-  specimens: ShellSpecimen[];
-  onCancel(): void;
-  onConfirm(): void;
-}) {
-  const output = combineOutput(specimens);
-  return (
-    <div className="modal-backdrop" role="presentation">
-      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="combine-title">
-        <p className="eyebrow">Irreversible local action</p>
-        <h2 id="combine-title">Restore these three?</h2>
-        <p>
-          The three selected specimens will become one {output ? formatName(output) : "restored"}{" "}
-          specimen. This cannot be undone.
-        </p>
-        <div className="modal-actions">
-          <button type="button" className="secondary" onClick={onCancel}>
-            Keep them
-          </button>
-          <button type="button" className="primary" disabled={!output} onClick={onConfirm}>
-            Restore specimen
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function artifactForSpecimen(world: World, specimen: ShellSpecimen) {
   return world === "PRIMEVAL_STRATA"
     ? (artifactById(specimen.catalogItemId) ?? artifactFor(world, specimen.id))
@@ -1293,56 +1236,6 @@ function todayCopy(state: ShellState): { title: string; body: string | null } {
             body: "Reveal the completed specimen from the prior day.",
           };
   }
-}
-
-function toggleCombine(current: string[], specimen: ShellSpecimen, all: ShellSpecimen[]): string[] {
-  if (current.includes(specimen.id)) return current.filter((id) => id !== specimen.id);
-  return canAddToCombine(current, specimen, all) ? [...current, specimen.id] : current;
-}
-
-function canAddToCombine(
-  current: string[],
-  specimen: ShellSpecimen,
-  all: ShellSpecimen[],
-): boolean {
-  if (current.length === 0) {
-    return (
-      specimen.revealedAtEpochMillis !== null &&
-      !specimen.isLocked &&
-      specimen.collectibleState !== "CENTRE_PIECE"
-    );
-  }
-  if (current.includes(specimen.id)) return true;
-  if (current.length >= 3 || specimen.revealedAtEpochMillis === null || specimen.isLocked)
-    return false;
-  const seed = all.find((candidate) => candidate.id === current[0]);
-  return Boolean(
-    seed &&
-      specimen.family === seed.family &&
-      specimen.tier === seed.tier &&
-      specimen.collectibleState === seed.collectibleState,
-  );
-}
-
-function combineOutput(specimens: ShellSpecimen[]): "RESTORED" | "CENTRE_PIECE" | null {
-  if (specimens.length !== 3 || new Set(specimens.map((specimen) => specimen.id)).size !== 3)
-    return null;
-  const first = specimens[0];
-  if (
-    !first ||
-    specimens.some(
-      (specimen) =>
-        specimen.revealedAtEpochMillis === null ||
-        specimen.isLocked ||
-        specimen.family !== first.family ||
-        specimen.tier !== first.tier ||
-        specimen.collectibleState !== first.collectibleState,
-    )
-  )
-    return null;
-  if (first.collectibleState === "ORDINARY") return "RESTORED";
-  if (first.collectibleState === "RESTORED") return "CENTRE_PIECE";
-  return null;
 }
 
 function actionMessage(action: NativeAction, ok: boolean): string {

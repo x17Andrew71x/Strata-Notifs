@@ -204,6 +204,16 @@ The approved initial roll behaviour is:
 
 This preserves a meaningful rare reveal while giving the ten-fossil common pool enough variety for daily use.
 
+## Duplicate reference series
+
+Repeated fossils remain separate specimens grouped beneath one canonical Museum card. They are never combined into a fictional upgraded fossil. Owned-count thresholds unlock concise research from the same cited source used to approve each catalogue item:
+
+- 3 owned: **Identity**
+- 6 owned: **Fossil record**
+- 10 owned: **Recognition**
+
+The unlock is automatic, non-destructive and available offline. Legacy Restored and Centre Piece records remain readable for compatibility, but no public combine, protection or share controls appear on the fossil detail page.
+
 ## Paired-art contract
 
 Every approved item must be generated from one isolated fossil master and then composited into two fixed scenes:
