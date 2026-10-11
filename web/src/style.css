@@ -536,9 +536,9 @@ p {
     inset -3px -4px 8px #08060480;
   cursor: crosshair;
   transition:
-    opacity 240ms ease,
-    transform 180ms ease,
-    filter 180ms ease;
+    opacity 320ms cubic-bezier(0.22, 0.78, 0.25, 1),
+    transform 320ms cubic-bezier(0.22, 0.78, 0.25, 1),
+    filter 260ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -564,7 +564,8 @@ p {
 .excavation-tile.dug {
   opacity: 0;
   pointer-events: none;
-  transform: scale(0.82);
+  filter: blur(1px) brightness(1.45) saturate(0.65);
+  transform: scale(0.68) rotate(2deg);
 }
 
 .excavation-tile:focus-visible {
@@ -900,6 +901,10 @@ p {
   height: 100%;
   object-fit: cover;
   user-select: none;
+}
+
+.specimen-visual.specimen-reveal {
+  animation: specimen-reveal 1s cubic-bezier(0.18, 0.82, 0.24, 1) both;
 }
 
 .specimen-visual figcaption {
@@ -1667,6 +1672,15 @@ p {
   transition: none;
 }
 
+.reduce-motion .formation-layer.is-newest,
+.reduce-motion .specimen-visual.specimen-reveal {
+  animation: none;
+}
+
+.reduce-motion .excavation-tile {
+  transition: none;
+}
+
 @keyframes settle-new-layer {
   0% {
     opacity: 0;
@@ -1688,6 +1702,26 @@ p {
   50% {
     transform: scale(1.05);
     opacity: 0.72;
+  }
+}
+
+@keyframes specimen-reveal {
+  0% {
+    opacity: 0;
+    filter: brightness(0.6) saturate(0.55);
+    transform: scale(0.88);
+  }
+
+  62% {
+    opacity: 1;
+    filter: brightness(1.1) saturate(1.04);
+    transform: scale(1.025);
+  }
+
+  100% {
+    opacity: 1;
+    filter: none;
+    transform: scale(1);
   }
 }
 
@@ -1835,6 +1869,7 @@ p {
 
   .formation-layer,
   .excavation-tile,
+  .specimen-reveal,
   .boot-orbit {
     animation: none;
   }

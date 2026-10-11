@@ -25,7 +25,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v22"],
+    keys: async () => ["afterchime-shell-v23"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -350,7 +350,10 @@ describe("full shell application", () => {
     });
 
     expect(screen.getByRole("heading", { name: "Today’s fossil is secured" })).toBeTruthy();
-    expect(container.querySelector(".specimen-visual")).toHaveClass("rarity-rare");
+    expect(container.querySelector(".specimen-visual")).toHaveClass(
+      "rarity-rare",
+      "specimen-reveal",
+    );
     expect(container.querySelector(".specimen-visual img")).toHaveAttribute(
       "src",
       "/worlds/relic-dinosaur-embryo-egg-museum-db0ceecfe047.webp",
@@ -505,12 +508,19 @@ describe("full shell application", () => {
       /your collection still works offline/i,
       /pseudonymous app-use events/i,
       /daily counts only—never notification content or app identity/i,
-      /Limit interface animation and movement/i,
+      /Turn off excavation and reveal animations/i,
       /Increase separation between text, controls, and surfaces/i,
-      /gentle vibration for taps and confirmations/i,
     ]) {
       expect(screen.getByText(detail)).toBeTruthy();
     }
+    expect(screen.queryByRole("checkbox", { name: /Haptics/i })).toBeNull();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Reduce motion/i }));
+    expect(lastRequest()).toMatchObject({
+      version: 2,
+      type: "preferences.update",
+      payload: { key: "reduceMotionEnabled", value: true },
+    });
   });
 
   it("shows only the four approved public worlds and keeps compatibility ids out of the UI", () => {

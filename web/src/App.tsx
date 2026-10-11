@@ -454,7 +454,7 @@ function Today({
       </div>
       <div className="formation-stage">
         {specimen && specimen.revealedAtEpochMillis !== null ? (
-          <SpecimenVisual specimen={specimen} world={state.worlds.selected} />
+          <SpecimenVisual specimen={specimen} world={state.worlds.selected} revealMotion />
         ) : excavation && artifactById(excavation.artifactId) ? (
           <Excavation
             excavation={excavation}
@@ -972,7 +972,7 @@ function More({
       <div className="settings-group">
         <Toggle
           label="Reduce motion"
-          detail="Limit interface animation and movement"
+          detail="Turn off excavation and reveal animations"
           checked={preferences.reduceMotionEnabled}
           onChange={(value) => onPreference("reduceMotionEnabled", value)}
         />
@@ -981,12 +981,6 @@ function More({
           detail="Increase separation between text, controls, and surfaces"
           checked={preferences.highContrastEnabled}
           onChange={(value) => onPreference("highContrastEnabled", value)}
-        />
-        <Toggle
-          label="Haptics"
-          detail="Use gentle vibration for taps and confirmations"
-          checked={preferences.hapticsEnabled}
-          onChange={(value) => onPreference("hapticsEnabled", value)}
         />
       </div>
       <p className="version-line">
@@ -1145,6 +1139,7 @@ function SpecimenVisual({
   decorative = false,
   compact = false,
   showCaption = true,
+  revealMotion = false,
   displayTier,
 }: {
   specimen?: ShellSpecimen;
@@ -1152,6 +1147,7 @@ function SpecimenVisual({
   decorative?: boolean;
   compact?: boolean;
   showCaption?: boolean;
+  revealMotion?: boolean;
   displayTier?: Tier;
 }) {
   const artifact = specimen
@@ -1167,7 +1163,7 @@ function SpecimenVisual({
       };
   return (
     <figure
-      className={`specimen-visual theme-${definition.theme} rarity-${visualTier.toLowerCase()}${compact ? " compact" : ""}`}
+      className={`specimen-visual theme-${definition.theme} rarity-${visualTier.toLowerCase()}${compact ? " compact" : ""}${revealMotion ? " specimen-reveal" : ""}`}
       {...accessibility}
     >
       <img src={artifact.museumImage} alt="" draggable="false" />

@@ -30,3 +30,22 @@ describe("Museum rarity card styling", () => {
     expect(frame).toContain("box-shadow:");
   });
 });
+
+describe("excavation motion", () => {
+  it("animates excavation clearing and the final specimen reveal", () => {
+    expect(declarationBlock(".excavation-tile.dug")).toContain("transform: scale(0.68)");
+    expect(declarationBlock(".excavation-tile.dug")).toContain("filter:");
+    expect(declarationBlock(".specimen-visual.specimen-reveal")).toContain(
+      "animation: specimen-reveal",
+    );
+  });
+
+  it("keeps the existing reduce-motion override as the master off switch", () => {
+    expect(styles).toContain(".reduce-motion *");
+    expect(declarationBlock(".reduce-motion .specimen-visual.specimen-reveal")).toContain(
+      "animation: none",
+    );
+    expect(declarationBlock(".reduce-motion .excavation-tile")).toContain("transition: none");
+    expect(styles).toContain(".specimen-reveal,");
+  });
+});
