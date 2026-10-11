@@ -54,6 +54,22 @@ describe("versioned native bridge requests", () => {
         payload: { specimenIds: ["one", "two", "three"] },
       }),
     ).not.toBeNull();
+    expect(
+      parseNativeRequest({
+        version: 2,
+        id: "req_lock",
+        type: "museum.lock",
+        payload: { specimenId: "specimen_1", locked: true },
+      }),
+    ).not.toBeNull();
+    expect(
+      parseNativeRequest({
+        version: 2,
+        id: "req_share",
+        type: "museum.share",
+        payload: { specimenId: "specimen_1" },
+      }),
+    ).not.toBeNull();
   });
 
   it("accepts a future append-only catalogue revision without changing the bridge version", () => {

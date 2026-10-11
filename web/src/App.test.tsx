@@ -25,7 +25,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v19"],
+    keys: async () => ["afterchime-shell-v20"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -348,13 +348,9 @@ describe("full shell application", () => {
     expect(
       Array.from(detail?.querySelectorAll("dt") ?? []).map((term) => term.textContent),
     ).toEqual(["Rarity", "Sealed"]);
-
-    fireEvent.click(screen.getByRole("button", { name: "Remove protection" }));
-    expect(lastRequest()).toMatchObject({
-      version: 2,
-      type: "museum.lock",
-      payload: { specimenId: specimen.id, locked: false },
-    });
+    expect(screen.queryByRole("button", { name: "Share image" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /protection/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Combine three" })).toBeNull();
   });
 
   it("maps Museum card borders to bronze, silver, and gold rarity treatments", () => {
@@ -400,32 +396,6 @@ describe("full shell application", () => {
     expect(within(cards[0]).getByText("3 owned")).toBeTruthy();
     expect(within(cards[0]).getByText("Common")).toBeTruthy();
     expect(within(cards[0]).queryByText("Uncommon")).toBeNull();
-  });
-
-  it("uses an in-shell confirmation for irreversible combining", () => {
-    const specimens = ["a", "b", "c"].map((id, index) => ({
-      ...specimen,
-      id,
-      catalogItemId: "relic-dactylioceras-ammonite",
-      createdAtEpochMillis: index + 1,
-      revealedAtEpochMillis: index + 2,
-    }));
-    renderWithState({ ...baseState, museum: { specimens } });
-    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
-    fireEvent.click(screen.getByRole("button", { name: /artifact from Relic Vault/i }));
-    fireEvent.click(screen.getByRole("button", { name: "Combine three" }));
-    const stack = screen.getByRole("button", { name: /artifact from Relic Vault/i });
-    fireEvent.click(stack);
-    fireEvent.click(stack);
-    expect(within(stack).getByText("3 owned · 3 selected")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Review" }));
-    const dialog = screen.getByRole("dialog", { name: /restore these three/i });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Restore specimen" }));
-    expect(lastRequest()).toMatchObject({
-      version: 2,
-      type: "museum.combine",
-      payload: { specimenIds: expect.arrayContaining(["a", "b", "c"]) },
-    });
   });
 
   it("keeps optional online settings off and sends one explicit preference mutation", () => {

@@ -328,20 +328,6 @@ function App() {
             specimen={selectedSpecimen}
             world={shellState.worlds.selected}
             onBack={() => history.back()}
-            onLock={(specimen, locked) =>
-              act(
-                "museum.lock",
-                { specimenId: specimen.id, locked },
-                locked ? "Protecting specimen…" : "Removing protection…",
-              )
-            }
-            onShare={(specimen) =>
-              act("museum.share", { specimenId: specimen.id }, "Opening Android share…")
-            }
-            onCombine={(specimen) => {
-              setCombineIds([specimen.id]);
-              navigate("museum");
-            }}
           />
         )}
       </main>
@@ -875,16 +861,10 @@ function SpecimenDetail({
   specimen,
   world,
   onBack,
-  onLock,
-  onShare,
-  onCombine,
 }: {
   specimen: ShellSpecimen | null;
   world: World;
   onBack(): void;
-  onLock(specimen: ShellSpecimen, locked: boolean): void;
-  onShare(specimen: ShellSpecimen): void;
-  onCombine(specimen: ShellSpecimen): void;
 }) {
   if (!specimen || specimen.revealedAtEpochMillis === null) {
     return (
@@ -926,23 +906,6 @@ function SpecimenDetail({
             </dd>
           </div>
         </dl>
-        <div className="action-row">
-          <button type="button" className="secondary" onClick={() => onShare(specimen)}>
-            Share image
-          </button>
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => onLock(specimen, !specimen.isLocked)}
-          >
-            {specimen.isLocked ? "Remove protection" : "Protect specimen"}
-          </button>
-          {!specimen.isLocked && specimen.collectibleState !== "CENTRE_PIECE" && (
-            <button type="button" className="primary" onClick={() => onCombine(specimen)}>
-              Combine three
-            </button>
-          )}
-        </div>
       </div>
     </section>
   );
