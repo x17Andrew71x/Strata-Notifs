@@ -35,6 +35,12 @@ type ShellMetadata = {
 
 type RootRoute = "today" | "museum" | "community" | "more";
 type Route = RootRoute | "worlds" | `specimen/${string}`;
+const ROOT_NAV_ITEMS: readonly { route: RootRoute; label: string }[] = [
+  { route: "today", label: "Excavate" },
+  { route: "museum", label: "Collection" },
+  { route: "community", label: "Exhibits" },
+  { route: "more", label: "Settings" },
+];
 export const TOAST_FADE_START_MS = 2_700;
 export const TOAST_DURATION_MS = 3_000;
 export const SHELL_STATE_REFRESH_MS = 2_000;
@@ -324,7 +330,7 @@ function App() {
       </main>
       {!selectedSpecimenId && route !== "worlds" && (
         <nav className="bottom-nav" aria-label="Main navigation">
-          {(["today", "museum", "community", "more"] as RootRoute[]).map((item) => (
+          {ROOT_NAV_ITEMS.map(({ route: item, label }) => (
             <button
               type="button"
               key={item}
@@ -332,8 +338,10 @@ function App() {
               aria-current={selectedRoot === item ? "page" : undefined}
               onClick={() => navigate(item)}
             >
-              <span aria-hidden="true">{navGlyph(item)}</span>
-              {titleCase(item)}
+              <span className="bottom-nav-icon" aria-hidden="true">
+                <NavIcon route={item} />
+              </span>
+              <span className="bottom-nav-label">{label}</span>
             </button>
           ))}
         </nav>
@@ -735,18 +743,16 @@ function Museum({
       </div>
 
       <fieldset className="filter-row" aria-label="Filter by rarity">
-        {(["ALL", "COMMON", "UNCOMMON", "RARE", "EXCEPTIONAL", "SINGULAR"] as const).map(
-          (value) => (
-            <button
-              type="button"
-              key={value}
-              className={tier === value ? "selected" : ""}
-              onClick={() => onTier(value)}
-            >
-              {titleCase(value)}
-            </button>
-          ),
-        )}
+        {(["ALL", "COMMON", "UNCOMMON", "RARE"] as const).map((value) => (
+          <button
+            type="button"
+            key={value}
+            className={tier === value ? "selected" : ""}
+            onClick={() => onTier(value)}
+          >
+            {titleCase(value)}
+          </button>
+        ))}
       </fieldset>
       {stacks.length === 0 ? (
         <div className="empty-state">
@@ -888,11 +894,11 @@ function ReferenceSeries({ artifactId, ownedCount }: { artifactId: string; owned
 
 function Community() {
   return (
-    <section className="screen placeholder-screen">
+    <section className="screen placeholder-screen" aria-labelledby="exhibits-title">
       <p className="eyebrow">Optional and private</p>
-      <h1>Community</h1>
+      <h1 id="exhibits-title">Exhibits</h1>
       <p>Nothing leaves this device unless you explicitly enable an online feature.</p>
-      <div className="coming-soon">Community features are not enabled yet.</div>
+      <div className="coming-soon">Shared exhibits are not enabled yet.</div>
     </section>
   );
 }
@@ -914,10 +920,10 @@ function More({
 }) {
   const preferences = state.preferences;
   return (
-    <section className="screen more-screen" aria-labelledby="more-title">
+    <section className="screen more-screen" aria-labelledby="settings-title">
       <div className="screen-heading compact">
         <p className="eyebrow">Local controls</p>
-        <h1 id="more-title">More</h1>
+        <h1 id="settings-title">Settings</h1>
       </div>
       <div className="settings-group">
         <button type="button" className="settings-link" onClick={onWorlds}>
@@ -1206,7 +1212,7 @@ function todayCopy(state: ShellState): { title: string; body: string | null } {
     case "AwaitingAccess":
       return {
         title: "Begin your collection",
-        body: "Choose which alerting apps may contribute. Content never enters the collection.",
+        body: null,
       };
     case "Active":
       return {
@@ -1272,8 +1278,50 @@ function rootFor(route: Route): RootRoute {
   return "today";
 }
 
-function navGlyph(route: RootRoute): string {
-  return { today: "◌", museum: "◇", community: "○", more: "•••" }[route];
+function NavIcon({ route }: { route: RootRoute }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+  switch (route) {
+    case "today":
+      return (
+        <svg {...common} aria-hidden="true" focusable="false">
+          <path d="m15.5 4.5 4 4" />
+          <path d="m17.5 6.5-8 8" />
+          <path d="m9.5 13.5-5-1-2 8 8-2-1-5Z" />
+        </svg>
+      );
+    case "museum":
+      return (
+        <svg {...common} aria-hidden="true" focusable="false">
+          <path d="M3 9h18L12 4 3 9Z" />
+          <path d="M5 20h14" />
+          <path d="M6 9v8M10 9v8M14 9v8M18 9v8" />
+        </svg>
+      );
+    case "community":
+      return (
+        <svg {...common} aria-hidden="true" focusable="false">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <circle cx="9" cy="10" r="2" />
+          <path d="m4 17 5-4 4 3 3-2 4 3" />
+        </svg>
+      );
+    case "more":
+      return (
+        <svg {...common} aria-hidden="true" focusable="false">
+          <path d="M4 6h7M15 6h5M4 12h2M10 12h10M4 18h10M18 18h2" />
+          <circle cx="13" cy="6" r="2" />
+          <circle cx="8" cy="12" r="2" />
+          <circle cx="16" cy="18" r="2" />
+        </svg>
+      );
+  }
 }
 
 function titleCase(value: string): string {

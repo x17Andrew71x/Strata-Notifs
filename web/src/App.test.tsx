@@ -25,7 +25,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v21"],
+    keys: async () => ["afterchime-shell-v22"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -128,12 +128,54 @@ describe("full shell application", () => {
     expect(lastRequest()).toMatchObject({ version: 2, type: "onboarding.complete" });
   });
 
-  it("makes Today the first full-shell tab and explains next-day readiness", () => {
+  it("makes Excavate the first full-shell tab and explains next-day readiness", () => {
     renderWithState(baseState);
     expect(screen.getByRole("heading", { name: "Today is still forming" })).toBeTruthy();
     expect(screen.getByText(/ready tomorrow/i)).toBeTruthy();
     expect(screen.getByText(/new relief is being pressed/i)).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeTruthy();
+  });
+
+  it("uses task-based bottom navigation labels with authored icons", () => {
+    const { container } = renderWithState(baseState);
+    for (const label of ["Excavate", "Collection", "Exhibits", "Settings"]) {
+      const button = screen.getByRole("button", { name: label });
+      expect(button.querySelector("svg")).toBeTruthy();
+    }
+    for (const oldLabel of ["Today", "Museum", "Community", "More"]) {
+      expect(screen.queryByRole("button", { name: oldLabel })).toBeNull();
+    }
+    expect(container.querySelectorAll(".bottom-nav-icon")).toHaveLength(4);
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expect(screen.getByRole("heading", { name: "Settings" })).toBeTruthy();
+  });
+
+  it("shows only active fossil rarities in the Collection filter", () => {
+    renderWithState(baseState);
+    fireEvent.click(screen.getByRole("button", { name: "Collection" }));
+    const filters = screen.getByRole("group", { name: "Filter by rarity" });
+    expect(
+      within(filters)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["All", "Common", "Uncommon", "Rare"]);
+    expect(within(filters).queryByRole("button", { name: "Exceptional" })).toBeNull();
+    expect(within(filters).queryByRole("button", { name: "Singular" })).toBeNull();
+  });
+
+  it("keeps the notification-access state free of the removed subtitle", () => {
+    renderWithState({
+      ...baseState,
+      notificationAccess: false,
+      today: { ...baseState.today, observation: "AwaitingAccess" },
+    });
+    expect(screen.getByRole("heading", { name: "Begin your collection" })).toBeTruthy();
+    expect(
+      screen.queryByText(
+        "Choose which alerting apps may contribute. Content never enters the collection.",
+      ),
+    ).toBeNull();
   });
 
   it("builds the primary formation from bounded sediment layers and a fossil imprint", () => {
@@ -336,7 +378,7 @@ describe("full shell application", () => {
         specimens: [{ ...specimen, revealedAtEpochMillis: 2, isLocked: true }],
       },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Collection$/ }));
     expect(screen.getByRole("heading", { name: "Vault" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Ribbed Jurassic Ammonite/i }));
 
@@ -366,7 +408,7 @@ describe("full shell application", () => {
       revealedAtEpochMillis: index + 2,
     }));
     renderWithState({ ...baseState, museum: { specimens } });
-    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Collection$/ }));
 
     expect(screen.getByRole("button", { name: /Ribbed Jurassic Ammonite/i })).toHaveClass(
       "rarity-common",
@@ -389,7 +431,7 @@ describe("full shell application", () => {
       revealedAtEpochMillis: index + 2,
     }));
     renderWithState({ ...baseState, museum: { specimens: duplicates } });
-    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Collection$/ }));
 
     const cards = screen.getAllByRole("button", { name: /artifact from Relic Vault/i });
     expect(cards).toHaveLength(1);
@@ -407,7 +449,7 @@ describe("full shell application", () => {
       revealedAtEpochMillis: index + 2,
     }));
     renderWithState({ ...baseState, museum: { specimens: duplicates } });
-    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Collection$/ }));
     fireEvent.click(screen.getByRole("button", { name: /artifact from Relic Vault/i }));
 
     expect(screen.getByRole("heading", { name: "Reference series" })).toBeTruthy();
@@ -427,7 +469,7 @@ describe("full shell application", () => {
       revealedAtEpochMillis: index + 2,
     }));
     renderWithState({ ...baseState, museum: { specimens: duplicates } });
-    fireEvent.click(screen.getByRole("button", { name: /Museum$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Collection$/ }));
     fireEvent.click(screen.getByRole("button", { name: /artifact from Relic Vault/i }));
 
     expect(screen.getByText("10 owned")).toBeTruthy();
@@ -440,7 +482,7 @@ describe("full shell application", () => {
 
   it("keeps optional online settings off and sends one explicit preference mutation", () => {
     renderWithState(baseState);
-    fireEvent.click(screen.getByRole("button", { name: /More$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
     const online = screen.getByRole("checkbox", { name: /Online features/i });
     const analytics = screen.getByRole("checkbox", { name: /Product analytics/i });
     expect(online).not.toBeChecked();
@@ -453,9 +495,9 @@ describe("full shell application", () => {
     });
   });
 
-  it("explains what every More setting controls", () => {
+  it("explains what every Settings control does", () => {
     renderWithState(baseState);
-    fireEvent.click(screen.getByRole("button", { name: /More$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
 
     for (const detail of [
       /Change the collection’s look and language/i,
@@ -473,7 +515,7 @@ describe("full shell application", () => {
 
   it("shows only the four approved public worlds and keeps compatibility ids out of the UI", () => {
     renderWithState(baseState);
-    fireEvent.click(screen.getByRole("button", { name: /More$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
     fireEvent.click(screen.getByRole("button", { name: /Worlds/i }));
 
     for (const name of [

@@ -222,7 +222,7 @@ The museum is the long-term home for:
 - achievement plaques;
 - purchased-world renderings.
 
-Filters are limited to world, family, tier, state and date. Search and sort remain secondary controls, not permanent clutter.
+Filters are limited to world, family, tier, state and date. The current Relic Vault tier row exposes only All, Common, Uncommon and Rare; Exceptional and Singular stay hidden until public catalogue items use them. Search and sort remain secondary controls, not permanent clutter.
 
 ---
 
@@ -376,6 +376,7 @@ The theme shop lives under More and contextual world selectors. It is not a perm
 
 - One primary action per screen.
 - Persistent bottom navigation only at root destinations.
+- Root navigation uses task-and-destination language with authored icons: **Excavate**, **Collection**, **Exhibits** and **Settings**.
 - Contextual top bars only for nested screens.
 - Avoid nested card-on-card layouts.
 - Progressive disclosure for advanced statistics and data controls.
