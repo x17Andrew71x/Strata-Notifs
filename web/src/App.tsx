@@ -472,17 +472,16 @@ function Today({
           />
         )}
       </div>
-      {state.today.primaryAction === "ENABLE_ACCESS" && (
-        <button
-          type="button"
-          className="primary wide"
-          onClick={() => onAction("notificationAccess.openSettings")}
-        >
-          {state.today.observation === "AwaitingAccess"
-            ? "Start collecting"
-            : "Open notification settings"}
-        </button>
-      )}
+      {state.today.primaryAction === "ENABLE_ACCESS" &&
+        state.today.observation !== "AwaitingAccess" && (
+          <button
+            type="button"
+            className="primary wide"
+            onClick={() => onAction("notificationAccess.openSettings")}
+          >
+            Open notification settings
+          </button>
+        )}
       {state.today.primaryAction === "REVEAL" && (
         <button
           type="button"

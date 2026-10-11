@@ -27,7 +27,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v24"],
+    keys: async () => ["afterchime-shell-v25"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -166,11 +166,15 @@ describe("full shell application", () => {
     expect(within(filters).queryByRole("button", { name: "Singular" })).toBeNull();
   });
 
-  it("keeps the notification-access state free of the removed subtitle", () => {
+  it("keeps the notification-access state free of the removed subtitle and Start collecting button", () => {
     renderWithState({
       ...baseState,
       notificationAccess: false,
-      today: { ...baseState.today, observation: "AwaitingAccess" },
+      today: {
+        ...baseState.today,
+        observation: "AwaitingAccess",
+        primaryAction: "ENABLE_ACCESS",
+      },
     });
     expect(screen.getByRole("heading", { name: "Begin your collection" })).toBeTruthy();
     expect(
@@ -178,6 +182,21 @@ describe("full shell application", () => {
         "Choose which alerting apps may contribute. Content never enters the collection.",
       ),
     ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Start collecting" })).toBeNull();
+  });
+
+  it("retains notification-access recovery for a disconnected collector", () => {
+    renderWithState({
+      ...baseState,
+      notificationAccess: false,
+      today: {
+        ...baseState.today,
+        observation: "Disconnected",
+        primaryAction: "ENABLE_ACCESS",
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Open notification settings" }));
+    expect(lastRequest()).toMatchObject({ type: "notificationAccess.openSettings" });
   });
 
   it("builds the primary formation from bounded sediment layers and a fossil imprint", () => {

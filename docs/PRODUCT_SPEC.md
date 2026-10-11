@@ -374,7 +374,7 @@ The theme shop lives under More and contextual world selectors. It is not a perm
 
 ### 10.2 Screen rules
 
-- One primary action per screen.
+- One primary action per screen. The Awaiting Access excavation state has no bottom `Start collecting` action; notification access is handled during onboarding and from Settings. A disconnected or revoked collector may still receive the explicit `Open notification settings` recovery action.
 - Persistent bottom navigation only at root destinations.
 - Root navigation uses task-and-destination language with authored icons: **Excavate**, **Collection**, **Exhibits** and **Settings**.
 - Contextual top bars only for nested screens.
