@@ -98,6 +98,11 @@ describe("authored world catalogue", () => {
         "utf8",
       ),
     ) as {
+      catalogRevision: number;
+      templates: {
+        museum: { path: string; sha256: string };
+        excavation: { path: string; sha256: string };
+      };
       output: {
         format: string;
         width: number;
@@ -118,6 +123,17 @@ describe("authored world catalogue", () => {
       quality: 82,
       method: 6,
     });
+    expect(manifest.catalogRevision).toBe(RELIC_VAULT_CATALOG_REVISION);
+    expect(manifest.templates.excavation.path).toBe(
+      "docs/art-direction/assets/relic-excavation-template.png",
+    );
+    expect(manifest.templates.excavation.sha256).toBe(
+      createHash("sha256")
+        .update(
+          await readFile(path.resolve(process.cwd(), "../", manifest.templates.excavation.path)),
+        )
+        .digest("hex"),
+    );
     expect(manifest.output.totalBytes).toBeLessThanOrEqual(7 * 1024 * 1024);
     expect(
       manifest.artifacts.flatMap(({ museum, excavation }) => [museum.path, excavation.path]).sort(),
@@ -148,5 +164,67 @@ describe("authored world catalogue", () => {
         new RegExp(`^${expectedPrefix}`),
       );
     }
+  });
+
+  it("binds the selected ammonite identity and D tile layout to exact web and Android assets", async () => {
+    const repositoryRoot = path.resolve(process.cwd(), "..");
+    const manifest = JSON.parse(
+      await readFile(
+        path.join(repositoryRoot, "docs/art-direction/AFTERCHIME_IDENTITY_ASSETS.json"),
+        "utf8",
+      ),
+    ) as {
+      selection: {
+        subject: string;
+        tileLayout: string;
+        grid: { columns: number; rows: number; remainingTiles: number; uncoveredPercent: number };
+        remainingTileCoordinates: number[][];
+      };
+      outputs: Array<{
+        path: string;
+        sha256: string;
+        bytes: number;
+        width: number;
+        height: number;
+      }>;
+    };
+
+    expect(manifest.selection).toMatchObject({
+      subject: "A — Ammonite",
+      tileLayout: "D — Fossil fish",
+      grid: { columns: 5, rows: 5, remainingTiles: 9, uncoveredPercent: 64 },
+    });
+    expect(manifest.selection.remainingTileCoordinates).toEqual([
+      [2, 0],
+      [4, 0],
+      [0, 1],
+      [3, 1],
+      [2, 2],
+      [1, 3],
+      [4, 3],
+      [0, 4],
+      [2, 4],
+    ]);
+    for (const output of manifest.outputs) {
+      const bytes = await readFile(path.join(repositoryRoot, output.path));
+      expect(bytes.byteLength).toBe(output.bytes);
+      expect(createHash("sha256").update(bytes).digest("hex")).toBe(output.sha256);
+    }
+    expect(manifest.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "web/public/afterchime-mark.webp",
+          width: 256,
+          height: 256,
+        }),
+        expect.objectContaining({
+          path: "android/app/src/main/res/drawable-nodpi/ic_afterchime_art.webp",
+          width: 512,
+          height: 512,
+        }),
+      ]),
+    );
+    const worker = await readFile(path.join(process.cwd(), "public/service-worker.js"), "utf8");
+    expect(worker).toContain('const BRAND_ASSETS = ["/afterchime-mark.webp"]');
   });
 });

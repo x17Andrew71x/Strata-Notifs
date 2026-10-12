@@ -28,7 +28,7 @@ data class FossilCatalogItem(
 }
 
 object FossilCatalog {
-  const val BUNDLED_REVISION = 1
+  const val BUNDLED_REVISION = 2
 
   /**
    * Research-backed offline baseline: 86% common, 12% uncommon, 2% rare.

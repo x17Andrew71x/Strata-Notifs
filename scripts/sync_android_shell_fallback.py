@@ -13,6 +13,7 @@ DEST = ROOT / "android" / "app" / "src" / "main" / "assets" / "web"
 ANDROID_ASSETS = DEST.parent
 ASSET_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$")
 WORLD_ASSET_PATTERN = re.compile(r"^[a-z0-9-]{1,128}-[a-f0-9]{12}\.(?:jpg|webp)$")
+BRAND_ASSET_NAME = "afterchime-mark.webp"
 CSP = (
     "default-src 'none'; script-src 'self'; style-src 'self'; "
     "style-src-attr 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; "
@@ -24,7 +25,13 @@ def main() -> None:
     index_path = DIST / "index.html"
     assets_path = DIST / "assets"
     worlds_path = DIST / "worlds"
-    if not index_path.is_file() or not assets_path.is_dir() or not worlds_path.is_dir():
+    brand_path = DIST / BRAND_ASSET_NAME
+    if (
+        not index_path.is_file()
+        or not assets_path.is_dir()
+        or not worlds_path.is_dir()
+        or not brand_path.is_file()
+    ):
         raise SystemExit("web/dist is missing; run pnpm web:build first")
 
     assets = sorted(path for path in assets_path.iterdir() if path.is_file())
@@ -56,6 +63,7 @@ def main() -> None:
             stale_world_asset.unlink()
     for world_asset in world_assets:
         shutil.copyfile(world_asset, ANDROID_ASSETS / world_asset.name)
+    shutil.copyfile(brand_path, ANDROID_ASSETS / BRAND_ASSET_NAME)
     DEST.mkdir(parents=True, exist_ok=True)
     (DEST / "index.html").write_text(html, encoding="utf-8")
 
@@ -64,7 +72,8 @@ def main() -> None:
     if referenced != copied:
         raise SystemExit(f"fallback reference mismatch: referenced={sorted(referenced)} copied={sorted(copied)}")
     print(
-        f"synced {len(copied)} shell assets and {len(world_assets)} content-addressed world images"
+        f"synced {len(copied)} shell assets, {len(world_assets)} content-addressed world images, "
+        "and the selected brand mark"
     )
 
 

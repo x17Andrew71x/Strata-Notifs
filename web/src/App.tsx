@@ -41,6 +41,12 @@ const ROOT_NAV_ITEMS: readonly { route: RootRoute; label: string }[] = [
   { route: "community", label: "Exhibits" },
   { route: "more", label: "Settings" },
 ];
+export function brandMarkPath(hostname: string): string {
+  return hostname === "appassets.androidplatform.net"
+    ? "/assets/afterchime-mark.webp"
+    : "/afterchime-mark.webp";
+}
+const BRAND_MARK_PATH = brandMarkPath(window.location.hostname);
 export const TOAST_FADE_START_MS = 2_700;
 export const TOAST_DURATION_MS = 3_000;
 export const SHELL_STATE_REFRESH_MS = 2_000;
@@ -360,21 +366,9 @@ function App() {
 function Brand() {
   return (
     <div className="brand">
-      <AfterchimeMark />
+      <img className="brand-mark" src={BRAND_MARK_PATH} alt="" draggable="false" />
       <strong>afterchime</strong>
     </div>
-  );
-}
-
-function AfterchimeMark() {
-  return (
-    <svg className="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
-      <path className="brand-mark-strata" d="M4 33c7-3 12 2 19-1 8-4 13-1 21-4v14H4z" />
-      <path
-        className="brand-mark-fossil"
-        d="M24 23.1 24.3 22.9 24.6 22.8 25 22.8 25.4 22.9 25.9 23.2 26.2 23.6 26.5 24.1 26.7 24.7 26.6 25.4 26.4 26.2 26 26.8 25.4 27.4 24.6 27.9 23.7 28.2 22.6 28.2 21.6 28 20.6 27.5 19.7 26.7 18.9 25.8 18.4 24.6 18.2 23.3 18.3 21.9 18.7 20.5 19.5 19.2 20.6 18.1 22 17.3 23.5 16.8 25.2 16.6 27 16.9 28.7 17.6 30.2 18.6 31.5 20.1 32.4 21.8 32.9 23.8 33 25.9 32.5 28 31.5 30 30.1 31.7 28.3 33.1 26.1 34.1 23.8 34.6 21.3 34.5 18.9 33.8 16.6 32.5 14.7 30.8 13.2 28.6 12.2 26 11.8 23.2 12.1 20.4 13 17.6 14.6 15.1 16.7 13 19.3 11.4 22.3 10.5 25.5 10.2 28.6 10.7 31.7 11.9 34.4 13.8 36.7 16.3 38.3 19.3 39.3 22.7 39.4 26.3 38.7 29.8 37.2 33.1 34.9 36.1 31.9 38.5 28.5 40.1 24.7 41 20.8 40.9 16.9 39.9 13.3 38.1 10.2 35.4 7.7 32.1 6.1 28.2 5.4 24"
-      />
-    </svg>
   );
 }
 

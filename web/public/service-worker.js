@@ -1,6 +1,7 @@
-const CACHE_NAME = "afterchime-shell-v25";
-const CATALOG_REVISION = 1;
+const CACHE_NAME = "afterchime-shell-v26";
+const CATALOG_REVISION = 2;
 const LEGACY_CACHE_NAMES = [
+  "afterchime-shell-v25",
   "afterchime-shell-v24",
   "afterchime-shell-v23",
   "afterchime-shell-v22",
@@ -26,42 +27,43 @@ const LEGACY_CACHE_NAMES = [
 const ENTRY = "/";
 const STATE_KEY = "/.afterchime/current";
 const ASSET_PATTERN =
-  /^(?:\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)|\/worlds\/[a-z0-9-]{1,128}-[a-f0-9]{12}\.(?:jpg|webp))$/;
+  /^(?:\/afterchime-mark\.webp|\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)|\/worlds\/[a-z0-9-]{1,128}-[a-f0-9]{12}\.(?:jpg|webp))$/;
+const BRAND_ASSETS = ["/afterchime-mark.webp"];
 const WORLD_ASSETS = [
   "/worlds/relic-dactylioceras-ammonite-museum-6a351e2bb9c1.webp",
-  "/worlds/relic-dactylioceras-ammonite-excavation-e191e90964c1.webp",
+  "/worlds/relic-dactylioceras-ammonite-excavation-50dc0ab0359a.webp",
   "/worlds/relic-belemnite-rostra-museum-f5aba5efde48.webp",
-  "/worlds/relic-belemnite-rostra-excavation-8443912d863f.webp",
+  "/worlds/relic-belemnite-rostra-excavation-49cbdaff034c.webp",
   "/worlds/relic-spiriferid-brachiopod-museum-004f488c0763.webp",
-  "/worlds/relic-spiriferid-brachiopod-excavation-c4b9d6a69e27.webp",
+  "/worlds/relic-spiriferid-brachiopod-excavation-9aebbad976c9.webp",
   "/worlds/relic-gryphaea-oyster-museum-effeafad73d8.webp",
-  "/worlds/relic-gryphaea-oyster-excavation-59a9be2a1cc3.webp",
+  "/worlds/relic-gryphaea-oyster-excavation-0fcbced0bc19.webp",
   "/worlds/relic-crinoid-columnals-museum-29e80d02b875.webp",
-  "/worlds/relic-crinoid-columnals-excavation-1de79a61ca50.webp",
+  "/worlds/relic-crinoid-columnals-excavation-e6226056f5ee.webp",
   "/worlds/relic-rugose-horn-coral-museum-be8aaef85cef.webp",
-  "/worlds/relic-rugose-horn-coral-excavation-4ace1de1f75f.webp",
+  "/worlds/relic-rugose-horn-coral-excavation-6ed7a9581d03.webp",
   "/worlds/relic-lamniform-shark-tooth-museum-d30b4b4049c8.webp",
-  "/worlds/relic-lamniform-shark-tooth-excavation-12dd64c30e62.webp",
+  "/worlds/relic-lamniform-shark-tooth-excavation-fa0a9f99d80e.webp",
   "/worlds/relic-carbonised-fern-frond-museum-cf7f16401d3c.webp",
-  "/worlds/relic-carbonised-fern-frond-excavation-bf0f796f5125.webp",
+  "/worlds/relic-carbonised-fern-frond-excavation-26b28f3ae9ee.webp",
   "/worlds/relic-domal-stromatolite-museum-d04e006b69cc.webp",
-  "/worlds/relic-domal-stromatolite-excavation-d472af058429.webp",
+  "/worlds/relic-domal-stromatolite-excavation-bb31db3a6aac.webp",
   "/worlds/relic-echinocorys-echinoid-museum-b7d1d344cd30.webp",
-  "/worlds/relic-echinocorys-echinoid-excavation-5d74c69e7db7.webp",
+  "/worlds/relic-echinocorys-echinoid-excavation-48eba03377db.webp",
   "/worlds/relic-articulated-trilobite-museum-3a5690b7a828.webp",
-  "/worlds/relic-articulated-trilobite-excavation-2e72ac83c032.webp",
+  "/worlds/relic-articulated-trilobite-excavation-dcdef6c209ba.webp",
   "/worlds/relic-articulated-fossil-fish-museum-6f4bfdf3d18a.webp",
-  "/worlds/relic-articulated-fossil-fish-excavation-cfa630aac0d6.webp",
+  "/worlds/relic-articulated-fossil-fish-excavation-65325e367eef.webp",
   "/worlds/relic-complete-starfish-museum-2ff6426b0f62.webp",
-  "/worlds/relic-complete-starfish-excavation-ccc514baeb39.webp",
+  "/worlds/relic-complete-starfish-excavation-e322052c3d45.webp",
   "/worlds/relic-articulated-fossil-crab-museum-6ec3a14500c2.webp",
-  "/worlds/relic-articulated-fossil-crab-excavation-d57c39d5c9d0.webp",
+  "/worlds/relic-articulated-fossil-crab-excavation-b0cf0d768173.webp",
   "/worlds/relic-insect-amber-museum-e0486f183aa8.webp",
-  "/worlds/relic-insect-amber-excavation-9149c88a34ea.webp",
+  "/worlds/relic-insect-amber-excavation-37eb68ac300d.webp",
   "/worlds/relic-dinosaur-embryo-egg-museum-db0ceecfe047.webp",
-  "/worlds/relic-dinosaur-embryo-egg-excavation-da03275b4f32.webp",
+  "/worlds/relic-dinosaur-embryo-egg-excavation-3b9a0207c942.webp",
   "/worlds/relic-archaeopteryx-slab-museum-492a72012ed0.webp",
-  "/worlds/relic-archaeopteryx-slab-excavation-23601b1f8a98.webp",
+  "/worlds/relic-archaeopteryx-slab-excavation-30a8e4b75684.webp",
   "/worlds/field-verdant-crown-16cd41ad4394.jpg",
   "/worlds/field-tidal-archive-7870aabaf855.jpg",
   "/worlds/field-cinder-vale-baba2fad26b5.jpg",
@@ -145,7 +147,7 @@ async function promoteCompleteShell(response, cache) {
     ),
   ].map((match) => match[1]);
   if (entryReferences.length === 0 || entryReferences.length > 32) return false;
-  const references = [...new Set([...entryReferences, ...WORLD_ASSETS])];
+  const references = [...new Set([...entryReferences, ...BRAND_ASSETS, ...WORLD_ASSETS])];
 
   const assets = [];
   for (const pathname of new Set(references)) {

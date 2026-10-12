@@ -99,20 +99,11 @@ p {
   width: 28px;
   height: 28px;
   flex: 0 0 auto;
-  overflow: visible;
-}
-
-.brand-mark-strata {
-  fill: color-mix(in srgb, var(--mint) 42%, #5d4229);
-  opacity: 0.62;
-}
-
-.brand-mark-fossil {
-  fill: none;
-  stroke: var(--mint-strong);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-width: 2.35;
+  border: 1px solid #c49a615c;
+  border-radius: 7px;
+  object-fit: cover;
+  box-shadow: 0 3px 10px #0009;
+  user-select: none;
 }
 
 .eyebrow {

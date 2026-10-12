@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "status": "approved-production-identity",
+  "selection": {
+    "subject": "A \u2014 Ammonite",
+    "tileLayout": "D \u2014 Fossil fish",
+    "grid": {
+      "columns": 5,
+      "rows": 5,
+      "remainingTiles": 9,
+      "uncoveredPercent": 64
+    },
+    "remainingTileCoordinates": [
+      [2, 0],
+      [4, 0],
+      [0, 1],
+      [3, 1],
+      [2, 2],
+      [1, 3],
+      [4, 3],
+      [0, 4],
+      [2, 4]
+    ],
+    "treatment": "realistic flat cel-shaded relief with dirt, shale dust, grit, clumps, and scrape marks"
+  },
+  "generation": {
+    "model": "openai-codex/gpt-image-2-medium",
+    "iconSourceRequestId": "5cd48e08-5b5e-421b-820c-4dce3b98bd76",
+    "shaleTextureRequestId": "e119980e-3a6b-4d67-a9ae-42b041ee9d40",
+    "dirtTextureRequestId": "ef1005ef-544b-4d5a-91ce-6e6b4f8fa1db",
+    "excavationBackgroundRequestId": "4b45e8cc-74ef-4baf-9492-96eee10d8b32",
+    "builder": "scripts/build_afterchime_identity_assets.py"
+  },
+  "sources": [
+    {
+      "path": "docs/art-direction/assets/afterchime-icon-ammonite-source.png",
+      "sha256": "91d17645d5445347bdacc9cf10a113630965485fd549c01c71143c50d0b92a59",
+      "bytes": 3517089,
+      "format": "PNG",
+      "mode": "RGB",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "path": "docs/art-direction/assets/afterchime-identity-shale-texture.png",
+      "sha256": "8af9d9f6f02d648dae33ab51e24ac292591576e1e810f06640890d46e30948d4",
+      "bytes": 3505552,
+      "format": "PNG",
+      "mode": "RGB",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "path": "docs/art-direction/assets/afterchime-identity-dirt-texture.png",
+      "sha256": "b659f733ac251495587d4c5474f58cd20c267929e815b68268ba6df13fd5e26b",
+      "bytes": 4614649,
+      "format": "PNG",
+      "mode": "RGB",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "path": "docs/art-direction/assets/afterchime-excavation-background-source.png",
+      "sha256": "3141f7fcbb90c8d1029ce874af4b7359117f14ebae6d35b96ae514661edfbc03",
+      "bytes": 3810889,
+      "format": "PNG",
+      "mode": "RGB",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "outputs": [
+    {
+      "path": "docs/art-direction/assets/afterchime-icon-master.png",
+      "sha256": "365a206fb24215ce2668389427e15b1525787c8ae8862f6e53391b874ed774e4",
+      "bytes": 2067601,
+      "format": "PNG",
+      "mode": "RGB",
+      "width": 1024,
+      "height": 1024
+    },
+    {
+      "path": "docs/art-direction/assets/relic-excavation-template.png",
+      "sha256": "ad1d8bb9ef979dcfdaa0a2a9e8e994fbfca1b0f484a01a82f23ae9bbb99c73e2",
+      "bytes": 2856620,
+      "format": "PNG",
+      "mode": "RGB",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "path": "web/public/afterchime-mark.webp",
+      "sha256": "4a90e193b3ffba2729e782011e75557da680d048ae488eeecd9cb57b20d1aedb",
+      "bytes": 25092,
+      "format": "WEBP",
+      "mode": "RGB",
+      "width": 256,
+      "height": 256
+    },
+    {
+      "path": "android/app/src/main/res/drawable-nodpi/ic_afterchime_art.webp",
+      "sha256": "ff0dd38344055020b4771214868f035ab4c372ec56645d501f7cc295a598d18c",
+      "bytes": 100786,
+      "format": "WEBP",
+      "mode": "RGB",
+      "width": 512,
+      "height": 512
+    }
+  ]
+}

@@ -64,6 +64,7 @@ async function createWorker(
   const workerFetcher = async (input: RequestInfo | URL) => {
     const url = new URL(responseUrl(input), origin);
     const response = await fetcher(input);
+    if (url.pathname === "/afterchime-mark.webp") return imageResponse("brand", "image/webp");
     const match = url.pathname.match(/^\/worlds\/[a-z0-9-]+-[a-f0-9]{12}\.(jpg|webp)$/);
     if (!match) return response;
     if (!response.ok && response.status !== 404) return response;
@@ -186,8 +187,8 @@ describe("last-known-good web shell", () => {
     );
 
     await worker.activate();
-    const state = stores.get("afterchime-shell-v25")?.get(`${origin}/.afterchime/current`);
-    expect(await state?.clone().json()).toMatchObject({ catalogRevision: 1 });
+    const state = stores.get("afterchime-shell-v26")?.get(`${origin}/.afterchime/current`);
+    expect(await state?.clone().json()).toMatchObject({ catalogRevision: 2 });
     offline = true;
 
     const cached = await worker.navigate();
@@ -257,8 +258,11 @@ describe("last-known-good web shell", () => {
     const artwork = await worker.asset(
       "/worlds/relic-dactylioceras-ammonite-museum-6a351e2bb9c1.webp",
     );
+    const brand = await worker.asset("/afterchime-mark.webp");
     expect(artwork.status).toBe(200);
     expect(artwork.headers.get("content-type")).toBe("image/webp");
+    expect(brand.status).toBe(200);
+    expect(await brand.text()).toBe("brand");
     expect(await artwork.text()).toBe("image");
   });
 
@@ -305,10 +309,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v26";',
             'const CACHE_NAME = "afterchime-shell-v25";',
-            'const CACHE_NAME = "afterchime-shell-v24";',
           )
-          .replace('  "afterchime-shell-v24",\n', ""),
+          .replace('  "afterchime-shell-v25",\n', ""),
     });
     await prior.activate();
     offline = true;

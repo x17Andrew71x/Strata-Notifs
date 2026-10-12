@@ -28,6 +28,7 @@ MANIFEST_PATH = ROOT / "docs" / "art-direction" / "FOSSIL_CATALOG_ASSETS.json"
 MIN_WEBP_BYTES = 70_000
 MAX_WEBP_BYTES = 360_000
 MAX_CATALOG_BYTES = 7 * 1024 * 1024
+CATALOG_REVISION = 2
 
 
 @dataclass(frozen=True)
@@ -149,7 +150,18 @@ def main() -> None:
 
     manifest = {
         "version": 1,
+        "catalogRevision": CATALOG_REVISION,
         "status": "approved-production-art",
+        "templates": {
+            "museum": {
+                "path": "docs/art-direction/assets/relic-museum-template.png",
+                "sha256": sha256(MASTER_DIR / "relic-museum-template.png"),
+            },
+            "excavation": {
+                "path": "docs/art-direction/assets/relic-excavation-template.png",
+                "sha256": sha256(MASTER_DIR / "relic-excavation-template.png"),
+            },
+        },
         "output": {
             "format": "WEBP",
             "width": OUTPUT_SIZE,

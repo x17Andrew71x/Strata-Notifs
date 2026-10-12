@@ -32,6 +32,13 @@ class MainActivityTest {
 
     assertEquals(R.mipmap.ic_afterchime, activity.applicationInfo.icon)
     assertTrue(icon is android.graphics.drawable.AdaptiveIconDrawable)
+    assertTrue(
+      activity.resources.getIdentifier(
+        "ic_afterchime_art",
+        "drawable",
+        activity.packageName,
+      ) != 0,
+    )
   }
 
   @Test

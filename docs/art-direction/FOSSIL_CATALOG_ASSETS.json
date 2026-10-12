@@ -1,6 +1,17 @@
 {
   "version": 1,
+  "catalogRevision": 2,
   "status": "approved-production-art",
+  "templates": {
+    "museum": {
+      "path": "docs/art-direction/assets/relic-museum-template.png",
+      "sha256": "e80b679f965ad79f4433b6c1cf91f19b65955cbf503e914259026aee42a23274"
+    },
+    "excavation": {
+      "path": "docs/art-direction/assets/relic-excavation-template.png",
+      "sha256": "ad1d8bb9ef979dcfdaa0a2a9e8e994fbfca1b0f484a01a82f23ae9bbb99c73e2"
+    }
+  },
   "output": {
     "format": "WEBP",
     "width": 960,
@@ -10,7 +21,7 @@
     "lossless": false,
     "exact": true,
     "exif": false,
-    "totalBytes": 6581638,
+    "totalBytes": 5644110,
     "maximumTotalBytes": 7340032
   },
   "counts": {
@@ -37,9 +48,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-dactylioceras-ammonite-excavation-e191e90964c1.webp",
-        "sha256": "e191e90964c178f1e145762cfc5b8ffd57d738270b3dc4fd209d34b61fcb566d",
-        "bytes": 291124,
+        "path": "/worlds/relic-dactylioceras-ammonite-excavation-50dc0ab0359a.webp",
+        "sha256": "50dc0ab0359afb2fcafbc16a27a4861c71c03283dbc36cfb7365bdfa57e9c2e8",
+        "bytes": 238110,
         "width": 960,
         "height": 960
       }
@@ -61,9 +72,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-belemnite-rostra-excavation-8443912d863f.webp",
-        "sha256": "8443912d863f8c589a7ced4d189c8cc407bb7ec1bcad534676a156da9a3ad7b5",
-        "bytes": 293718,
+        "path": "/worlds/relic-belemnite-rostra-excavation-49cbdaff034c.webp",
+        "sha256": "49cbdaff034c5c54ddd14f3d2e090a8f3f2df3e860836c2eb69f17b315b1ffca",
+        "bytes": 240158,
         "width": 960,
         "height": 960
       }
@@ -85,9 +96,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-spiriferid-brachiopod-excavation-c4b9d6a69e27.webp",
-        "sha256": "c4b9d6a69e27c58eedaecbdf61c1fa0b87c8cbdec40bb039492c46bc71e04375",
-        "bytes": 292484,
+        "path": "/worlds/relic-spiriferid-brachiopod-excavation-9aebbad976c9.webp",
+        "sha256": "9aebbad976c9b99f23cd4a3093fc9df58667a7600008c0e2815a318c86fecb4a",
+        "bytes": 234860,
         "width": 960,
         "height": 960
       }
@@ -109,9 +120,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-gryphaea-oyster-excavation-59a9be2a1cc3.webp",
-        "sha256": "59a9be2a1cc368286570c72934ebdf811ecd82f0c9aca54efbfb1bee543ae3cf",
-        "bytes": 292768,
+        "path": "/worlds/relic-gryphaea-oyster-excavation-0fcbced0bc19.webp",
+        "sha256": "0fcbced0bc198b42b6e7f98b41f46d429ed120e535ce5cebc30649e2f88a2e85",
+        "bytes": 235650,
         "width": 960,
         "height": 960
       }
@@ -133,9 +144,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-crinoid-columnals-excavation-1de79a61ca50.webp",
-        "sha256": "1de79a61ca50e83727791c41e46c1b28efbcd482fce4496c37fd05fe4f730fd2",
-        "bytes": 293316,
+        "path": "/worlds/relic-crinoid-columnals-excavation-e6226056f5ee.webp",
+        "sha256": "e6226056f5ee731c696153252ce0f261203cc7941bb4febe7cd5a652e80deea7",
+        "bytes": 240112,
         "width": 960,
         "height": 960
       }
@@ -157,9 +168,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-rugose-horn-coral-excavation-4ace1de1f75f.webp",
-        "sha256": "4ace1de1f75f2f6af7b7a1a9d213e4480d1c0f659201191db69c3a5a43ae37f8",
-        "bytes": 291462,
+        "path": "/worlds/relic-rugose-horn-coral-excavation-6ed7a9581d03.webp",
+        "sha256": "6ed7a9581d034cb63ff4502a3544f5a396d0904b0716816c7cf249c2d2284816",
+        "bytes": 233844,
         "width": 960,
         "height": 960
       }
@@ -181,9 +192,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-lamniform-shark-tooth-excavation-12dd64c30e62.webp",
-        "sha256": "12dd64c30e6210eba5e13de7aba46c80118753f66732731fa1a3a41de326c5b6",
-        "bytes": 299644,
+        "path": "/worlds/relic-lamniform-shark-tooth-excavation-fa0a9f99d80e.webp",
+        "sha256": "fa0a9f99d80e10ab485d2411e84d2a4ba523e7539f4a6029f9b12714156a1bb6",
+        "bytes": 242638,
         "width": 960,
         "height": 960
       }
@@ -205,9 +216,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-carbonised-fern-frond-excavation-bf0f796f5125.webp",
-        "sha256": "bf0f796f51254455d35199444f5022d1101fcf4c6412a1b5cd6179c617f50cb3",
-        "bytes": 288676,
+        "path": "/worlds/relic-carbonised-fern-frond-excavation-26b28f3ae9ee.webp",
+        "sha256": "26b28f3ae9ee8a70c68920eca34b49a2831cdc99d5380103cbf8de108b87200e",
+        "bytes": 234940,
         "width": 960,
         "height": 960
       }
@@ -229,9 +240,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-domal-stromatolite-excavation-d472af058429.webp",
-        "sha256": "d472af0584291c1ca518b4f6af72a76303eac5ab8c511299822af14e1908a4f2",
-        "bytes": 288926,
+        "path": "/worlds/relic-domal-stromatolite-excavation-bb31db3a6aac.webp",
+        "sha256": "bb31db3a6aac4d8421d3ceaf8f38ed15c9383c431138bbf440b0d08a1954c005",
+        "bytes": 235536,
         "width": 960,
         "height": 960
       }
@@ -253,9 +264,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-echinocorys-echinoid-excavation-5d74c69e7db7.webp",
-        "sha256": "5d74c69e7db7683a6c45758b7732a8532e7b1021e6d21db2117000b7d9b28f7f",
-        "bytes": 295776,
+        "path": "/worlds/relic-echinocorys-echinoid-excavation-48eba03377db.webp",
+        "sha256": "48eba03377db333a82b78e444625524268ca66671e122cd5c234eb846375ec97",
+        "bytes": 243114,
         "width": 960,
         "height": 960
       }
@@ -277,9 +288,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-articulated-trilobite-excavation-2e72ac83c032.webp",
-        "sha256": "2e72ac83c03268ceae9a41e55895d5d3668670d76167da8b8ee9cd21decb88e3",
-        "bytes": 295328,
+        "path": "/worlds/relic-articulated-trilobite-excavation-dcdef6c209ba.webp",
+        "sha256": "dcdef6c209badf2903eaa0b65c3723106e819358ce5c1d42c04035ee9e3a6ddb",
+        "bytes": 241364,
         "width": 960,
         "height": 960
       }
@@ -301,9 +312,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-articulated-fossil-fish-excavation-cfa630aac0d6.webp",
-        "sha256": "cfa630aac0d6edccb32252d8a1cd2d2da825256f30585cbe778f98b9458d86ea",
-        "bytes": 295706,
+        "path": "/worlds/relic-articulated-fossil-fish-excavation-65325e367eef.webp",
+        "sha256": "65325e367eef5dd5df7a0d4f6ba5c568b41e045e44e2d4bc82f892025f9afec5",
+        "bytes": 238224,
         "width": 960,
         "height": 960
       }
@@ -325,9 +336,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-complete-starfish-excavation-ccc514baeb39.webp",
-        "sha256": "ccc514baeb3924e8cf4eb81ae8167b9367186acad83fb520d854ccd7a4c31b3d",
-        "bytes": 299898,
+        "path": "/worlds/relic-complete-starfish-excavation-e322052c3d45.webp",
+        "sha256": "e322052c3d4587eed67544570e9bea5be9c8e8d91446ab5aa0044a97f3c37a3f",
+        "bytes": 244252,
         "width": 960,
         "height": 960
       }
@@ -349,9 +360,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-articulated-fossil-crab-excavation-d57c39d5c9d0.webp",
-        "sha256": "d57c39d5c9d0ea288ab6e4d0e7595ab2bcc314de3861c24002c6b774199bf277",
-        "bytes": 298616,
+        "path": "/worlds/relic-articulated-fossil-crab-excavation-b0cf0d768173.webp",
+        "sha256": "b0cf0d768173ee00dd6d046fd774e0b28f41b0be99d5c2d90159674cb49d1336",
+        "bytes": 242638,
         "width": 960,
         "height": 960
       }
@@ -373,9 +384,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-insect-amber-excavation-9149c88a34ea.webp",
-        "sha256": "9149c88a34ea8be17e4c8098e7a0bc023346988f6c559d6ffb25bd59c2e74708",
-        "bytes": 297150,
+        "path": "/worlds/relic-insect-amber-excavation-37eb68ac300d.webp",
+        "sha256": "37eb68ac300def2ecaa54011566f01b903eadddb120ac9d0d9385e98069abb8b",
+        "bytes": 239718,
         "width": 960,
         "height": 960
       }
@@ -397,9 +408,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-dinosaur-embryo-egg-excavation-da03275b4f32.webp",
-        "sha256": "da03275b4f32f8b2fff4393cd84220e9e67c96210c3f463c9c145ecbefd67732",
-        "bytes": 302550,
+        "path": "/worlds/relic-dinosaur-embryo-egg-excavation-3b9a0207c942.webp",
+        "sha256": "3b9a0207c94212e776658e38ce23bde7585990ebb9f5a5c9db0804b6becfa55a",
+        "bytes": 246910,
         "width": 960,
         "height": 960
       }
@@ -421,9 +432,9 @@
         "height": 960
       },
       "excavation": {
-        "path": "/worlds/relic-archaeopteryx-slab-excavation-23601b1f8a98.webp",
-        "sha256": "23601b1f8a98f9f3802a061097795be15651d8470b0b82e58af379272ff51db2",
-        "bytes": 281770,
+        "path": "/worlds/relic-archaeopteryx-slab-excavation-30a8e4b75684.webp",
+        "sha256": "30a8e4b75684b51b2e2d5626dc09c72018df35a71a1b2b11c82ff3b5b36fe662",
+        "bytes": 229316,
         "width": 960,
         "height": 960
       }

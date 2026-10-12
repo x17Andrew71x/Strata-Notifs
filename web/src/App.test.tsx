@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App, {
+  brandMarkPath,
   catalogAssetsAreCached,
   ENERGY_GAIN_PULSE_MS,
   EXCAVATION_CLEAR_MS,
@@ -11,7 +12,7 @@ import App, {
   TOAST_FADE_START_MS,
 } from "./App";
 import type { ShellState } from "./bridge";
-import { WORLD_ASSET_PATHS } from "./worlds";
+import { RELIC_VAULT_CATALOG_REVISION, WORLD_ASSET_PATHS } from "./worlds";
 
 const native = {
   postMessage: vi.fn(),
@@ -20,14 +21,14 @@ const native = {
 
 function catalogCacheStorage(
   paths: readonly string[] = WORLD_ASSET_PATHS,
-  revision = 1,
+  revision = RELIC_VAULT_CATALOG_REVISION,
 ): CacheStorage {
   const state = {
     catalogRevision: revision,
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v25"],
+    keys: async () => ["afterchime-shell-v26"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -53,6 +54,13 @@ afterEach(() => {
 });
 
 describe("service worker registration", () => {
+  it("maps the selected brand mark onto hosted and bundled-shell origins", () => {
+    expect(brandMarkPath("afterchime-api-dev-development.up.railway.app")).toBe(
+      "/afterchime-mark.webp",
+    );
+    expect(brandMarkPath("appassets.androidplatform.net")).toBe("/assets/afterchime-mark.webp");
+  });
+
   it("registers only when the hosted production shell asks for it", async () => {
     const register = vi.fn().mockResolvedValue(undefined);
     await registerShellWorker(false, { register });
@@ -62,11 +70,18 @@ describe("service worker registration", () => {
   });
 
   it("authorizes a native catalogue only after the matching complete artwork set is cached", async () => {
-    expect(await catalogAssetsAreCached(1, catalogCacheStorage())).toBe(true);
-    expect(await catalogAssetsAreCached(2, catalogCacheStorage())).toBe(false);
-    expect(await catalogAssetsAreCached(1, catalogCacheStorage(WORLD_ASSET_PATHS.slice(1)))).toBe(
-      false,
+    expect(await catalogAssetsAreCached(RELIC_VAULT_CATALOG_REVISION, catalogCacheStorage())).toBe(
+      true,
     );
+    expect(
+      await catalogAssetsAreCached(RELIC_VAULT_CATALOG_REVISION + 1, catalogCacheStorage()),
+    ).toBe(false);
+    expect(
+      await catalogAssetsAreCached(
+        RELIC_VAULT_CATALOG_REVISION,
+        catalogCacheStorage(WORLD_ASSET_PATHS.slice(1)),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -107,7 +122,10 @@ describe("full shell application", () => {
       payload: { schemaVersion: number; revision: number; items: unknown[] };
     };
     expect(update.type).toBe("catalog.update");
-    expect(update.payload).toMatchObject({ schemaVersion: 1, revision: 1 });
+    expect(update.payload).toMatchObject({
+      schemaVersion: 1,
+      revision: RELIC_VAULT_CATALOG_REVISION,
+    });
     expect(update.payload.items).toHaveLength(17);
   });
 
@@ -209,7 +227,7 @@ describe("full shell application", () => {
     sendState({ ...baseState, today: { ...baseState.today, layers } });
 
     expect(container.querySelector(".app-shell")).toHaveClass("route-today", "world-relic");
-    expect(container.querySelector(".brand-mark-fossil")).toBeTruthy();
+    expect(container.querySelector(".brand-mark")).toHaveAttribute("src", "/afterchime-mark.webp");
     expect(
       screen.getByRole("img", {
         name: "Today's notifications settling into a forming specimen",
@@ -279,7 +297,7 @@ describe("full shell application", () => {
     expect(screen.getByText(/8 captured · 6 energy earned · 3 per tile/i)).toBeTruthy();
     expect(container.querySelector(".excavation-artifact")).toHaveAttribute(
       "src",
-      "/worlds/relic-dactylioceras-ammonite-excavation-e191e90964c1.webp",
+      "/worlds/relic-dactylioceras-ammonite-excavation-50dc0ab0359a.webp",
     );
     expect(container.querySelectorAll(".excavation-tile")).toHaveLength(25);
     expect(container.querySelectorAll(".excavation-tile.dug")).toHaveLength(1);
@@ -305,7 +323,7 @@ describe("full shell application", () => {
     expect(retryImage).not.toBe(firstImage);
     expect(retryImage).toHaveAttribute(
       "src",
-      "/worlds/relic-dactylioceras-ammonite-excavation-e191e90964c1.webp",
+      "/worlds/relic-dactylioceras-ammonite-excavation-50dc0ab0359a.webp",
     );
     fireEvent.load(retryImage as HTMLImageElement);
     expect(retryImage).toHaveClass("is-loaded");
