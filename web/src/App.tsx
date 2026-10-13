@@ -988,11 +988,8 @@ function More({
       <div className="settings-group">
         <button type="button" className="settings-link" onClick={onWorlds}>
           <span>
-            <strong>Worlds</strong>
-            <small>
-              {worldDefinition(state.worlds.selected).name} · Change the collection’s look and
-              language
-            </small>
+            <strong>Series</strong>
+            <small>{worldDefinition(state.worlds.selected).name} · Choose your active Series</small>
           </span>
           <span>›</span>
         </button>
@@ -1104,11 +1101,12 @@ function Worlds({
       <button type="button" className="back-button" onClick={onBack}>
         ← Back
       </button>
-      <p className="eyebrow">Four authored worlds</p>
-      <h1 id="worlds-title">Worlds</h1>
+      <p className="eyebrow">Four authored series</p>
+      <h1 id="worlds-title">Series</h1>
       <p className="lead-small">
-        Relic Vault is included. The other worlds are permanent cosmetic unlocks: buy once or earn
-        through long-form collection milestones. This development build uses local test unlocks.
+        Relic Vault is included. Each Series keeps its own look, language, and collection. Keep one
+        active at a time; unlock progress follows the Series you select. This development build uses
+        local test unlocks.
       </p>
       <div className="world-list">
         {WORLD_DEFINITIONS.filter((world) => state.worlds.available.includes(world.id)).map(
@@ -1129,7 +1127,7 @@ function Worlds({
                   <p>{world.description}</p>
                   <p className="world-status">
                     {selected
-                      ? "Active world"
+                      ? "Active series"
                       : world.baseline
                         ? "Included with Afterchime"
                         : owned

@@ -28,7 +28,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v26"],
+    keys: async () => ["afterchime-shell-v27"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -573,8 +573,10 @@ describe("full shell application", () => {
     renderWithState(baseState);
     fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
 
+    expect(
+      screen.getByText("Relic Vault · Choose your active Series", { exact: true }),
+    ).toBeTruthy();
     for (const detail of [
-      /Change the collection’s look and language/i,
       /Choose which apps may add layers/i,
       /your collection still works offline/i,
       /pseudonymous app-use events/i,
@@ -594,10 +596,20 @@ describe("full shell application", () => {
     });
   });
 
-  it("shows only the four approved public worlds and keeps compatibility ids out of the UI", () => {
+  it("shows only the four approved public series and keeps compatibility ids out of the UI", () => {
     renderWithState(baseState);
     fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Worlds/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Series/i }));
+
+    expect(screen.getByRole("heading", { level: 1, name: "Series" })).toBeTruthy();
+    expect(screen.getByText("Four authored series", { exact: true })).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Relic Vault is included. Each Series keeps its own look, language, and collection. Keep one active at a time; unlock progress follows the Series you select. This development build uses local test unlocks.",
+        { exact: true },
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Active series", { exact: true })).toBeTruthy();
 
     for (const name of [
       "Relic Vault",
@@ -607,6 +619,11 @@ describe("full shell application", () => {
     ]) {
       expect(screen.getByRole("heading", { name })).toBeTruthy();
     }
+    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(4);
+    for (const retiredCopy of ["Worlds", "Four authored worlds", "Active world"]) {
+      expect(screen.queryByText(retiredCopy, { exact: true })).toBeNull();
+    }
+    expect(screen.queryByText(/other worlds/i)).toBeNull();
     expect(
       screen.queryByText(/Primeval Strata|Deep Space|Botanical Archive|The Abyss/i),
     ).toBeNull();
