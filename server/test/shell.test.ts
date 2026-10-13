@@ -65,19 +65,25 @@ describe("web shell routes", () => {
     });
   });
 
-  it("offers the complete development APK from a stable Railway download URL", async () => {
+  it("offers the development package ZIP from a stable Railway download URL", async () => {
     const app = await buildApp({ config: testConfig, webRoot: await shellRoot() });
     apps.push(app);
     const response = await app.inject({
       method: "GET",
-      url: "/downloads/Afterchime-0.1.8-dev.apk",
+      url: "/downloads/Afterchime-0.1.8-dev.zip",
     });
     expect(response.statusCode).toBe(302);
     expect(response.headers.location).toBe(
-      "https://raw.githubusercontent.com/x17Andrew71x/Strata-Notifs/36f36858e5cea554330c9f628c3262fbc4b0b0d4/Afterchime-0.1.8-dev.apk",
+      "https://raw.githubusercontent.com/x17Andrew71x/Strata-Notifs/3f286b6ca46211b8e774c126583268fc6849c35e/Afterchime-0.1.8-dev.zip",
     );
     expect(response.headers["cache-control"]).toBe("no-store");
     expect(response.headers["x-content-type-options"]).toBe("nosniff");
+
+    const retiredApk = await app.inject({
+      method: "GET",
+      url: "/downloads/Afterchime-0.1.8-dev.apk",
+    });
+    expect(retiredApk.statusCode).toBe(404);
   });
 
   it("reserves immutable caching for hashed build assets and rejects unsafe paths", async () => {
