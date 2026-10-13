@@ -1632,26 +1632,6 @@ p {
   text-transform: uppercase;
 }
 
-.artifact-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 10px;
-  padding: 0;
-  list-style: none;
-}
-
-.artifact-list li {
-  border: 1px solid color-mix(in srgb, var(--card-accent) 30%, transparent);
-  border-radius: 999px;
-  padding: 4px 7px;
-  color: #d8d3ca;
-  background: #ffffff07;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-
 .world-card .world-status {
   margin-top: 10px;
   color: var(--card-accent);

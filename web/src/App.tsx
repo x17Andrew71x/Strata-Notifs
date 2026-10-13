@@ -1127,11 +1127,6 @@ function Worlds({
                   <p className="world-eyebrow">{world.eyebrow}</p>
                   <h2>{world.name}</h2>
                   <p>{world.description}</p>
-                  <ul className="artifact-list" aria-label={`${world.name} artifacts`}>
-                    {world.artifacts.map((artifact) => (
-                      <li key={artifact.name}>{artifact.name}</li>
-                    ))}
-                  </ul>
                   <p className="world-status">
                     {selected
                       ? "Active world"

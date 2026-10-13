@@ -12,7 +12,7 @@ import App, {
   TOAST_FADE_START_MS,
 } from "./App";
 import type { ShellState } from "./bridge";
-import { RELIC_VAULT_CATALOG_REVISION, WORLD_ASSET_PATHS } from "./worlds";
+import { RELIC_VAULT_CATALOG_REVISION, WORLD_ASSET_PATHS, WORLD_DEFINITIONS } from "./worlds";
 
 const native = {
   postMessage: vi.fn(),
@@ -611,10 +611,9 @@ describe("full shell application", () => {
       screen.queryByText(/Primeval Strata|Deep Space|Botanical Archive|The Abyss/i),
     ).toBeNull();
     expect(screen.getAllByRole("button", { name: "Unlock for testing" })).toHaveLength(3);
-    expect(screen.getByText("Ribbed Jurassic Ammonite")).toBeTruthy();
-    expect(screen.getByText("Tidal Archive")).toBeTruthy();
-    expect(screen.getByText("Pelagic Channel")).toBeTruthy();
-    expect(screen.getByText("Hollow Range")).toBeTruthy();
+    for (const artifact of WORLD_DEFINITIONS.flatMap((world) => world.artifacts)) {
+      expect(screen.queryByText(artifact.name, { exact: true })).toBeNull();
+    }
 
     fireEvent.click(screen.getAllByRole("button", { name: "Unlock for testing" })[0]);
     expect(lastRequest()).toMatchObject({
