@@ -26,7 +26,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35])
 class MainActivityTest {
   @Test
-  fun `launcher uses the full bleed adaptive fossil icon`() {
+  fun `launcher uses safe-zone composition over full-bleed ground`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
     val icon = activity.getDrawable(R.mipmap.ic_afterchime)
 

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "status": "approved-production-identity",
   "selection": {
     "subject": "A \u2014 Ammonite",
@@ -30,6 +30,12 @@
     "dirtTextureRequestId": "ef1005ef-544b-4d5a-91ce-6e6b4f8fa1db",
     "excavationBackgroundRequestId": "4b45e8cc-74ef-4baf-9492-96eee10d8b32",
     "builder": "scripts/build_afterchime_identity_assets.py"
+  },
+  "androidComposition": {
+    "foregroundScalePercent": 86,
+    "edgeInsetPercent": 7,
+    "blendFeatherPercent": 2.2,
+    "fullBleedTemplatePath": "docs/art-direction/assets/relic-excavation-template.png"
   },
   "sources": [
     {
@@ -99,8 +105,8 @@
     },
     {
       "path": "android/app/src/main/res/drawable-nodpi/ic_afterchime_art.webp",
-      "sha256": "ff0dd38344055020b4771214868f035ab4c372ec56645d501f7cc295a598d18c",
-      "bytes": 100786,
+      "sha256": "f5ca26016fb76d10f8d874670cc232baedf7c199f2212eda0013ad0d441779bf",
+      "bytes": 95402,
       "format": "WEBP",
       "mode": "RGB",
       "width": 512,

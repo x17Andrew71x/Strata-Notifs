@@ -32,6 +32,10 @@ ANDROID_MARK = (
 )
 MANIFEST = ART_DIR / "AFTERCHIME_IDENTITY_ASSETS.json"
 ICON_SIZE = 1024
+ANDROID_MARK_SIZE = 512
+ANDROID_FOREGROUND_SCALE_PERCENT = 86
+ANDROID_EDGE_INSET_PERCENT = 7
+ANDROID_BLEND_FEATHER_PERCENT = 2.2
 GRID_SIZE = 5
 TILE_LAYOUT = {
     (2, 0),
@@ -272,7 +276,31 @@ def save_derivatives() -> None:
         exact=True,
         exif=b"",
     )
-    image.resize((512, 512), Image.Resampling.LANCZOS).save(
+
+    android_size = (ANDROID_MARK_SIZE, ANDROID_MARK_SIZE)
+    android_ground = Image.open(EXCAVATION_TEMPLATE).convert("RGB").resize(
+        android_size,
+        Image.Resampling.LANCZOS,
+    )
+    foreground_size = round(ANDROID_MARK_SIZE * ANDROID_FOREGROUND_SCALE_PERCENT / 100)
+    foreground = image.resize((foreground_size, foreground_size), Image.Resampling.LANCZOS)
+    foreground_offset = (ANDROID_MARK_SIZE - foreground_size) // 2
+    foreground_box = (
+        foreground_offset,
+        foreground_offset,
+        foreground_offset + foreground_size - 1,
+        foreground_offset + foreground_size - 1,
+    )
+    composition = android_ground.copy()
+    composition.paste(foreground, (foreground_offset, foreground_offset))
+    blend_mask = Image.new("L", android_size, 0)
+    ImageDraw.Draw(blend_mask).rectangle(foreground_box, fill=255)
+    blend_mask = blend_mask.filter(
+        ImageFilter.GaussianBlur(
+            radius=ANDROID_MARK_SIZE * ANDROID_BLEND_FEATHER_PERCENT / 100,
+        ),
+    )
+    Image.composite(composition, android_ground, blend_mask).save(
         ANDROID_MARK,
         "WEBP",
         quality=90,
@@ -297,7 +325,7 @@ def image_record(path: Path) -> dict[str, object]:
 
 def write_manifest() -> None:
     manifest = {
-        "version": 1,
+        "version": 2,
         "status": "approved-production-identity",
         "selection": {
             "subject": "A — Ammonite",
@@ -316,6 +344,12 @@ def write_manifest() -> None:
             "dirtTextureRequestId": "ef1005ef-544b-4d5a-91ce-6e6b4f8fa1db",
             "excavationBackgroundRequestId": "4b45e8cc-74ef-4baf-9492-96eee10d8b32",
             "builder": "scripts/build_afterchime_identity_assets.py",
+        },
+        "androidComposition": {
+            "foregroundScalePercent": ANDROID_FOREGROUND_SCALE_PERCENT,
+            "edgeInsetPercent": ANDROID_EDGE_INSET_PERCENT,
+            "blendFeatherPercent": ANDROID_BLEND_FEATHER_PERCENT,
+            "fullBleedTemplatePath": str(EXCAVATION_TEMPLATE.relative_to(ROOT)),
         },
         "sources": [
             image_record(ICON_SOURCE),

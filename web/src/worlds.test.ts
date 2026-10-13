@@ -174,11 +174,18 @@ describe("authored world catalogue", () => {
         "utf8",
       ),
     ) as {
+      version: number;
       selection: {
         subject: string;
         tileLayout: string;
         grid: { columns: number; rows: number; remainingTiles: number; uncoveredPercent: number };
         remainingTileCoordinates: number[][];
+      };
+      androidComposition: {
+        foregroundScalePercent: number;
+        edgeInsetPercent: number;
+        blendFeatherPercent: number;
+        fullBleedTemplatePath: string;
       };
       outputs: Array<{
         path: string;
@@ -189,6 +196,13 @@ describe("authored world catalogue", () => {
       }>;
     };
 
+    expect(manifest.version).toBe(2);
+    expect(manifest.androidComposition).toEqual({
+      foregroundScalePercent: 86,
+      edgeInsetPercent: 7,
+      blendFeatherPercent: 2.2,
+      fullBleedTemplatePath: "docs/art-direction/assets/relic-excavation-template.png",
+    });
     expect(manifest.selection).toMatchObject({
       subject: "A — Ammonite",
       tileLayout: "D — Fossil fish",
