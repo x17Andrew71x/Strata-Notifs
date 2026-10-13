@@ -25,6 +25,7 @@ async function shellRoot(): Promise<string> {
     path.join(root, "service-worker.js"),
     "self.addEventListener('fetch', () => {});",
   );
+  await writeFile(path.join(root, "afterchime-mark.webp"), "selected brand mark");
   await writeFile(path.join(root, "assets", "main-AbCdEf123456.js"), "safe asset");
   await writeFile(path.join(root, "worlds", "relic-fossil-aaaaaaaaaaaa.jpg"), "safe image");
   await writeFile(path.join(root, "worlds", "relic-fossil-bbbbbbbbbbbb.webp"), "safe webp");
@@ -101,6 +102,10 @@ describe("web shell routes", () => {
     expect(webp.statusCode).toBe(200);
     expect(webp.headers["content-type"]).toBe("image/webp");
     expect(webp.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
+    const brand = await app.inject({ method: "GET", url: "/afterchime-mark.webp" });
+    expect(brand.statusCode).toBe(200);
+    expect(brand.headers["content-type"]).toBe("image/webp");
+    expect(brand.headers["cache-control"]).toBe("no-cache, must-revalidate");
     const unhashed = await app.inject({ method: "GET", url: "/assets/unhashed.js" });
     expect(unhashed.statusCode).toBe(404);
     expect(unhashed.headers["cache-control"]).not.toContain("immutable");

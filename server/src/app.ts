@@ -138,6 +138,15 @@ async function registerShellRoutes(app: FastifyInstance, webRoot: string): Promi
       return reply.code(404).type("text/plain; charset=utf-8").send("Not found");
     }
   });
+  app.get("/afterchime-mark.webp", async (_request, reply) => {
+    setShellHeaders(reply, "no-cache, must-revalidate");
+    try {
+      const image = await readFile(path.join(webRoot, "afterchime-mark.webp"));
+      return reply.type("image/webp").send(image);
+    } catch {
+      return reply.code(404).type("text/plain; charset=utf-8").send("Not found");
+    }
+  });
   app.get("/", async (_request, reply) => {
     setShellHeaders(reply, "no-cache, must-revalidate");
     try {
