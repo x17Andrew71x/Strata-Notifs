@@ -187,7 +187,7 @@ describe("last-known-good web shell", () => {
     );
 
     await worker.activate();
-    const state = stores.get("afterchime-shell-v27")?.get(`${origin}/.afterchime/current`);
+    const state = stores.get("afterchime-shell-v28")?.get(`${origin}/.afterchime/current`);
     expect(await state?.clone().json()).toMatchObject({ catalogRevision: 2 });
     offline = true;
 
@@ -198,6 +198,7 @@ describe("last-known-good web shell", () => {
 
   it("removes legacy app caches only after the current shell is complete", async () => {
     const stores: CacheStores = new Map([
+      ["afterchime-shell-v27", new Map()],
       ["afterchime-shell-v26", new Map()],
       ["afterchime-shell-v7", new Map()],
       ["unrelated-cache", new Map()],
@@ -217,6 +218,7 @@ describe("last-known-good web shell", () => {
 
     await worker.activate();
 
+    expect(stores.has("afterchime-shell-v27")).toBe(false);
     expect(stores.has("afterchime-shell-v26")).toBe(false);
     expect(stores.has("afterchime-shell-v7")).toBe(false);
     expect(stores.has("unrelated-cache")).toBe(true);
@@ -311,10 +313,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v28";',
             'const CACHE_NAME = "afterchime-shell-v27";',
-            'const CACHE_NAME = "afterchime-shell-v26";',
           )
-          .replace('  "afterchime-shell-v26",\n', ""),
+          .replace('  "afterchime-shell-v27",\n', ""),
     });
     await prior.activate();
     offline = true;

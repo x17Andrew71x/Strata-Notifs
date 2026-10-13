@@ -1590,6 +1590,22 @@ p {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--card-accent) 18%, transparent);
 }
 
+.world-card.locked {
+  border-color: #a6aaa82b;
+  border-left-color: #8d9390;
+  background: color-mix(in srgb, var(--card-bg) 72%, #171918 28%);
+}
+
+.world-card.locked .world-preview {
+  filter: grayscale(1) saturate(0);
+  opacity: 0.38;
+}
+
+.world-card.locked .world-copy {
+  filter: grayscale(1);
+  opacity: 0.62;
+}
+
 .world-preview .specimen-visual {
   width: 106px;
 }
@@ -1633,10 +1649,19 @@ p {
 }
 
 .world-card .world-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 10px;
   color: var(--card-accent);
   font-size: 10px;
   font-weight: 800;
+}
+
+.world-lock-icon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
 }
 
 .modal-backdrop {

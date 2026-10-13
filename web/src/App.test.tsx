@@ -6,6 +6,7 @@ import App, {
   ENERGY_GAIN_PULSE_MS,
   EXCAVATION_CLEAR_MS,
   IMAGE_RETRY_DELAYS_MS,
+  launchSafeDisplayState,
   registerShellWorker,
   SHELL_STATE_REFRESH_MS,
   TOAST_DURATION_MS,
@@ -28,7 +29,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v27"],
+    keys: async () => ["afterchime-shell-v28"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -573,9 +574,7 @@ describe("full shell application", () => {
     renderWithState(baseState);
     fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
 
-    expect(
-      screen.getByText("Relic Vault · Choose your active Series", { exact: true }),
-    ).toBeTruthy();
+    expect(screen.getByText("Relic Vault · Included for launch", { exact: true })).toBeTruthy();
     for (const detail of [
       /Choose which apps may add layers/i,
       /your collection still works offline/i,
@@ -596,63 +595,99 @@ describe("full shell application", () => {
     });
   });
 
-  it("shows only the four approved public series and keeps compatibility ids out of the UI", () => {
-    renderWithState(baseState);
-    fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
+  it("fails hostile stale Series state closed to the launch Relic Vault experience", () => {
+    const hostileState: ShellState = {
+      ...baseState,
+      museum: { specimens: [{ ...specimen, revealedAtEpochMillis: 2 }] },
+      worlds: {
+        ...baseState.worlds,
+        selected: "THE_ABYSS",
+        owned: ["PRIMEVAL_STRATA", "DEEP_SPACE", "BOTANICAL_ARCHIVE", "THE_ABYSS"],
+        developmentControlsEnabled: true,
+      },
+    };
+    const projected = launchSafeDisplayState(hostileState);
+    expect(projected).not.toBe(hostileState);
+    expect(projected.worlds).toEqual({
+      ...hostileState.worlds,
+      selected: "PRIMEVAL_STRATA",
+      owned: ["PRIMEVAL_STRATA"],
+      developmentControlsEnabled: false,
+    });
+    expect(hostileState.worlds).toMatchObject({
+      selected: "THE_ABYSS",
+      owned: ["PRIMEVAL_STRATA", "DEEP_SPACE", "BOTANICAL_ARCHIVE", "THE_ABYSS"],
+      developmentControlsEnabled: true,
+    });
+
+    const { container } = renderWithState(hostileState);
+    expect(container.querySelector(".app-shell")).toHaveAttribute("data-world", "Relic Vault");
+    expect(container.querySelector(".app-shell")).toHaveClass("world-relic");
+    expect(container.querySelector(".app-shell")).not.toHaveClass("world-atlas");
+    expect(screen.getByText(/new relief is being pressed/i)).toBeTruthy();
+    expect(screen.queryByText(/terrain is being fixed in charcoal/i)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Collection$/ }));
+    expect(screen.getByRole("heading", { name: "Vault" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /artifact from Relic Vault/i }));
+    expect(screen.getByText("Relic Vault", { selector: ".eyebrow", exact: true })).toBeTruthy();
+
+    act(() => {
+      window.location.hash = "#more";
+      window.dispatchEvent(new Event("hashchange"));
+    });
+    expect(screen.getByRole("heading", { name: "Settings" })).toBeTruthy();
+    expect(screen.getByText("Relic Vault · Included for launch", { exact: true })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /^Series/i }));
 
     expect(screen.getByRole("heading", { level: 1, name: "Series" })).toBeTruthy();
     expect(screen.getByText("Four authored series", { exact: true })).toBeTruthy();
     expect(
       screen.getByText(
-        "Relic Vault is included. Each Series keeps its own look, language, and collection. Keep one active at a time; unlock progress follows the Series you select. This development build uses local test unlocks.",
+        "Relic Vault is the launch Series. The others are locked for now and will be revisited after release.",
         { exact: true },
       ),
     ).toBeTruthy();
-    expect(screen.getByText("Active series", { exact: true })).toBeTruthy();
-
-    for (const name of [
-      "Relic Vault",
-      "Living Field Station",
-      "Expedition Control",
-      "Charcoal Atlas",
-    ]) {
-      expect(screen.getByRole("heading", { name })).toBeTruthy();
+    for (const world of WORLD_DEFINITIONS) {
+      const heading = screen.getByRole("heading", { name: world.name });
+      const card = heading.closest("article") as HTMLElement;
+      expect(card).toBeTruthy();
+      expect(within(card).getByText(world.eyebrow, { exact: true })).toBeTruthy();
+      expect(within(card).getByText(world.description, { exact: true })).toBeTruthy();
+      expect(card.querySelector(".world-preview .specimen-visual")).toBeTruthy();
     }
-    expect(screen.getAllByRole("heading", { level: 2 })).toHaveLength(4);
-    for (const retiredCopy of ["Worlds", "Four authored worlds", "Active world"]) {
-      expect(screen.queryByText(retiredCopy, { exact: true })).toBeNull();
-    }
-    expect(screen.queryByText(/other worlds/i)).toBeNull();
+    expect(container.querySelectorAll(".world-card")).toHaveLength(4);
+    expect(container.querySelectorAll(".world-card.selected")).toHaveLength(1);
+    const baseCard = screen.getByRole("heading", { name: "Relic Vault" }).closest("article");
+    expect(baseCard).toHaveClass("selected");
+    expect(baseCard).not.toHaveClass("locked");
+    expect(baseCard).not.toHaveAttribute("aria-disabled");
     expect(
-      screen.queryByText(/Primeval Strata|Deep Space|Botanical Archive|The Abyss/i),
-    ).toBeNull();
-    expect(screen.getAllByRole("button", { name: "Unlock for testing" })).toHaveLength(3);
+      within(baseCard as HTMLElement).getByText("Active series", { exact: true }),
+    ).toBeTruthy();
+
+    const lockedCards = Array.from(container.querySelectorAll<HTMLElement>(".world-card.locked"));
+    expect(lockedCards).toHaveLength(3);
+    expect(screen.getAllByText("Locked for launch", { exact: true })).toHaveLength(3);
+    for (const card of lockedCards) {
+      expect(card).toHaveAttribute("aria-disabled", "true");
+      expect(card.querySelectorAll('svg.world-lock-icon[aria-hidden="true"]')).toHaveLength(1);
+      expect(card.querySelector(".world-preview")).toBeTruthy();
+      expect(card.querySelector(".world-copy")).toBeTruthy();
+      expect(within(card).queryByRole("button")).toBeNull();
+    }
+    expect(container.querySelectorAll("svg.world-lock-icon")).toHaveLength(3);
+    for (const control of ["Apply", "Unlock for testing", "Reset test unlocks"]) {
+      expect(screen.queryByRole("button", { name: control })).toBeNull();
+    }
+    expect(
+      requests().some(({ type }) =>
+        ["worlds.select", "worlds.own", "worlds.reset"].includes(type as string),
+      ),
+    ).toBe(false);
     for (const artifact of WORLD_DEFINITIONS.flatMap((world) => world.artifacts)) {
       expect(screen.queryByText(artifact.name, { exact: true })).toBeNull();
     }
-
-    fireEvent.click(screen.getAllByRole("button", { name: "Unlock for testing" })[0]);
-    expect(lastRequest()).toMatchObject({
-      version: 2,
-      type: "worlds.own",
-      payload: { world: "BOTANICAL_ARCHIVE" },
-    });
-  });
-
-  it("applies the selected authored world to page language and material theme", () => {
-    const { container } = render(<App />);
-    sendState({
-      ...baseState,
-      worlds: {
-        ...baseState.worlds,
-        selected: "THE_ABYSS",
-        owned: ["PRIMEVAL_STRATA", "THE_ABYSS"],
-      },
-    });
-    expect(container.querySelector(".app-shell")).toHaveAttribute("data-world", "Charcoal Atlas");
-    expect(container.querySelector(".app-shell")).toHaveClass("world-atlas");
-    expect(screen.getByText(/terrain is being fixed in charcoal/i)).toBeTruthy();
   });
 
   it("dismisses action feedback after the visible toast period", () => {

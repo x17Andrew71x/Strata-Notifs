@@ -57,6 +57,20 @@ const EXCAVATION_TILE_IDS = Array.from(
   { length: 100 },
   (_, tileIndex) => `excavation-tile-${tileIndex}`,
 );
+const LAUNCH_WORLD: World = "PRIMEVAL_STRATA";
+
+export function launchSafeDisplayState(state: ShellState): ShellState {
+  return {
+    ...state,
+    worlds: {
+      ...state.worlds,
+      selected: LAUNCH_WORLD,
+      owned: [LAUNCH_WORLD],
+      developmentControlsEnabled: false,
+    },
+  };
+}
+
 export async function registerShellWorker(
   isProduction: boolean,
   registrar: ShellWorkerRegistrar | undefined = typeof navigator !== "undefined" &&
@@ -231,8 +245,9 @@ function App() {
     );
   }
 
-  const effectiveAccess = access ?? shellState.notificationAccess;
-  if (!shellState.preferences.onboardingComplete) {
+  const displayState = launchSafeDisplayState(shellState);
+  const effectiveAccess = access ?? displayState.notificationAccess;
+  if (!displayState.preferences.onboardingComplete) {
     return (
       <Onboarding
         access={effectiveAccess}
@@ -255,20 +270,20 @@ function App() {
 
   const selectedSpecimenId = route.startsWith("specimen/") ? route.slice("specimen/".length) : null;
   const selectedSpecimen = selectedSpecimenId
-    ? (shellState.museum.specimens.find((specimen) => specimen.id === selectedSpecimenId) ?? null)
+    ? (displayState.museum.specimens.find((specimen) => specimen.id === selectedSpecimenId) ?? null)
     : null;
   const selectedStack = selectedSpecimen
-    ? stackMuseumSpecimens(shellState.worlds.selected, shellState.museum.specimens).find(
+    ? stackMuseumSpecimens(displayState.worlds.selected, displayState.museum.specimens).find(
         ({ specimens }) => specimens.some(({ id }) => id === selectedSpecimen.id),
       )
     : null;
   const selectedRoot = rootFor(route);
-  const selectedWorld = worldDefinition(shellState.worlds.selected);
+  const selectedWorld = worldDefinition(displayState.worlds.selected);
 
   return (
     <div
-      className={`app-shell route-${selectedRoot} world-${selectedWorld.theme}${shellState.preferences.highContrastEnabled ? " high-contrast" : ""}${
-        shellState.preferences.reduceMotionEnabled ? " reduce-motion" : ""
+      className={`app-shell route-${selectedRoot} world-${selectedWorld.theme}${displayState.preferences.highContrastEnabled ? " high-contrast" : ""}${
+        displayState.preferences.reduceMotionEnabled ? " reduce-motion" : ""
       }`}
       data-world={selectedWorld.name}
     >
@@ -281,7 +296,7 @@ function App() {
       <main className="app-content">
         {route === "today" && (
           <Today
-            state={shellState}
+            state={displayState}
             onAction={(type, payload) =>
               act(
                 type,
@@ -297,7 +312,7 @@ function App() {
         )}
         {route === "museum" && (
           <Museum
-            state={shellState}
+            state={displayState}
             tier={tier}
             onTier={setTier}
             onOpen={(id) => navigate(`specimen/${id}`)}
@@ -306,7 +321,7 @@ function App() {
         {route === "community" && <Community />}
         {route === "more" && (
           <More
-            state={shellState}
+            state={displayState}
             metadata={metadata}
             message={message}
             onPreference={(key, value) =>
@@ -318,19 +333,11 @@ function App() {
             onWorlds={() => navigate("worlds")}
           />
         )}
-        {route === "worlds" && (
-          <Worlds
-            state={shellState}
-            onBack={() => history.back()}
-            onSelect={(world) => act("worlds.select", { world }, "Applying world…")}
-            onOwn={(world) => act("worlds.own", { world }, "Unlocking for development…")}
-            onReset={() => act("worlds.reset", undefined, "Resetting development worlds…")}
-          />
-        )}
+        {route === "worlds" && <Worlds state={displayState} onBack={() => history.back()} />}
         {selectedSpecimenId && (
           <SpecimenDetail
             specimen={selectedSpecimen}
-            world={shellState.worlds.selected}
+            world={displayState.worlds.selected}
             ownedCount={selectedStack?.specimens.length ?? 0}
             onBack={() => history.back()}
           />
@@ -989,7 +996,7 @@ function More({
         <button type="button" className="settings-link" onClick={onWorlds}>
           <span>
             <strong>Series</strong>
-            <small>{worldDefinition(state.worlds.selected).name} · Choose your active Series</small>
+            <small>Relic Vault · Included for launch</small>
           </span>
           <span>›</span>
         </button>
@@ -1083,19 +1090,7 @@ function Toggle({
   );
 }
 
-function Worlds({
-  state,
-  onBack,
-  onSelect,
-  onOwn,
-  onReset,
-}: {
-  state: ShellState;
-  onBack(): void;
-  onSelect(world: World): void;
-  onOwn(world: World): void;
-  onReset(): void;
-}) {
+function Worlds({ state, onBack }: { state: ShellState; onBack(): void }) {
   return (
     <section className="screen worlds-screen" aria-labelledby="worlds-title">
       <button type="button" className="back-button" onClick={onBack}>
@@ -1104,58 +1099,55 @@ function Worlds({
       <p className="eyebrow">Four authored series</p>
       <h1 id="worlds-title">Series</h1>
       <p className="lead-small">
-        Relic Vault is included. Each Series keeps its own look, language, and collection. Keep one
-        active at a time; unlock progress follows the Series you select. This development build uses
-        local test unlocks.
+        Relic Vault is the launch Series. The others are locked for now and will be revisited after
+        release.
       </p>
       <div className="world-list">
-        {WORLD_DEFINITIONS.filter((world) => state.worlds.available.includes(world.id)).map(
-          (world) => {
-            const owned = world.baseline || state.worlds.owned.includes(world.id);
-            const selected = state.worlds.selected === world.id;
-            return (
-              <article
-                className={`world-card theme-${world.theme}${selected ? " selected" : ""}`}
-                key={world.id}
-              >
-                <div className="world-preview">
-                  <SpecimenVisual decorative compact world={world.id} />
-                </div>
-                <div className="world-copy">
-                  <p className="world-eyebrow">{world.eyebrow}</p>
-                  <h2>{world.name}</h2>
-                  <p>{world.description}</p>
-                  <p className="world-status">
-                    {selected
-                      ? "Active series"
-                      : world.baseline
-                        ? "Included with Afterchime"
-                        : owned
-                          ? "Permanently unlocked"
-                          : "Locked · one-time purchase or long-form mastery"}
-                  </p>
-                </div>
-                {!selected && owned && state.worlds.developmentControlsEnabled && (
-                  <button type="button" className="secondary" onClick={() => onSelect(world.id)}>
-                    Apply
-                  </button>
-                )}
-                {!owned && state.worlds.developmentControlsEnabled && (
-                  <button type="button" className="secondary" onClick={() => onOwn(world.id)}>
-                    Unlock for testing
-                  </button>
-                )}
-              </article>
-            );
-          },
-        )}
+        {WORLD_DEFINITIONS.map((world) => {
+          const selected = state.worlds.selected === world.id;
+          const locked = !world.baseline;
+          return (
+            <article
+              className={`world-card theme-${world.theme}${selected ? " selected" : ""}${locked ? " locked" : ""}`}
+              key={world.id}
+              aria-disabled={locked ? "true" : undefined}
+            >
+              <div className="world-preview">
+                <SpecimenVisual decorative compact world={world.id} />
+              </div>
+              <div className="world-copy">
+                <p className="world-eyebrow">{world.eyebrow}</p>
+                <h2>{world.name}</h2>
+                <p>{world.description}</p>
+                <p className="world-status">
+                  {locked && <SeriesLockIcon />}
+                  <span>{selected ? "Active series" : "Locked for launch"}</span>
+                </p>
+              </div>
+            </article>
+          );
+        })}
       </div>
-      {state.worlds.developmentControlsEnabled && (
-        <button type="button" className="text-button" onClick={onReset}>
-          Reset test unlocks
-        </button>
-      )}
     </section>
+  );
+}
+
+function SeriesLockIcon() {
+  return (
+    <svg
+      className="world-lock-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect x="5" y="10" width="14" height="10" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
   );
 }
 
