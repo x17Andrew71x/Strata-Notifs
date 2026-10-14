@@ -29,7 +29,7 @@ function catalogCacheStorage(
     assets: paths.map((pathname) => ({ pathname, digest: "a".repeat(64) })),
   };
   return {
-    keys: async () => ["afterchime-shell-v28"],
+    keys: async () => ["afterchime-shell-v29"],
     open: async () => ({
       match: async () =>
         new Response(JSON.stringify(state), { headers: { "content-type": "application/json" } }),
@@ -295,7 +295,8 @@ describe("full shell application", () => {
 
     expect(screen.getByRole("heading", { name: "Excavate today’s fossil" })).toBeTruthy();
     expect(screen.queryByText(/notifications captured;.*counted after pacing/i)).toBeNull();
-    expect(screen.getByText(/8 captured · 6 energy earned · 3 per tile/i)).toBeTruthy();
+    expect(screen.getByText("6 energy earned · 3 per tile", { exact: true })).toBeTruthy();
+    expect(screen.queryByText(/captured/i)).toBeNull();
     expect(container.querySelector(".excavation-artifact")).toHaveAttribute(
       "src",
       "/worlds/relic-dactylioceras-ammonite-excavation-50dc0ab0359a.webp",
