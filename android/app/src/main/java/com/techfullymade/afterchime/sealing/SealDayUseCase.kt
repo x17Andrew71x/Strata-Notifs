@@ -1,5 +1,7 @@
 package com.techfullymade.afterchime.sealing
 
+import com.techfullymade.afterchime.aggregation.DailyNotificationSummary
+import com.techfullymade.afterchime.aggregation.DailyNotificationSummaryCalculator
 import com.techfullymade.afterchime.capture.ReducedNotification
 import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
 import com.techfullymade.afterchime.data.local.entity.ListenerAccessState
@@ -16,6 +18,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZoneOffset
 
 /** Supplies the device-local generator secret without allowing it into persisted sealing state. */
 fun interface LocalSecretProvider {
@@ -27,6 +30,7 @@ data class SealDayInputs(
   val notifications: List<ReducedNotification>,
   val latestListenerAccessState: ListenerAccessState?,
   val accessWasInterrupted: Boolean,
+  val existingSummary: DaySummaryEntity? = null,
 )
 
 /** The immutable, renderer-neutral output associated with a persisted specimen identity. */
@@ -43,10 +47,12 @@ data class SealedSpecimen(
 data class SealedDay(
   val localDate: LocalDate,
   val summary: DaySummaryEntity,
+  val notificationSummary: DailyNotificationSummary,
   val specimen: SealedSpecimen?,
 ) {
   init {
     require(summary.localDate == localDate.toString())
+    require(notificationSummary.localDate == localDate)
     require(specimen == null || specimen.record.anchoredLocalDate == localDate.toString())
   }
 }
@@ -113,29 +119,43 @@ class SealDayUseCase(
 
   private suspend fun seal(localDate: LocalDate): SealDayOutcome {
     val inputs = store.inputsFor(localDate)
-    val observationCompleteness = inputs.observationCompleteness()
-    val summary = DaySummarizer.summarize(
+    val existingSummary = inputs.existingSummary
+    val observationCompleteness = existingSummary?.observationState?.toCompleteness()
+      ?: inputs.observationCompleteness()
+    val timezoneOffset = existingSummary?.timezoneOffsetMinutes
+      ?.let { offsetMinutes -> ZoneOffset.ofTotalSeconds(offsetMinutes * SECONDS_PER_MINUTE) }
+      ?: localDate.atStartOfDay(timeZone).offset
+    val notificationSummary = DailyNotificationSummaryCalculator.calculate(
       localDate = localDate,
-      timeZone = timeZone,
-      observationCompleteness = observationCompleteness,
+      timezoneOffset = timezoneOffset,
+      uninterruptedObservation = observationCompleteness == ObservationCompleteness.OBSERVED,
       notifications = inputs.notifications,
     )
-    val createdAtEpochMillis = Instant.now(clock).toEpochMilli()
-    val generated = if (observationCompleteness == ObservationCompleteness.OBSERVED) {
-      generator(summary, localSecretProvider.load())
+    val createdAtEpochMillis = existingSummary?.createdAtEpochMillis ?: Instant.now(clock).toEpochMilli()
+    val generated = if (
+      existingSummary == null && observationCompleteness == ObservationCompleteness.OBSERVED
+    ) {
+      val generationSummary = DaySummarizer.summarize(
+        localDate = localDate,
+        timeZone = timeZone,
+        observationCompleteness = observationCompleteness,
+        notifications = inputs.notifications,
+      )
+      generator(generationSummary, localSecretProvider.load())
     } else {
       GenerationResult.Unobserved
     }
     val generatedSpecimen = (generated as? GenerationResult.Generated)?.specimen
     val sealedDay = SealedDay(
       localDate = localDate,
-      summary = DaySummaryEntity(
+      summary = existingSummary ?: DaySummaryEntity(
         localDate = localDate.toString(),
-        timezoneOffsetMinutes = localDate.atStartOfDay(timeZone).offset.totalSeconds / SECONDS_PER_MINUTE,
+        timezoneOffsetMinutes = timezoneOffset.totalSeconds / SECONDS_PER_MINUTE,
         observationState = observationCompleteness.toEntityState(),
         generatorVersion = generatedSpecimen?.generatorVersion ?: GeneratorV1.VERSION,
         createdAtEpochMillis = createdAtEpochMillis,
       ),
+      notificationSummary = notificationSummary,
       specimen = generatedSpecimen?.let { generated ->
         val specimenId = specimenIdFor(generated.anchoredLocalDate, generated.generatorVersion)
         SealedSpecimen(
@@ -182,6 +202,12 @@ class SealDayUseCase(
     when (this) {
       ObservationCompleteness.OBSERVED -> ObservationState.OBSERVED
       ObservationCompleteness.UNOBSERVED -> ObservationState.UNOBSERVED
+    }
+
+  private fun ObservationState.toCompleteness(): ObservationCompleteness =
+    when (this) {
+      ObservationState.OBSERVED -> ObservationCompleteness.OBSERVED
+      ObservationState.UNOBSERVED -> ObservationCompleteness.UNOBSERVED
     }
 
   private fun specimenIdFor(

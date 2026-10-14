@@ -39,6 +39,7 @@ class AfterchimeApplication : Application() {
         AfterchimeDatabase.MIGRATION_4_5,
         AfterchimeDatabase.MIGRATION_5_6,
         AfterchimeDatabase.MIGRATION_6_7,
+        AfterchimeDatabase.MIGRATION_7_8,
       )
       .build()
   }

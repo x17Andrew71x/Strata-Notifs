@@ -40,4 +40,16 @@ interface ReducedNotificationDao {
     """,
   )
   suspend fun earliestLocalDateBefore(exclusiveLocalDate: String): String?
+
+  @Query(
+    """
+      SELECT DISTINCT local_date FROM reduced_notifications
+      WHERE local_date < :exclusiveLocalDate
+      ORDER BY local_date ASC
+    """,
+  )
+  suspend fun localDatesBefore(exclusiveLocalDate: String): List<String>
+
+  @Query("DELETE FROM reduced_notifications WHERE local_date = :localDate")
+  suspend fun deleteForLocalDate(localDate: String): Int
 }

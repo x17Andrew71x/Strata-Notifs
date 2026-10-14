@@ -2,6 +2,7 @@ package com.techfullymade.afterchime.sealing
 
 import com.techfullymade.afterchime.capture.CoarseNotificationCategory
 import com.techfullymade.afterchime.capture.ReducedNotification
+import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
 import com.techfullymade.afterchime.data.local.entity.ListenerAccessState
 import com.techfullymade.afterchime.data.local.entity.ObservationState
 import java.time.Clock
@@ -34,6 +35,15 @@ class SealDayUseCaseTest {
     assertEquals(listOf(SealDayOutcome.Sealed::class), outcomes.map { it::class })
     val sealed = requireNotNull(store.sealedDay(localDate))
     assertEquals(ObservationState.OBSERVED, sealed.summary.observationState)
+    assertEquals(1, sealed.notificationSummary.eligibleCount)
+    assertEquals(
+      sealed.notificationSummary.eligibleCount,
+      sealed.notificationSummary.categoryTotals.sumOf { it.eligibleCount },
+    )
+    assertEquals(
+      sealed.notificationSummary.eligibleCount,
+      sealed.notificationSummary.hourlyBuckets.sumOf { it.eligibleCount },
+    )
     assertEquals(localDate.toString(), sealed.specimen?.record?.anchoredLocalDate)
   }
 
@@ -67,6 +77,44 @@ class SealDayUseCaseTest {
 
     assertEquals(listOf(SealDayOutcome.AlreadySealed::class), retry.map { it::class })
     assertEquals(1, store.specimenCount())
+  }
+
+  @Test
+  fun `legacy reconciliation preserves existing day and does not invoke specimen generation`() = runBlocking {
+    val localDate = LocalDate.parse("2026-10-03")
+    val existingSummary = DaySummaryEntity(
+      localDate = localDate.toString(),
+      timezoneOffsetMinutes = 330,
+      observationState = ObservationState.OBSERVED,
+      generatorVersion = 1,
+      createdAtEpochMillis = 12L,
+    )
+    val store = InMemorySealDayStore(
+      mapOf(
+        localDate to inputs(ListenerAccessState.ACTIVE).copy(existingSummary = existingSummary),
+      ),
+    )
+    var generatorCalls = 0
+    val useCase = SealDayUseCase(
+      store = store,
+      localSecretProvider = { error("legacy reconciliation must not load the secret") },
+      clock = Clock.fixed(Instant.parse("2026-10-04T08:00:00Z"), ZoneOffset.UTC),
+      timeZone = ZoneId.of("America/Los_Angeles"),
+      generator = { _, _ ->
+        generatorCalls += 1
+        com.techfullymade.afterchime.generation.GenerationResult.Unobserved
+      },
+    )
+
+    val outcome = useCase.sealEligibleDays()
+
+    assertEquals(listOf(SealDayOutcome.AlreadySealed::class), outcome.map { it::class })
+    assertEquals(0, generatorCalls)
+    assertEquals(0, store.specimenCount())
+    val attempted = requireNotNull(store.lastPersistAttempt())
+    assertEquals(existingSummary, attempted.summary)
+    assertEquals(ZoneOffset.ofHoursMinutes(5, 30), attempted.notificationSummary.timezoneOffset)
+    assertEquals(100, attempted.notificationSummary.observationCompleteness)
   }
 
   @Test
@@ -156,6 +204,7 @@ class SealDayUseCaseTest {
     var crashAfterSummaryWrite: Boolean = false,
   ) : SealDayStore {
     private val sealed = linkedMapOf<LocalDate, SealedDay>()
+    private var lastPersistAttempt: SealedDay? = null
 
     override suspend fun candidateLocalDatesBefore(exclusiveDate: LocalDate): List<LocalDate> =
       inputs.keys.filter { it < exclusiveDate }.sorted()
@@ -164,6 +213,10 @@ class SealDayUseCaseTest {
       requireNotNull(inputs[localDate])
 
     override suspend fun persist(sealedDay: SealedDay): SealDayPersistence = synchronized(this) {
+      lastPersistAttempt = sealedDay
+      if (inputs[sealedDay.localDate]?.existingSummary != null) {
+        return@synchronized SealDayPersistence.AlreadySealed
+      }
       if (sealed.containsKey(sealedDay.localDate)) {
         return@synchronized SealDayPersistence.AlreadySealed
       }
@@ -179,5 +232,7 @@ class SealDayUseCaseTest {
     fun sealedLocalDates(): List<LocalDate> = sealed.keys.toList()
 
     fun specimenCount(): Int = sealed.values.count { it.specimen != null }
+
+    fun lastPersistAttempt(): SealedDay? = lastPersistAttempt
   }
 }

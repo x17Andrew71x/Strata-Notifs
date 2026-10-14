@@ -1,6 +1,7 @@
 package com.techfullymade.afterchime.sealing
 
 import androidx.room.Room
+import com.techfullymade.afterchime.aggregation.DailyNotificationSummaryCalculator
 import com.techfullymade.afterchime.capture.CoarseNotificationCategory
 import com.techfullymade.afterchime.data.local.AfterchimeDatabase
 import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
@@ -175,6 +176,12 @@ class SealRecoveryTest {
         observationState = ObservationState.OBSERVED,
         generatorVersion = 1,
         createdAtEpochMillis = 1,
+      ),
+      notificationSummary = DailyNotificationSummaryCalculator.calculate(
+        localDate = targetDate,
+        timezoneOffset = ZoneOffset.UTC,
+        uninterruptedObservation = true,
+        notifications = emptyList(),
       ),
       specimen = SealedSpecimen(
         record = SpecimenEntity(

@@ -8,6 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.techfullymade.afterchime.data.local.dao.AnalyticsOutboxDao
 import com.techfullymade.afterchime.data.local.dao.DaySummaryDao
 import com.techfullymade.afterchime.data.local.dao.DailyExcavationDao
+import com.techfullymade.afterchime.data.local.dao.DailyNotificationSummaryDao
 import com.techfullymade.afterchime.data.local.dao.InventoryItemDao
 import com.techfullymade.afterchime.data.local.dao.InventoryMutationDao
 import com.techfullymade.afterchime.data.local.dao.ListenerAccessStateDao
@@ -17,6 +18,7 @@ import com.techfullymade.afterchime.data.local.dao.SpecimenOutputDao
 import com.techfullymade.afterchime.data.local.entity.AnalyticsOutboxEntity
 import com.techfullymade.afterchime.data.local.entity.DaySummaryEntity
 import com.techfullymade.afterchime.data.local.entity.DailyExcavationEntity
+import com.techfullymade.afterchime.data.local.entity.DailyNotificationSummaryEntity
 import com.techfullymade.afterchime.data.local.entity.InventoryItemEntity
 import com.techfullymade.afterchime.data.local.entity.InventoryMutationEntity
 import com.techfullymade.afterchime.data.local.entity.ListenerAccessStateEntity
@@ -35,9 +37,10 @@ import com.techfullymade.afterchime.data.local.entity.SpecimenOutputEntity
     InventoryMutationEntity::class,
     AnalyticsOutboxEntity::class,
     DailyExcavationEntity::class,
+    DailyNotificationSummaryEntity::class,
   ],
   exportSchema = true,
-  version = 7,
+  version = 8,
 )
 @TypeConverters(AfterchimeTypeConverters::class)
 abstract class AfterchimeDatabase : RoomDatabase() {
@@ -58,6 +61,8 @@ abstract class AfterchimeDatabase : RoomDatabase() {
   abstract fun analyticsOutboxDao(): AnalyticsOutboxDao
 
   abstract fun dailyExcavationDao(): DailyExcavationDao
+
+  abstract fun dailyNotificationSummaryDao(): DailyNotificationSummaryDao
 
   companion object {
     val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -122,6 +127,30 @@ abstract class AfterchimeDatabase : RoomDatabase() {
             `created_at_epoch_millis` INTEGER NOT NULL,
             `completed_at_epoch_millis` INTEGER,
             `specimen_id` TEXT,
+            PRIMARY KEY(`local_date`)
+          )
+          """.trimIndent(),
+        )
+      }
+    }
+
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+      override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+          """
+          CREATE TABLE IF NOT EXISTS `daily_notification_summaries` (
+            `local_date` TEXT NOT NULL,
+            `timezone_offset_minutes` INTEGER NOT NULL,
+            `revision` INTEGER NOT NULL,
+            `rules_version` INTEGER NOT NULL,
+            `eligible_count` INTEGER NOT NULL,
+            `category_counts_json` TEXT NOT NULL,
+            `hourly_buckets_json` TEXT NOT NULL,
+            `game_pressure` INTEGER NOT NULL,
+            `observation_completeness` INTEGER NOT NULL,
+            `created_at_epoch_millis` INTEGER NOT NULL,
+            `uploaded_revision` INTEGER,
+            `uploaded_at_epoch_millis` INTEGER,
             PRIMARY KEY(`local_date`)
           )
           """.trimIndent(),
