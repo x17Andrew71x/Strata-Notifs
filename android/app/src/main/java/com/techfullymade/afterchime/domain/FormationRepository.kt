@@ -13,6 +13,7 @@ import com.techfullymade.afterchime.data.local.entity.SpecimenOutputEntity
 import com.techfullymade.afterchime.gameplay.FossilCatalog
 import com.techfullymade.afterchime.gameplay.FossilCatalogItem
 import com.techfullymade.afterchime.gameplay.GameBalance
+import com.techfullymade.afterchime.gameplay.NotificationEnergyPolicy
 import java.time.Clock
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -353,19 +354,11 @@ class LocalFormationRepository(
   }
 
   private fun eligibleNotificationCount(notifications: List<ReducedNotificationEntity>): Int {
-    val latestAcceptedBySource = mutableMapOf<String, Long>()
-    var eligible = 0
-    for (notification in notifications.sortedBy(ReducedNotificationEntity::occurredAtEpochMillis)) {
-      val previous = latestAcceptedBySource[notification.sourceToken]
-      if (
-        previous == null ||
-        notification.occurredAtEpochMillis - previous >= GameBalance.SOURCE_NOTIFICATION_COOLDOWN_MILLIS
-      ) {
-        latestAcceptedBySource[notification.sourceToken] = notification.occurredAtEpochMillis
-        eligible += 1
-      }
-    }
-    return eligible
+    return NotificationEnergyPolicy.accepted(
+      inputs = notifications,
+      sourceKey = ReducedNotificationEntity::sourceToken,
+      occurredAtEpochMillis = ReducedNotificationEntity::occurredAtEpochMillis,
+    ).size
   }
 
   private fun ObservationState?.toFormationObservation(

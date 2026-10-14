@@ -7,6 +7,7 @@ import com.techfullymade.afterchime.data.local.entity.DailyExcavationEntity
 import com.techfullymade.afterchime.data.local.entity.ReducedNotificationEntity
 import com.techfullymade.afterchime.gameplay.FossilCatalog
 import com.techfullymade.afterchime.gameplay.GameBalance
+import com.techfullymade.afterchime.gameplay.NotificationEnergyPolicy
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -56,7 +57,7 @@ class DailyExcavationRepositoryTest {
   }
 
   @Test
-  fun `one energy is earned per eligible notification with a five minute per source cooldown`() = runBlocking {
+  fun `earned energy uses shared five minute eligibility policy`() = runBlocking {
     val sourceA = "a".repeat(64)
     val sourceB = "b".repeat(64)
     insertNotification("one", sourceA, now.toEpochMilli())
@@ -65,10 +66,16 @@ class DailyExcavationRepositoryTest {
     insertNotification("four", sourceA, now.plusSeconds(300).toEpochMilli())
 
     val snapshot = repository.observe(localDate).first().excavation!!
+    val expectedEligible = NotificationEnergyPolicy.accepted(
+      inputs = database.reducedNotificationDao().forLocalDate(localDate.toString()),
+      sourceKey = ReducedNotificationEntity::sourceToken,
+      occurredAtEpochMillis = ReducedNotificationEntity::occurredAtEpochMillis,
+    ).size
 
     assertEquals(4, snapshot.capturedNotificationCount)
     assertEquals(3, snapshot.eligibleNotificationCount)
-    assertEquals(3, snapshot.energyEarned)
+    assertEquals(expectedEligible, snapshot.eligibleNotificationCount)
+    assertEquals(expectedEligible * GameBalance.ENERGY_PER_ELIGIBLE_NOTIFICATION, snapshot.energyEarned)
     assertEquals(GameBalance.ENERGY_PER_TILE, snapshot.energyAvailable)
     assertEquals("relic-dactylioceras-ammonite", snapshot.artifactId)
   }
