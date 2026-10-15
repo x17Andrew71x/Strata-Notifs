@@ -30,11 +30,11 @@
   <string name="onboarding_title">A quiet collection, kept here</string>
   <string name="onboarding_body">Afterchime turns reduced local notification timing and broad category signals into daily specimens. Notification access starts off; you choose whether to enable it.</string>
   <string name="onboarding_privacy">Notification text, titles, senders, contacts, actions, and media are never kept. Only reduced signals stay on this device.</string>
-  <string name="onboarding_consent">Cloud features, product analytics, and aggregate sharing are optional and off unless you explicitly turn them on in More.</string>
+  <string name="onboarding_consent">Online tools, app-improvement reports, and daily activity totals are optional and stay off until you turn them on in Settings.</string>
   <string name="onboarding_continue">Continue</string>
   <string name="online_features_label">Online features</string>
-  <string name="analytics_label">Product analytics</string>
-  <string name="aggregate_sharing_label">Aggregate sharing</string>
+  <string name="analytics_label">Help improve Afterchime</string>
+  <string name="aggregate_sharing_label">Share daily activity totals</string>
   <string name="reduce_motion_label">Reduce motion</string>
   <string name="high_contrast_label">High contrast</string>
   <string name="haptics_label">Haptics</string>

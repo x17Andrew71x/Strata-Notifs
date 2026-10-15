@@ -406,7 +406,10 @@ function Onboarding({
         </p>
         <div className="privacy-card">
           <strong>Your choices remain yours.</strong>
-          <p>Cloud features, analytics, and aggregate sharing stay off unless you enable them.</p>
+          <p>
+            Online tools, app-improvement reports, and daily activity totals stay off unless you
+            turn them on.
+          </p>
         </div>
         {!access && (
           <div className="notice-card">
@@ -1013,20 +1016,20 @@ function More({
       <div className="settings-group">
         <Toggle
           label="Online features"
-          detail="Allow optional network features; your collection still works offline"
+          detail="Connect to optional online tools; your collection still works offline"
           checked={preferences.onlineFeaturesEnabled}
           onChange={(value) => onPreference("onlineFeaturesEnabled", value)}
         />
         <Toggle
-          label="Product analytics"
-          detail="Share pseudonymous app-use events to improve Afterchime"
+          label="Help improve Afterchime"
+          detail="Send which parts of Afterchime are used and basic device details such as app version, Android version, language, and phone or tablet. Never includes notification text, app names, senders, contacts, or media."
           checked={preferences.productAnalyticsEnabled}
           disabled={!preferences.onlineFeaturesEnabled}
           onChange={(value) => onPreference("productAnalyticsEnabled", value)}
         />
         <Toggle
-          label="Aggregate sharing"
-          detail="Share daily counts only—never notification content or app identity"
+          label="Share daily activity totals"
+          detail="Send one day’s counts by broad type and hour, plus whether collection was active all day. Never includes notification text, app names, senders, contacts, or media."
           checked={preferences.notificationAggregateSharingEnabled}
           disabled={!preferences.onlineFeaturesEnabled}
           onChange={(value) => onPreference("notificationAggregateSharingEnabled", value)}

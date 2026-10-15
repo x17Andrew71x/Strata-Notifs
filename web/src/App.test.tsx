@@ -560,9 +560,11 @@ describe("full shell application", () => {
     renderWithState(baseState);
     fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
     const online = screen.getByRole("checkbox", { name: /Online features/i });
-    const analytics = screen.getByRole("checkbox", { name: /Product analytics/i });
+    const improve = screen.getByRole("checkbox", { name: /Help improve Afterchime/i });
+    const dailyTotals = screen.getByRole("checkbox", { name: /Share daily activity totals/i });
     expect(online).not.toBeChecked();
-    expect(analytics).toBeDisabled();
+    expect(improve).toBeDisabled();
+    expect(dailyTotals).toBeDisabled();
     fireEvent.click(online);
     expect(lastRequest()).toMatchObject({
       version: 2,
@@ -579,13 +581,17 @@ describe("full shell application", () => {
     for (const detail of [
       /Choose which apps may add layers/i,
       /your collection still works offline/i,
-      /pseudonymous app-use events/i,
-      /daily counts only—never notification content or app identity/i,
+      /which parts of Afterchime are used and basic device details/i,
+      /one day’s counts by broad type and hour/i,
       /Turn off excavation and reveal animations/i,
       /Increase separation between text, controls, and surfaces/i,
     ]) {
       expect(screen.getByText(detail)).toBeTruthy();
     }
+    expect(
+      screen.getAllByText(/never includes notification text, app names, senders, contacts, or media/i),
+    ).toHaveLength(2);
+    expect(screen.queryByText(/pseudonymous|aggregate sharing|product analytics/i)).toBeNull();
     expect(screen.queryByRole("checkbox", { name: /Haptics/i })).toBeNull();
 
     fireEvent.click(screen.getByRole("checkbox", { name: /Reduce motion/i }));
