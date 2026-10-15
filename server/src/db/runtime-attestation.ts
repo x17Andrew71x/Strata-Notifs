@@ -2,6 +2,7 @@ import type { DatabaseClient } from "./client.js";
 import { type DatabaseReadiness, readDatabaseReadiness } from "./migrate.js";
 
 export type RuntimeAttestationErrorCode =
+  | "runtime_migration_missing"
   | "runtime_role_administrative"
   | "runtime_role_bypassrls"
   | "runtime_role_database_owner"
@@ -173,6 +174,9 @@ export async function attestRuntimeRole(sql: DatabaseClient): Promise<RuntimeDat
   }
 
   const readiness = await readDatabaseReadiness(sql);
+  if (!readiness.migrationHead) {
+    throw new RuntimeAttestationError("runtime_migration_missing");
+  }
   return {
     ...readiness,
     role: currentRole.role_name,

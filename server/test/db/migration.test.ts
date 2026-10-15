@@ -1,3 +1,4 @@
+import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createSqlClient, type DatabaseClient } from "../../src/db/client.js";
 import { migrateDatabase } from "../../src/db/migrate.js";
@@ -83,6 +84,14 @@ describePostgres("initial PostgreSQL schema migration", () => {
     await admin?.end({ timeout: 5 });
     await harness?.close();
   }, 30_000);
+
+  it("fails closed when the packaged migration directory is missing", async () => {
+    await expect(
+      migrateDatabase(harness.migrationDatabaseUrl, {
+        migrationsFolder: path.join(process.cwd(), "migrations-missing-for-test"),
+      }),
+    ).rejects.toThrow("migration directory is missing");
+  });
 
   it("creates the typed operational tables, immutable identities, and privacy-safe aggregate fields", async () => {
     await migrateDatabase(harness.migrationDatabaseUrl);

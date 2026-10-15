@@ -30,14 +30,12 @@ describePostgres("runtime database-role attestation", () => {
     await harness?.close();
   });
 
-  it("accepts the dedicated non-owner, non-superuser, non-BYPASSRLS runtime role", async () => {
+  it("rejects the runtime role before committed migrations are applied", async () => {
     const runtime = createSqlClient(harness.runtimeDatabaseUrl);
 
-    await expect(attestRuntimeRole(runtime)).resolves.toMatchObject({
-      database: "afterchime_test",
-      migrationHead: null,
-      role: "afterchime_runtime",
-    });
+    await expect(attestRuntimeRole(runtime)).rejects.toMatchObject({
+      code: "runtime_migration_missing",
+    } satisfies Partial<RuntimeAttestationError>);
 
     await runtime.end({ timeout: 5 });
   });

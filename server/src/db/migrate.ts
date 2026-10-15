@@ -1,16 +1,18 @@
-import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { promisify } from "node:util";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { createSqlClient, type DatabaseClient } from "./client.js";
-
-const execFileAsync = promisify(execFile);
 
 export type DatabaseReadiness = Readonly<{
   database: string;
   migrationHead: string | null;
   postgresVersion: string;
+}>;
+
+export type MigrationOptions = Readonly<{
+  migrationsFolder?: string;
 }>;
 
 export async function readDatabaseReadiness(sql: DatabaseClient): Promise<DatabaseReadiness> {
@@ -44,25 +46,20 @@ export async function readDatabaseReadiness(sql: DatabaseClient): Promise<Databa
   };
 }
 
-export async function migrateDatabase(databaseUrl: string): Promise<DatabaseReadiness> {
+export async function migrateDatabase(
+  databaseUrl: string,
+  options: MigrationOptions = {},
+): Promise<DatabaseReadiness> {
   const serverRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-  const migrationsFolder = path.join(serverRoot, "migrations");
+  const migrationsFolder = options.migrationsFolder ?? path.join(serverRoot, "migrations");
 
-  if (existsSync(migrationsFolder)) {
-    const drizzleKit = path.join(serverRoot, "node_modules/.bin/drizzle-kit");
-    await execFileAsync(drizzleKit, ["migrate"], {
-      cwd: serverRoot,
-      env: {
-        ...process.env,
-        DATABASE_MIGRATOR_URL: databaseUrl,
-        DATABASE_URL: databaseUrl,
-      },
-      maxBuffer: 1024 * 1024,
-    });
+  if (!existsSync(migrationsFolder)) {
+    throw new Error(`migration directory is missing: ${migrationsFolder}`);
   }
 
   const sql = createSqlClient(databaseUrl);
   try {
+    await migrate(drizzle(sql), { migrationsFolder });
     return await readDatabaseReadiness(sql);
   } finally {
     await sql.end({ timeout: 5 });
