@@ -17,6 +17,7 @@ USER node
 WORKDIR /app
 COPY --from=build --chown=node:node /out ./
 COPY --from=build --chown=node:node /workspace/server/dist ./dist
+# Railway runs the compiled migrator as a fail-closed pre-deploy command.
 COPY --from=build --chown=node:node /workspace/server/migrations ./migrations
 COPY --from=build --chown=node:node /workspace/web/dist ./web/dist
 EXPOSE 3000
