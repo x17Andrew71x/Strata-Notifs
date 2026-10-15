@@ -17,6 +17,12 @@ interface AnalyticsOutboxDao {
   @Query("DELETE FROM analytics_outbox WHERE event_id = :eventId")
   suspend fun delete(eventId: String): Int
 
+  @Query("DELETE FROM analytics_outbox WHERE event_id IN (:eventIds)")
+  suspend fun deleteAll(eventIds: List<String>): Int
+
+  @Query("DELETE FROM analytics_outbox")
+  suspend fun clear(): Int
+
   @Query("SELECT COUNT(*) FROM analytics_outbox WHERE event_id = :eventId")
   suspend fun count(eventId: String): Int
 }

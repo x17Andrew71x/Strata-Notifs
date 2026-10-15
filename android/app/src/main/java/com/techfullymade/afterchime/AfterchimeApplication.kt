@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.Build
 import androidx.room.Room
 import androidx.work.WorkManager
+import com.techfullymade.afterchime.analytics.AndroidAnalyticsEnvelopeCipher
 import com.techfullymade.afterchime.capture.NotificationCaptureRuntime
 import com.techfullymade.afterchime.capture.NotificationCaptureRuntimeRegistry
 import com.techfullymade.afterchime.capture.NotificationReducer
@@ -35,6 +36,7 @@ import com.techfullymade.afterchime.security.LocalSecretStore
 import com.techfullymade.afterchime.security.SharedPreferencesLocalSecretEnvelopeStore
 import com.techfullymade.afterchime.settings.DataStoreUserPreferences
 import com.techfullymade.afterchime.sync.AfterchimeOnlineSyncApi
+import com.techfullymade.afterchime.sync.AnalyticsOutboxUploader
 import com.techfullymade.afterchime.sync.AuthenticatorOnlineTokenClient
 import com.techfullymade.afterchime.sync.OnlineSyncCoordinator
 import com.techfullymade.afterchime.sync.OnlineSyncRunner
@@ -42,6 +44,7 @@ import com.techfullymade.afterchime.sync.OnlineSyncRuntimeRegistry
 import com.techfullymade.afterchime.sync.OnlineSyncScheduler
 import com.techfullymade.afterchime.sync.RepositoryOnlineIdentityClient
 import com.techfullymade.afterchime.sync.RoomDailySummaryUploadStore
+import com.techfullymade.afterchime.sync.RoomAnalyticsUploadStore
 import com.techfullymade.afterchime.sync.SharedPreferencesOnlineSyncStateStore
 import java.time.Clock
 import java.time.ZoneId
@@ -72,6 +75,9 @@ class AfterchimeApplication : Application() {
   private val fossilCatalog: FossilCatalogStore by lazy {
     FossilCatalogStore(SharedPreferencesFossilCatalogPersistence(this))
   }
+  private val analyticsCipher: AndroidAnalyticsEnvelopeCipher by lazy {
+    AndroidAnalyticsEnvelopeCipher()
+  }
 
   private val onlineSyncCoordinator: OnlineSyncCoordinator by lazy {
     val api = NetworkModule.create(BuildConfig.API_BASE_URL, BuildConfig.FLAVOR == "dev")
@@ -82,14 +88,20 @@ class AfterchimeApplication : Application() {
         cipher = AndroidCredentialCipher(),
       ),
     )
+    val syncApi = AfterchimeOnlineSyncApi(api)
     OnlineSyncCoordinator(
       preferences = { userPreferences.values.first() },
       identity = RepositoryOnlineIdentityClient(identity),
       tokenClient = AuthenticatorOnlineTokenClient(
         TokenAuthenticator(identity, refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS),
       ),
-      api = AfterchimeOnlineSyncApi(api),
+      api = syncApi,
       summaries = RoomDailySummaryUploadStore(database.dailyNotificationSummaryDao()),
+      analyticsOutbox = AnalyticsOutboxUploader(
+        store = RoomAnalyticsUploadStore(database.analyticsOutboxDao()),
+        decryptor = analyticsCipher,
+        api = syncApi,
+      ),
       state = SharedPreferencesOnlineSyncStateStore(this),
       registrationRequest = {
         RegistrationRequest(

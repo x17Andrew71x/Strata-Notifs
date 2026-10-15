@@ -9,6 +9,7 @@ import com.techfullymade.afterchime.identity.OnlineIdentityRepository
 import com.techfullymade.afterchime.identity.TokenAuthenticator
 import com.techfullymade.afterchime.identity.TokenResult
 import com.techfullymade.afterchime.network.AfterchimeApi
+import com.techfullymade.afterchime.network.AnalyticsBatchResult
 import com.techfullymade.afterchime.network.ApiFailure
 import com.techfullymade.afterchime.network.ApiResult
 import com.techfullymade.afterchime.network.ConsentResponse
@@ -70,6 +71,11 @@ internal interface OnlineSyncApi {
     body: String,
     bearerToken: String,
   ): ApiResult<DailyAggregateResult>
+
+  fun submitAnalytics(
+    body: String,
+    bearerToken: String,
+  ): ApiResult<AnalyticsBatchResult>
 }
 
 internal class AfterchimeOnlineSyncApi(
@@ -85,6 +91,11 @@ internal class AfterchimeOnlineSyncApi(
     body: String,
     bearerToken: String,
   ): ApiResult<DailyAggregateResult> = api.submitDailyAggregate(body, bearerToken)
+
+  override fun submitAnalytics(
+    body: String,
+    bearerToken: String,
+  ): ApiResult<AnalyticsBatchResult> = api.submitAnalyticsBatch(body, bearerToken)
 }
 
 internal interface DailySummaryUploadStore {
@@ -120,6 +131,7 @@ internal class OnlineSyncCoordinator(
   private val tokenClient: OnlineTokenClient,
   private val api: OnlineSyncApi,
   private val summaries: DailySummaryUploadStore,
+  private val analyticsOutbox: AnalyticsOutboxSync,
   private val state: OnlineSyncStateStore,
   private val registrationRequest: () -> RegistrationRequest,
   private val nowMillis: () -> Long = System::currentTimeMillis,
@@ -129,6 +141,10 @@ internal class OnlineSyncCoordinator(
       preferences()
     } catch (_: Exception) {
       return OnlineSyncOutcome.RETRY
+    }
+    if (!currentPreferences.onlineFeaturesEnabled || !currentPreferences.productAnalyticsEnabled) {
+      val discarded = analyticsOutbox.discard()
+      if (discarded != OnlineSyncOutcome.SUCCESS) return discarded
     }
     val current = when (val result = identity.currentSession()) {
       is IdentityResult.Success -> result.value
@@ -156,8 +172,15 @@ internal class OnlineSyncCoordinator(
       if (outcome != OnlineSyncOutcome.SUCCESS) return outcome
     }
 
-    if (!currentPreferences.notificationAggregateSharingEnabled) return OnlineSyncOutcome.SUCCESS
-    return uploadDailySummaries(token)
+    if (currentPreferences.notificationAggregateSharingEnabled) {
+      val uploaded = uploadDailySummaries(token)
+      if (uploaded != OnlineSyncOutcome.SUCCESS) return uploaded
+    }
+    return if (currentPreferences.productAnalyticsEnabled) {
+      analyticsOutbox.upload(session.installationId, token)
+    } else {
+      OnlineSyncOutcome.SUCCESS
+    }
   }
 
   private fun register(): SessionStep {

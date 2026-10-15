@@ -9,6 +9,7 @@ import java.util.UUID
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
 fun interface AnalyticsConsentPolicy {
   fun permitsProductAnalytics(): Boolean
@@ -20,6 +21,10 @@ fun interface AnalyticsOutboxWriter {
 
 fun interface AnalyticsEnvelopeCipher {
   fun encrypt(plaintext: ByteArray): ByteArray
+}
+
+fun interface AnalyticsEnvelopeDecryptor {
+  fun decrypt(envelope: ByteArray): ByteArray
 }
 
 enum class AnalyticsRecordResult { RECORDED, CONSENT_DISABLED, UNAVAILABLE }
@@ -59,13 +64,26 @@ class AnalyticsRecorder(
 }
 
 /** Dedicated Android Keystore key; database values are IV concatenated with authenticated ciphertext. */
-class AndroidAnalyticsEnvelopeCipher : AnalyticsEnvelopeCipher {
+class AndroidAnalyticsEnvelopeCipher : AnalyticsEnvelopeCipher, AnalyticsEnvelopeDecryptor {
   override fun encrypt(plaintext: ByteArray): ByteArray {
     val store = KeyStore.getInstance(KEYSTORE).apply { load(null) }
     val key = (store.getKey(KEY_ALIAS, null) as? SecretKey) ?: createKey()
     val cipher = Cipher.getInstance(TRANSFORMATION)
     cipher.init(Cipher.ENCRYPT_MODE, key)
     return cipher.iv + cipher.doFinal(plaintext)
+  }
+
+  override fun decrypt(envelope: ByteArray): ByteArray {
+    require(envelope.size >= IV_LENGTH_BYTES + TAG_LENGTH_BYTES)
+    val store = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+    val key = store.getKey(KEY_ALIAS, null) as? SecretKey ?: throw IllegalStateException()
+    val cipher = Cipher.getInstance(TRANSFORMATION)
+    cipher.init(
+      Cipher.DECRYPT_MODE,
+      key,
+      GCMParameterSpec(TAG_LENGTH_BITS, envelope.copyOfRange(0, IV_LENGTH_BYTES)),
+    )
+    return cipher.doFinal(envelope.copyOfRange(IV_LENGTH_BYTES, envelope.size))
   }
 
   private fun createKey(): SecretKey = KeyGenerator.getInstance("AES", KEYSTORE).run {
@@ -84,5 +102,8 @@ class AndroidAnalyticsEnvelopeCipher : AnalyticsEnvelopeCipher {
     const val KEYSTORE = "AndroidKeyStore"
     const val KEY_ALIAS = "afterchime.analytics-outbox.v1"
     const val TRANSFORMATION = "AES/GCM/NoPadding"
+    const val IV_LENGTH_BYTES = 12
+    const val TAG_LENGTH_BITS = 128
+    const val TAG_LENGTH_BYTES = TAG_LENGTH_BITS / 8
   }
 }

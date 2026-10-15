@@ -5,6 +5,7 @@ import com.techfullymade.afterchime.identity.CredentialSession
 import com.techfullymade.afterchime.identity.IdentityFailure
 import com.techfullymade.afterchime.identity.IdentityResult
 import com.techfullymade.afterchime.identity.TokenResult
+import com.techfullymade.afterchime.network.AnalyticsBatchResult
 import com.techfullymade.afterchime.network.ApiFailure
 import com.techfullymade.afterchime.network.ApiResult
 import com.techfullymade.afterchime.network.ConsentResponse
@@ -34,6 +35,7 @@ class OnlineSyncCoordinatorTest {
     assertEquals(0, fixture.api.consentCalls.size)
     assertEquals(0, fixture.api.dailyBodies.size)
     assertEquals(0, fixture.token.calls)
+    assertEquals(1, fixture.analytics.discardCalls)
   }
 
   @Test
@@ -162,6 +164,22 @@ class OnlineSyncCoordinatorTest {
   }
 
   @Test
+  fun `enabled product reporting uploads only after consent acknowledgement`() = runBlocking {
+    val fixture = Fixture(
+      UserPreferences(onlineFeaturesEnabled = true, productAnalyticsEnabled = true),
+      currentSession = SESSION,
+    )
+
+    assertEquals(OnlineSyncOutcome.SUCCESS, fixture.coordinator().sync())
+    assertEquals(listOf(SESSION.installationId to "access-token"), fixture.analytics.uploads)
+    assertEquals(0, fixture.analytics.discardCalls)
+    assertEquals(
+      true,
+      fixture.api.consentCalls.single { it.request.scope == "product_analytics" }.request.granted,
+    )
+  }
+
+  @Test
   fun `opt out revokes optional scopes first and essential last then logs out`() = runBlocking {
     val fixture = Fixture(UserPreferences(), currentSession = SESSION)
     fixture.acknowledgeAll(true)
@@ -218,6 +236,7 @@ class OnlineSyncCoordinatorTest {
     val token = FakeToken()
     val api = FakeApi()
     val summaryStore = FakeSummaryStore(summaries)
+    val analytics = FakeAnalyticsSync()
 
     fun coordinator() = OnlineSyncCoordinator(
       preferences = { preferences },
@@ -225,6 +244,7 @@ class OnlineSyncCoordinatorTest {
       tokenClient = token,
       api = api,
       summaries = summaryStore,
+      analyticsOutbox = analytics,
       state = state,
       registrationRequest = { RegistrationRequest("0.1.8-dev-debug", 35, "phone") },
       nowMillis = { 99L },
@@ -314,6 +334,24 @@ class OnlineSyncCoordinatorTest {
           status = dailyStatus,
         ),
       )
+    }
+
+    override fun submitAnalytics(body: String, bearerToken: String): ApiResult<AnalyticsBatchResult> =
+      ApiResult.success(AnalyticsBatchResult(emptyList()))
+  }
+
+  private class FakeAnalyticsSync : AnalyticsOutboxSync {
+    var discardCalls = 0
+    val uploads = mutableListOf<Pair<String, String>>()
+
+    override suspend fun discard(): OnlineSyncOutcome {
+      discardCalls += 1
+      return OnlineSyncOutcome.SUCCESS
+    }
+
+    override suspend fun upload(installationId: String, bearerToken: String): OnlineSyncOutcome {
+      uploads += installationId to bearerToken
+      return OnlineSyncOutcome.SUCCESS
     }
   }
 
