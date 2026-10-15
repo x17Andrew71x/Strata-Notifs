@@ -1569,19 +1569,9 @@ p {
   background: var(--card-bg);
 }
 
-.world-card.theme-field {
-  --card-accent: #a9b57e;
-  --card-bg: #202218;
-}
-
-.world-card.theme-control {
-  --card-accent: #79c9b2;
-  --card-bg: #0d1a23;
-}
-
-.world-card.theme-atlas {
-  --card-accent: #bb7352;
-  --card-bg: #252321;
+.world-card.theme-signal {
+  --card-accent: #9bcabc;
+  --card-bg: #111a18;
 }
 
 .world-card.selected {
@@ -1596,7 +1586,8 @@ p {
   background: color-mix(in srgb, var(--card-bg) 72%, #171918 28%);
 }
 
-.world-card.locked .world-preview {
+.world-card.locked .world-preview .specimen-visual,
+.world-card.locked .world-card-image {
   filter: grayscale(1) saturate(0);
   opacity: 0.38;
 }
@@ -1606,8 +1597,44 @@ p {
   opacity: 0.62;
 }
 
+.world-preview {
+  position: relative;
+  overflow: hidden;
+  width: 106px;
+  height: 106px;
+  border-radius: 13px;
+}
+
 .world-preview .specimen-visual {
   width: 106px;
+}
+
+.world-card-image {
+  display: block;
+  width: 106px;
+  height: 106px;
+  object-fit: cover;
+}
+
+.world-lock-overlay {
+  position: absolute;
+  z-index: 2;
+  inset: 50% auto auto 50%;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #d5ded86b;
+  border-radius: 50%;
+  background: #090d0bdd;
+  color: #dce7e1;
+  box-shadow: 0 7px 18px #000a;
+  transform: translate(-50%, -50%);
+}
+
+.world-lock-overlay .world-lock-icon {
+  width: 22px;
+  height: 22px;
 }
 
 .world-copy {
@@ -1625,12 +1652,6 @@ p {
   font-weight: 500;
 }
 
-.world-card.theme-control h2 {
-  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-  font-size: 18px;
-  letter-spacing: -0.03em;
-  text-transform: uppercase;
-}
 
 .world-card p {
   margin-top: 5px;

@@ -648,12 +648,11 @@ describe("full shell application", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Series/i }));
 
     expect(screen.getByRole("heading", { level: 1, name: "Series" })).toBeTruthy();
-    expect(screen.getByText("Four authored series", { exact: true })).toBeTruthy();
+    expect(screen.getByText("Two authored series", { exact: true })).toBeTruthy();
     expect(
-      screen.getByText(
-        "Relic Vault is the launch Series. The others are locked for now and will be revisited after release.",
-        { exact: true },
-      ),
+      screen.getByText("Relic Vault is available now. Signal Ruins is under development.", {
+        exact: true,
+      }),
     ).toBeTruthy();
     for (const world of WORLD_DEFINITIONS) {
       const heading = screen.getByRole("heading", { name: world.name });
@@ -661,9 +660,15 @@ describe("full shell application", () => {
       expect(card).toBeTruthy();
       expect(within(card).getByText(world.eyebrow, { exact: true })).toBeTruthy();
       expect(within(card).getByText(world.description, { exact: true })).toBeTruthy();
-      expect(card.querySelector(".world-preview .specimen-visual")).toBeTruthy();
+      if (world.baseline) {
+        expect(card.querySelector(".world-preview .specimen-visual")).toBeTruthy();
+      } else {
+        const image = card.querySelector<HTMLImageElement>(".world-preview .world-card-image");
+        expect(image).toHaveAttribute("src", world.cardImage);
+        expect(image).toHaveAttribute("alt", "");
+      }
     }
-    expect(container.querySelectorAll(".world-card")).toHaveLength(4);
+    expect(container.querySelectorAll(".world-card")).toHaveLength(2);
     expect(container.querySelectorAll(".world-card.selected")).toHaveLength(1);
     const baseCard = screen.getByRole("heading", { name: "Relic Vault" }).closest("article");
     expect(baseCard).toHaveClass("selected");
@@ -674,16 +679,29 @@ describe("full shell application", () => {
     ).toBeTruthy();
 
     const lockedCards = Array.from(container.querySelectorAll<HTMLElement>(".world-card.locked"));
-    expect(lockedCards).toHaveLength(3);
-    expect(screen.getAllByText("Locked for launch", { exact: true })).toHaveLength(3);
+    expect(lockedCards).toHaveLength(1);
+    expect(screen.getByText("Under development", { exact: true })).toBeTruthy();
+    expect(screen.queryByText("Locked for launch", { exact: true })).toBeNull();
     for (const card of lockedCards) {
       expect(card).toHaveAttribute("aria-disabled", "true");
-      expect(card.querySelectorAll('svg.world-lock-icon[aria-hidden="true"]')).toHaveLength(1);
-      expect(card.querySelector(".world-preview")).toBeTruthy();
+      const preview = card.querySelector(".world-preview");
+      expect(preview).toBeTruthy();
+      expect(preview?.querySelectorAll('.world-lock-overlay[aria-hidden="true"]')).toHaveLength(1);
+      expect(preview?.querySelectorAll("svg.world-lock-icon")).toHaveLength(1);
+      expect(card.querySelector(".world-status .world-lock-icon")).toBeNull();
       expect(card.querySelector(".world-copy")).toBeTruthy();
       expect(within(card).queryByRole("button")).toBeNull();
     }
-    expect(container.querySelectorAll("svg.world-lock-icon")).toHaveLength(3);
+    expect(container.querySelectorAll("svg.world-lock-icon")).toHaveLength(1);
+    expect(WORLD_ASSET_PATHS).toContain(
+      "/worlds/signal-ruins-artifact-67f7d4054fb5.webp",
+    );
+    for (const removedPrefix of ["/worlds/field-", "/worlds/control-", "/worlds/atlas-"]) {
+      expect(WORLD_ASSET_PATHS.some((asset) => asset.startsWith(removedPrefix))).toBe(false);
+    }
+    for (const removedName of ["Living Field Station", "Expedition Control", "Charcoal Atlas"]) {
+      expect(screen.queryByText(removedName, { exact: true })).toBeNull();
+    }
     for (const control of ["Apply", "Unlock for testing", "Reset test unlocks"]) {
       expect(screen.queryByRole("button", { name: control })).toBeNull();
     }

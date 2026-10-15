@@ -1,6 +1,7 @@
 import type { Tier, World } from "./bridge";
 
-export type WorldTheme = "relic" | "field" | "control" | "atlas";
+export type WorldTheme = "relic" | "signal";
+export type SeriesId = World | "SIGNAL_RUINS";
 
 export type Artifact = Readonly<{
   id: string;
@@ -12,7 +13,7 @@ export type Artifact = Readonly<{
 }>;
 
 export type WorldDefinition = Readonly<{
-  id: World;
+  id: SeriesId;
   name: string;
   theme: WorldTheme;
   baseline: boolean;
@@ -20,6 +21,7 @@ export type WorldDefinition = Readonly<{
   description: string;
   collectionName: string;
   formingCopy: string;
+  cardImage?: string;
   artifacts: readonly Artifact[];
 }>;
 
@@ -251,113 +253,17 @@ export const WORLD_DEFINITIONS: readonly WorldDefinition[] = [
     artifacts: RELIC_VAULT_ARTIFACTS,
   },
   {
-    id: "BOTANICAL_ARCHIVE",
-    name: "Living Field Station",
-    theme: "field",
+    id: "SIGNAL_RUINS",
+    name: "Signal Ruins",
+    theme: "signal",
     baseline: false,
-    eyebrow: "Naturalist field archive",
-    description: "Pressed specimens, weathered paper, handwritten catalogues, and living terrain.",
-    collectionName: "Field Archive",
-    formingCopy: "Today’s field specimen is settling onto its plate. It will be ready tomorrow.",
-    artifacts: [
-      {
-        id: "field-verdant-crown",
-        name: "Verdant Crown",
-        museumImage: "/worlds/field-verdant-crown-16cd41ad4394.jpg",
-        excavationImage: "/worlds/field-verdant-crown-16cd41ad4394.jpg",
-        tier: "COMMON",
-        description: "A dense canopy study cut through with new growth.",
-      },
-      {
-        id: "field-tidal-archive",
-        name: "Tidal Archive",
-        museumImage: "/worlds/field-tidal-archive-7870aabaf855.jpg",
-        excavationImage: "/worlds/field-tidal-archive-7870aabaf855.jpg",
-        tier: "UNCOMMON",
-        description: "A coastal plate of tide pools, shells, and salt-worn forms.",
-      },
-      {
-        id: "field-cinder-vale",
-        name: "Cinder Vale",
-        museumImage: "/worlds/field-cinder-vale-baba2fad26b5.jpg",
-        excavationImage: "/worlds/field-cinder-vale-baba2fad26b5.jpg",
-        tier: "RARE",
-        description: "A dry volcanic survey where ember flora takes root.",
-      },
-    ],
-  },
-  {
-    id: "DEEP_SPACE",
-    name: "Expedition Control",
-    theme: "control",
-    baseline: false,
-    eyebrow: "Scientific signal programme",
-    description: "Disciplined instrument graphics, measured channels, and expedition telemetry.",
+    eyebrow: "Extraterrestrial artifact archive",
+    description:
+      "Recovered objects from beyond Earth—impossible alloys, broken star maps, and relics with no known maker.",
     collectionName: "Signal Archive",
-    formingCopy: "Today’s signal is resolving through the instrument array. It will lock tomorrow.",
-    artifacts: [
-      {
-        id: "control-canopy-frequency",
-        name: "Canopy Frequency",
-        museumImage: "/worlds/control-canopy-frequency-264930918583.jpg",
-        excavationImage: "/worlds/control-canopy-frequency-264930918583.jpg",
-        tier: "COMMON",
-        description: "A living frequency rendered as a precise field instrument.",
-      },
-      {
-        id: "control-pelagic-channel",
-        name: "Pelagic Channel",
-        museumImage: "/worlds/control-pelagic-channel-679685abf5a2.jpg",
-        excavationImage: "/worlds/control-pelagic-channel-679685abf5a2.jpg",
-        tier: "UNCOMMON",
-        description: "A deep-water transmission traced across a disciplined console.",
-      },
-      {
-        id: "control-lunar-silence",
-        name: "Lunar Silence",
-        museumImage: "/worlds/control-lunar-silence-af1ea8ce38ec.jpg",
-        excavationImage: "/worlds/control-lunar-silence-af1ea8ce38ec.jpg",
-        tier: "RARE",
-        description: "A near-silent survey whose smallest readings carry the record.",
-      },
-    ],
-  },
-  {
-    id: "THE_ABYSS",
-    name: "Charcoal Atlas",
-    theme: "atlas",
-    baseline: false,
-    eyebrow: "Terrestrial survey folio",
-    description: "Charcoal-grey land studies, contour marks, cool paper, and restrained rust ink.",
-    collectionName: "Atlas",
-    formingCopy:
-      "Today’s terrain is being fixed in charcoal. The finished survey arrives tomorrow.",
-    artifacts: [
-      {
-        id: "atlas-hollow-range",
-        name: "Hollow Range",
-        museumImage: "/worlds/atlas-hollow-range-40fffccf4155.jpg",
-        excavationImage: "/worlds/atlas-hollow-range-40fffccf4155.jpg",
-        tier: "COMMON",
-        description: "A folded mountain survey cut by a silent interior valley.",
-      },
-      {
-        id: "atlas-ember-roads",
-        name: "Ember Roads",
-        museumImage: "/worlds/atlas-ember-roads-fe87b2c52620.jpg",
-        excavationImage: "/worlds/atlas-ember-roads-fe87b2c52620.jpg",
-        tier: "UNCOMMON",
-        description: "Rust-red routes crossing a soot-dark terrestrial plan.",
-      },
-      {
-        id: "atlas-white-quarry",
-        name: "White Quarry",
-        museumImage: "/worlds/atlas-white-quarry-40e3ba96733d.jpg",
-        excavationImage: "/worlds/atlas-white-quarry-40e3ba96733d.jpg",
-        tier: "RARE",
-        description: "A pale excavation mapped against compressed graphite ground.",
-      },
-    ],
+    formingCopy: "Signal Ruins is under development.",
+    cardImage: "/worlds/signal-ruins-artifact-67f7d4054fb5.webp",
+    artifacts: [],
   },
 ] as const;
 
@@ -374,7 +280,10 @@ for (const [legacyId, canonicalId] of Object.entries(LEGACY_RELIC_ARTIFACT_ALIAS
 export const WORLD_ASSET_PATHS = [
   ...new Set(
     WORLD_DEFINITIONS.flatMap((world) =>
-      world.artifacts.flatMap((artifact) => [artifact.museumImage, artifact.excavationImage]),
+      [
+        ...(world.cardImage ? [world.cardImage] : []),
+        ...world.artifacts.flatMap((artifact) => [artifact.museumImage, artifact.excavationImage]),
+      ],
     ),
   ),
 ];
@@ -389,11 +298,12 @@ export function artifactById(id: string | null | undefined): Artifact | null {
 
 export function artifactFor(world: World, specimenKey = "decorative"): Artifact {
   const definition = worldDefinition(world);
-  if (specimenKey === "decorative") return definition.artifacts[0];
+  const artifacts = definition.artifacts.length > 0 ? definition.artifacts : WORLD_DEFINITIONS[0].artifacts;
+  if (specimenKey === "decorative") return artifacts[0];
   let hash = 2166136261;
   for (let index = 0; index < specimenKey.length; index += 1) {
     hash ^= specimenKey.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
-  return definition.artifacts[(hash >>> 0) % definition.artifacts.length];
+  return artifacts[(hash >>> 0) % artifacts.length];
 }

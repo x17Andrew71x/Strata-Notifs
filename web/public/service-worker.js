@@ -1,6 +1,7 @@
-const CACHE_NAME = "afterchime-shell-v30";
+const CACHE_NAME = "afterchime-shell-v31";
 const CATALOG_REVISION = 2;
 const LEGACY_CACHE_NAMES = [
+  "afterchime-shell-v30",
   "afterchime-shell-v29",
   "afterchime-shell-v28",
   "afterchime-shell-v27",
@@ -68,15 +69,7 @@ const WORLD_ASSETS = [
   "/worlds/relic-dinosaur-embryo-egg-excavation-3b9a0207c942.webp",
   "/worlds/relic-archaeopteryx-slab-museum-492a72012ed0.webp",
   "/worlds/relic-archaeopteryx-slab-excavation-30a8e4b75684.webp",
-  "/worlds/field-verdant-crown-16cd41ad4394.jpg",
-  "/worlds/field-tidal-archive-7870aabaf855.jpg",
-  "/worlds/field-cinder-vale-baba2fad26b5.jpg",
-  "/worlds/control-canopy-frequency-264930918583.jpg",
-  "/worlds/control-pelagic-channel-679685abf5a2.jpg",
-  "/worlds/control-lunar-silence-af1ea8ce38ec.jpg",
-  "/worlds/atlas-hollow-range-40fffccf4155.jpg",
-  "/worlds/atlas-ember-roads-fe87b2c52620.jpg",
-  "/worlds/atlas-white-quarry-40e3ba96733d.jpg",
+  "/worlds/signal-ruins-artifact-67f7d4054fb5.webp",
 ];
 
 self.addEventListener("install", (event) => event.waitUntil(installWorker()));

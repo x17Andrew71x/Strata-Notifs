@@ -754,37 +754,6 @@ function FormationImprint({ theme }: { theme: ReturnType<typeof worldDefinition>
           />
         </>
       )}
-      {theme === "field" && (
-        <>
-          <path className="imprint-shadow" d="M20 78C28 49 43 27 78 16c-4 33-22 57-58 62Z" />
-          <path
-            className="imprint-line"
-            d="M20 78C28 49 43 27 78 16c-4 33-22 57-58 62Zm4-5 49-51M34 60l3-21m8 10 20-4M50 43l3-13m5 6 12-2"
-          />
-        </>
-      )}
-      {theme === "control" && (
-        <>
-          <circle className="imprint-shadow" cx="50" cy="50" r="32" />
-          <path
-            className="imprint-line"
-            d="M50 12v76M12 50h76M25 50a25 25 0 1 0 50 0 25 25 0 1 0-50 0Zm9 0a16 16 0 1 0 32 0 16 16 0 1 0-32 0Z"
-          />
-          <path className="imprint-detail" d="m19 69 12-8 9 5 13-21 10 8 18-20" />
-        </>
-      )}
-      {theme === "atlas" && (
-        <>
-          <path
-            className="imprint-shadow"
-            d="M10 65c11-4 14-19 27-20 10-1 13-22 25-21 10 1 12 16 28 18v34H10Z"
-          />
-          <path
-            className="imprint-line"
-            d="M9 72c14-4 17-17 30-18 12-1 17-20 29-19 9 1 11 12 23 15M8 61c13-3 17-16 28-16 11 0 14-22 27-21 10 1 12 16 28 18M12 82c10-5 18-15 31-16 14-1 19-17 30-16 7 1 11 7 17 9"
-          />
-        </>
-      )}
     </svg>
   );
 }
@@ -1098,11 +1067,10 @@ function Worlds({ state, onBack }: { state: ShellState; onBack(): void }) {
       <button type="button" className="back-button" onClick={onBack}>
         ← Back
       </button>
-      <p className="eyebrow">Four authored series</p>
+      <p className="eyebrow">Two authored series</p>
       <h1 id="worlds-title">Series</h1>
       <p className="lead-small">
-        Relic Vault is the launch Series. The others are locked for now and will be revisited after
-        release.
+        Relic Vault is available now. Signal Ruins is under development.
       </p>
       <div className="world-list">
         {WORLD_DEFINITIONS.map((world) => {
@@ -1115,15 +1083,23 @@ function Worlds({ state, onBack }: { state: ShellState; onBack(): void }) {
               aria-disabled={locked ? "true" : undefined}
             >
               <div className="world-preview">
-                <SpecimenVisual decorative compact world={world.id} />
+                {world.baseline ? (
+                  <SpecimenVisual decorative compact world={LAUNCH_WORLD} />
+                ) : (
+                  <img className="world-card-image" src={world.cardImage} alt="" />
+                )}
+                {locked && (
+                  <span className="world-lock-overlay" aria-hidden="true">
+                    <SeriesLockIcon />
+                  </span>
+                )}
               </div>
               <div className="world-copy">
                 <p className="world-eyebrow">{world.eyebrow}</p>
                 <h2>{world.name}</h2>
                 <p>{world.description}</p>
                 <p className="world-status">
-                  {locked && <SeriesLockIcon />}
-                  <span>{selected ? "Active series" : "Locked for launch"}</span>
+                  <span>{selected ? "Active series" : "Under development"}</span>
                 </p>
               </div>
             </article>

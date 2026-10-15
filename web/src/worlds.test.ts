@@ -15,12 +15,10 @@ import {
 } from "./worlds";
 
 describe("authored world catalogue", () => {
-  it("exposes only the four approved worlds with Relic Vault as the baseline", () => {
+  it("exposes Relic Vault and one card-only Signal Ruins series", () => {
     expect(WORLD_DEFINITIONS.map(({ id, name, baseline }) => ({ id, name, baseline }))).toEqual([
       { id: "PRIMEVAL_STRATA", name: "Relic Vault", baseline: true },
-      { id: "BOTANICAL_ARCHIVE", name: "Living Field Station", baseline: false },
-      { id: "DEEP_SPACE", name: "Expedition Control", baseline: false },
-      { id: "THE_ABYSS", name: "Charcoal Atlas", baseline: false },
+      { id: "SIGNAL_RUINS", name: "Signal Ruins", baseline: false },
     ]);
   });
 
@@ -51,15 +49,12 @@ describe("authored world catalogue", () => {
     expect(payload.items.every(({ family }) => /^[A-Z_]{1,40}$/.test(family))).toBe(true);
   });
 
-  it("keeps three unique authored artifacts in each cosmetic world", () => {
-    for (const world of WORLD_DEFINITIONS.slice(1)) {
-      expect(world.artifacts).toHaveLength(3);
-      expect(new Set(world.artifacts.map((artifact) => artifact.name))).toHaveLength(3);
-      expect(new Set(world.artifacts.map((artifact) => artifact.museumImage))).toHaveLength(3);
-      expect(new Set(world.artifacts.map((artifact) => artifact.id))).toHaveLength(3);
-    }
-    expect(WORLD_ASSET_PATHS).toHaveLength(43);
-    expect(new Set(WORLD_ASSET_PATHS)).toHaveLength(43);
+  it("keeps Signal Ruins card-only and includes only its one preview asset", () => {
+    const signalRuins = WORLD_DEFINITIONS[1];
+    expect(signalRuins.artifacts).toEqual([]);
+    expect(signalRuins.cardImage).toBe("/worlds/signal-ruins-artifact-67f7d4054fb5.webp");
+    expect(WORLD_ASSET_PATHS).toHaveLength(35);
+    expect(new Set(WORLD_ASSET_PATHS)).toHaveLength(35);
   });
 
   it("maps retired fictional fossil ids onto canonical research-backed identities", () => {
@@ -69,22 +64,19 @@ describe("authored world catalogue", () => {
     }
   });
 
-  it("assigns a stable artifact and never escapes the selected world", () => {
-    for (const world of WORLD_DEFINITIONS) {
-      const first = artifactFor(world.id, "specimen_42");
-      expect(artifactFor(world.id, "specimen_42")).toEqual(first);
-      expect(world.artifacts).toContain(first);
-    }
+  it("assigns a stable Relic Vault artifact and legacy world ids fail closed to it", () => {
+    const first = artifactFor("PRIMEVAL_STRATA", "specimen_42");
+    expect(artifactFor("PRIMEVAL_STRATA", "specimen_42")).toEqual(first);
+    expect(RELIC_VAULT_ARTIFACTS).toContain(first);
+    expect(artifactFor("DEEP_SPACE", "specimen_42")).toEqual(first);
   });
 
   it("maps compatibility world ids to authored public identities", () => {
     expect(worldDefinition("PRIMEVAL_STRATA").name).toBe("Relic Vault");
-    expect(worldDefinition("BOTANICAL_ARCHIVE").name).toBe("Living Field Station");
-    expect(worldDefinition("DEEP_SPACE").name).toBe("Expedition Control");
-    expect(worldDefinition("THE_ABYSS").name).toBe("Charcoal Atlas");
-    expect(WORLD_DEFINITIONS.map((world) => world.name)).not.toEqual(
-      expect.arrayContaining(["Primeval Strata", "Deep Space", "Botanical Archive", "The Abyss"]),
-    );
+    expect(worldDefinition("BOTANICAL_ARCHIVE").name).toBe("Relic Vault");
+    expect(worldDefinition("DEEP_SPACE").name).toBe("Relic Vault");
+    expect(worldDefinition("THE_ABYSS").name).toBe("Relic Vault");
+    expect(WORLD_DEFINITIONS.map((world) => world.name)).toEqual(["Relic Vault", "Signal Ruins"]);
   });
 
   it("keeps the exact quality-bounded content-addressed artwork inventory offline-authorized", async () => {
@@ -156,13 +148,16 @@ describe("authored world catalogue", () => {
       expect(worker).toContain(`"${asset}"`);
       const bytes = await readFile(path.join(publicRoot, asset));
       const relicAsset = path.basename(asset).startsWith("relic-");
-      expect(bytes.byteLength).toBeGreaterThanOrEqual(relicAsset ? 70_000 : 120_000);
+      expect(bytes.byteLength).toBeGreaterThanOrEqual(relicAsset ? 70_000 : 100_000);
       expect(bytes.byteLength).toBeLessThanOrEqual(relicAsset ? 360_000 : 420_000);
       const expectedPrefix = path.basename(asset).match(/-([a-f0-9]{12})\.(?:jpg|webp)$/)?.[1];
       expect(expectedPrefix).toBeTruthy();
-      expect(createHash("sha256").update(bytes).digest("hex")).toMatch(
-        new RegExp(`^${expectedPrefix}`),
-      );
+      const digest = createHash("sha256").update(bytes).digest("hex");
+      expect(digest).toMatch(new RegExp(`^${expectedPrefix}`));
+      if (!relicAsset) {
+        expect(bytes.byteLength).toBe(117_270);
+        expect(digest).toBe("67f7d4054fb5ce5d2cb1b0b1028f34343ec56c32539882bd443903b4d44ed501");
+      }
     }
   });
 
