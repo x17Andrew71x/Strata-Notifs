@@ -66,6 +66,11 @@ private val preferenceKeys = setOf(
   "highContrastEnabled",
   "hapticsEnabled",
 )
+private val onlinePreferenceKeys = setOf(
+  "onlineFeaturesEnabled",
+  "productAnalyticsEnabled",
+  "notificationAggregateSharingEnabled",
+)
 
 internal data class BridgeRequest(
   val id: String,
@@ -410,6 +415,7 @@ class MainActivity : ComponentActivity() {
     val value = payload.getBoolean("value")
     lifecycleScope.launch {
       userPreferences.update { current -> current.withPreference(key, value) }
+      if (key in onlinePreferenceKeys) applicationState.scheduleOnlineSync()
       postActionResult(request, true, proxy)
     }
   }

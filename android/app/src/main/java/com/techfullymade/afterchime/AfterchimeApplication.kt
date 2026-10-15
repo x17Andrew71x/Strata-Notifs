@@ -1,7 +1,9 @@
 package com.techfullymade.afterchime
 
 import android.app.Application
+import android.os.Build
 import androidx.room.Room
+import androidx.work.WorkManager
 import com.techfullymade.afterchime.capture.NotificationCaptureRuntime
 import com.techfullymade.afterchime.capture.NotificationCaptureRuntimeRegistry
 import com.techfullymade.afterchime.capture.NotificationReducer
@@ -15,18 +17,35 @@ import com.techfullymade.afterchime.domain.MuseumRepository
 import com.techfullymade.afterchime.gameplay.FossilCatalogStore
 import com.techfullymade.afterchime.gameplay.SharedPreferencesFossilCatalogPersistence
 import com.techfullymade.afterchime.generation.GenerationResult
+import com.techfullymade.afterchime.identity.AfterchimeIdentityGateway
+import com.techfullymade.afterchime.identity.AndroidCredentialCipher
+import com.techfullymade.afterchime.identity.AtomicCredentialEnvelopeStorage
+import com.techfullymade.afterchime.identity.CredentialStore
+import com.techfullymade.afterchime.identity.OnlineIdentityRepository
+import com.techfullymade.afterchime.identity.TokenAuthenticator
+import com.techfullymade.afterchime.network.NetworkModule
+import com.techfullymade.afterchime.network.RegistrationRequest
 import com.techfullymade.afterchime.sealing.RoomSealDayStore
-import com.techfullymade.afterchime.sealing.SealDayScheduler
-import androidx.work.WorkManager
 import com.techfullymade.afterchime.sealing.SealDayRuntimeRegistry
+import com.techfullymade.afterchime.sealing.SealDayScheduler
 import com.techfullymade.afterchime.sealing.SealDayUseCase
 import com.techfullymade.afterchime.security.AndroidKeystoreMaterial
 import com.techfullymade.afterchime.security.LocalSecretException
 import com.techfullymade.afterchime.security.LocalSecretStore
 import com.techfullymade.afterchime.security.SharedPreferencesLocalSecretEnvelopeStore
 import com.techfullymade.afterchime.settings.DataStoreUserPreferences
+import com.techfullymade.afterchime.sync.AfterchimeOnlineSyncApi
+import com.techfullymade.afterchime.sync.AuthenticatorOnlineTokenClient
+import com.techfullymade.afterchime.sync.OnlineSyncCoordinator
+import com.techfullymade.afterchime.sync.OnlineSyncRunner
+import com.techfullymade.afterchime.sync.OnlineSyncRuntimeRegistry
+import com.techfullymade.afterchime.sync.OnlineSyncScheduler
+import com.techfullymade.afterchime.sync.RepositoryOnlineIdentityClient
+import com.techfullymade.afterchime.sync.RoomDailySummaryUploadStore
+import com.techfullymade.afterchime.sync.SharedPreferencesOnlineSyncStateStore
 import java.time.Clock
 import java.time.ZoneId
+import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 
 class AfterchimeApplication : Application() {
@@ -54,6 +73,34 @@ class AfterchimeApplication : Application() {
     FossilCatalogStore(SharedPreferencesFossilCatalogPersistence(this))
   }
 
+  private val onlineSyncCoordinator: OnlineSyncCoordinator by lazy {
+    val api = NetworkModule.create(BuildConfig.API_BASE_URL, BuildConfig.FLAVOR == "dev")
+    val identity = OnlineIdentityRepository(
+      gateway = AfterchimeIdentityGateway(api),
+      credentials = CredentialStore(
+        storage = AtomicCredentialEnvelopeStorage(this),
+        cipher = AndroidCredentialCipher(),
+      ),
+    )
+    OnlineSyncCoordinator(
+      preferences = { userPreferences.values.first() },
+      identity = RepositoryOnlineIdentityClient(identity),
+      tokenClient = AuthenticatorOnlineTokenClient(
+        TokenAuthenticator(identity, refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS),
+      ),
+      api = AfterchimeOnlineSyncApi(api),
+      summaries = RoomDailySummaryUploadStore(database.dailyNotificationSummaryDao()),
+      state = SharedPreferencesOnlineSyncStateStore(this),
+      registrationRequest = {
+        RegistrationRequest(
+          appVersion = BuildConfig.VERSION_NAME,
+          androidApiLevel = Build.VERSION.SDK_INT,
+          deviceClass = onlineDeviceClass(resources.configuration.smallestScreenWidthDp),
+        )
+      },
+    )
+  }
+
   internal val userPreferences: DataStoreUserPreferences by lazy { DataStoreUserPreferences(this) }
   internal val formationRepository: FormationRepository by lazy {
     LocalFormationRepository(
@@ -74,8 +121,14 @@ class AfterchimeApplication : Application() {
 
   internal fun updateFossilCatalog(payload: JSONObject): Boolean = fossilCatalog.apply(payload)
 
+  internal fun scheduleOnlineSync() {
+    onlineWorkManager()?.let { OnlineSyncScheduler(it).scheduleImmediate() }
+  }
+
   override fun onCreate() {
     super.onCreate()
+    OnlineSyncRuntimeRegistry.runner = OnlineSyncRunner { onlineSyncCoordinator.sync() }
+    onlineWorkManager()?.let { OnlineSyncScheduler(it).schedule() }
     val timeZone = ZoneId.systemDefault()
     val observationRepository = ObservationRepository(
       listenerAccessStateDao = database.listenerAccessStateDao(),
@@ -107,6 +160,7 @@ class AfterchimeApplication : Application() {
   }
 
   override fun onTerminate() {
+    OnlineSyncRuntimeRegistry.runner = null
     NotificationCaptureRuntimeRegistry.runtime = null
     ObservationRuntimeRegistry.repository = null
     SealDayRuntimeRegistry.useCase = null
@@ -114,10 +168,20 @@ class AfterchimeApplication : Application() {
     super.onTerminate()
   }
 
+  private fun onlineWorkManager(): WorkManager? = try {
+    WorkManager.getInstance(this)
+  } catch (_: IllegalStateException) {
+    null
+  }
+
   private companion object {
     const val DATABASE_NAME = "afterchime.db"
+    const val ONLINE_TOKEN_REFRESH_SKEW_MILLIS = 60_000L
   }
 }
+
+internal fun onlineDeviceClass(smallestScreenWidthDp: Int): String =
+  if (smallestScreenWidthDp >= 600) "tablet" else "phone"
 
 /** Installs capture and sealing only after both protected local identity materials are available. */
 internal fun installAfterchimeRuntime(

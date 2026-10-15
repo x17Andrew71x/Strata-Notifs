@@ -21,6 +21,10 @@ import org.json.JSONObject
 
 internal enum class OnlineSyncOutcome { SUCCESS, RETRY, FAILURE }
 
+internal fun interface OnlineSyncRunner {
+  suspend fun sync(): OnlineSyncOutcome
+}
+
 internal interface OnlineIdentityClient {
   fun currentSession(): IdentityResult<CredentialSession?>
 
@@ -119,8 +123,8 @@ internal class OnlineSyncCoordinator(
   private val state: OnlineSyncStateStore,
   private val registrationRequest: () -> RegistrationRequest,
   private val nowMillis: () -> Long = System::currentTimeMillis,
-) {
-  suspend fun sync(): OnlineSyncOutcome {
+) : OnlineSyncRunner {
+  override suspend fun sync(): OnlineSyncOutcome {
     val currentPreferences = try {
       preferences()
     } catch (_: Exception) {
