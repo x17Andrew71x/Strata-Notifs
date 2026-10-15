@@ -27,6 +27,8 @@ import androidx.webkit.JavaScriptReplyProxy
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import com.techfullymade.afterchime.analytics.AnalyticsEvent
+import com.techfullymade.afterchime.analytics.LaunchType
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
 import com.techfullymade.afterchime.catalog.DevelopmentWorldState
 import com.techfullymade.afterchime.catalog.WorldSelectionResult
@@ -39,6 +41,7 @@ import com.techfullymade.afterchime.gameplay.GameBalance
 import com.techfullymade.afterchime.render.World
 import com.techfullymade.afterchime.settings.UserPreferences
 import com.techfullymade.afterchime.sharing.ShareUseCase
+import com.techfullymade.afterchime.sharing.ShareOutcome
 import com.techfullymade.afterchime.ui.today.TodayUiState
 import com.techfullymade.afterchime.ui.today.TodayViewModel
 import java.io.ByteArrayInputStream
@@ -200,6 +203,9 @@ class MainActivity : ComponentActivity() {
     val bridgeSupported = installBridge()
     observeShellState()
     loadRemoteOrBundled(bridgeSupported)
+    lifecycleScope.launch {
+      applicationState.recordProductUse(AnalyticsEvent.AppOpened(LaunchType.COLD), "today")
+    }
   }
 
   override fun onResume() {
@@ -391,7 +397,12 @@ class MainActivity : ComponentActivity() {
       "preferences.update" -> updatePreference(request, proxy)
       "formation.reveal" -> {
         val accepted = todayViewModel.uiState.value.primaryAction.name == "REVEAL"
-        if (accepted) todayViewModel.reveal()
+        if (accepted) {
+          todayViewModel.reveal()
+          lifecycleScope.launch {
+            applicationState.recordProductUse(AnalyticsEvent.SpecimenRevealStarted, "today")
+          }
+        }
         postActionResult(request, accepted, proxy)
       }
       "excavation.dig" -> {
@@ -416,6 +427,13 @@ class MainActivity : ComponentActivity() {
     lifecycleScope.launch {
       userPreferences.update { current -> current.withPreference(key, value) }
       if (key in onlinePreferenceKeys) applicationState.scheduleOnlineSync()
+      val event = when (key) {
+        "productAnalyticsEnabled" -> AnalyticsEvent.AnalyticsConsentChanged(value, 1)
+        "notificationAggregateSharingEnabled" ->
+          AnalyticsEvent.NotificationAggregateConsentChanged(value, 1)
+        else -> AnalyticsEvent.SettingChanged
+      }
+      applicationState.recordProductUse(event, "settings")
       postActionResult(request, true, proxy)
     }
   }
@@ -427,11 +445,14 @@ class MainActivity : ComponentActivity() {
         payload.getString("specimenId"),
         payload.getBoolean("locked"),
       )
-      postActionResult(
-        request,
-        result !is com.techfullymade.afterchime.domain.SpecimenLockResult.NotFound,
-        proxy,
-      )
+      val accepted = result !is com.techfullymade.afterchime.domain.SpecimenLockResult.NotFound
+      if (accepted) {
+        applicationState.recordProductUse(
+          if (payload.getBoolean("locked")) AnalyticsEvent.SpecimenLocked else AnalyticsEvent.SpecimenUnlocked,
+          "museum",
+        )
+      }
+      postActionResult(request, accepted, proxy)
     }
   }
 
@@ -443,7 +464,14 @@ class MainActivity : ComponentActivity() {
       val world = latestShellState?.getJSONObject("worlds")?.getString("selected")
         ?.let(World::valueOf)
         ?: World.PRIMEVAL_STRATA
-      ShareUseCase(this).share(specimen, world)
+      val outcome = ShareUseCase(this).share(specimen, world)
+      lifecycleScope.launch {
+        applicationState.recordProductUse(AnalyticsEvent.ShareStarted, "museum")
+        applicationState.recordProductUse(
+          if (outcome == ShareOutcome.Shared) AnalyticsEvent.ShareCompleted else AnalyticsEvent.ShareFailed,
+          "museum",
+        )
+      }
     }
     postActionResult(request, accepted, proxy)
   }
@@ -460,11 +488,9 @@ class MainActivity : ComponentActivity() {
           createdAtEpochMillis = System.currentTimeMillis(),
         ),
       )
-      postActionResult(
-        request,
-        result is CombineResult.Combined || result is CombineResult.AlreadyCombined,
-        proxy,
-      )
+      val accepted = result is CombineResult.Combined || result is CombineResult.AlreadyCombined
+      if (accepted) applicationState.recordProductUse(AnalyticsEvent.CombineCompleted, "museum")
+      postActionResult(request, accepted, proxy)
     }
   }
 

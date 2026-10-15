@@ -5,6 +5,13 @@ import android.os.Build
 import androidx.room.Room
 import androidx.work.WorkManager
 import com.techfullymade.afterchime.analytics.AndroidAnalyticsEnvelopeCipher
+import com.techfullymade.afterchime.analytics.AndroidAnalyticsContextFactory
+import com.techfullymade.afterchime.analytics.AnalyticsEvent
+import com.techfullymade.afterchime.analytics.AnalyticsIdentityReader
+import com.techfullymade.afterchime.analytics.AnalyticsOutboxWriter
+import com.techfullymade.afterchime.analytics.AnalyticsRecordResult
+import com.techfullymade.afterchime.analytics.AnalyticsRecorder
+import com.techfullymade.afterchime.analytics.ProductUseReporter
 import com.techfullymade.afterchime.capture.NotificationCaptureRuntime
 import com.techfullymade.afterchime.capture.NotificationCaptureRuntimeRegistry
 import com.techfullymade.afterchime.capture.NotificationReducer
@@ -48,6 +55,7 @@ import com.techfullymade.afterchime.sync.RoomAnalyticsUploadStore
 import com.techfullymade.afterchime.sync.SharedPreferencesOnlineSyncStateStore
 import java.time.Clock
 import java.time.ZoneId
+import java.util.Locale
 import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 
@@ -78,22 +86,49 @@ class AfterchimeApplication : Application() {
   private val analyticsCipher: AndroidAnalyticsEnvelopeCipher by lazy {
     AndroidAnalyticsEnvelopeCipher()
   }
-
-  private val onlineSyncCoordinator: OnlineSyncCoordinator by lazy {
-    val api = NetworkModule.create(BuildConfig.API_BASE_URL, BuildConfig.FLAVOR == "dev")
-    val identity = OnlineIdentityRepository(
-      gateway = AfterchimeIdentityGateway(api),
+  private val onlineApi by lazy {
+    NetworkModule.create(BuildConfig.API_BASE_URL, BuildConfig.FLAVOR == "dev")
+  }
+  private val onlineIdentityRepository: OnlineIdentityRepository by lazy {
+    OnlineIdentityRepository(
+      gateway = AfterchimeIdentityGateway(onlineApi),
       credentials = CredentialStore(
         storage = AtomicCredentialEnvelopeStorage(this),
         cipher = AndroidCredentialCipher(),
       ),
     )
-    val syncApi = AfterchimeOnlineSyncApi(api)
+  }
+  private val productUseReporter: ProductUseReporter by lazy {
+    ProductUseReporter(
+      preferences = { userPreferences.values.first() },
+      identity = AnalyticsIdentityReader { onlineIdentityRepository.currentSession() },
+      recorder = AnalyticsRecorder(
+        writer = AnalyticsOutboxWriter(database.analyticsOutboxDao()::insertIfAbsent),
+        cipher = analyticsCipher,
+      ),
+      contextFactory = AndroidAnalyticsContextFactory(
+        clock = Clock.systemUTC(),
+        timeZone = ZoneId.systemDefault(),
+        appVersion = BuildConfig.VERSION_NAME,
+        versionCode = BuildConfig.VERSION_CODE,
+        buildChannel = BuildConfig.FLAVOR,
+        androidApiLevel = Build.VERSION.SDK_INT,
+        deviceClass = onlineDeviceClass(resources.configuration.smallestScreenWidthDp),
+        locale = {
+          val locales = resources.configuration.locales
+          if (locales.isEmpty) Locale.getDefault() else locales[0]
+        },
+      ),
+    )
+  }
+
+  private val onlineSyncCoordinator: OnlineSyncCoordinator by lazy {
+    val syncApi = AfterchimeOnlineSyncApi(onlineApi)
     OnlineSyncCoordinator(
       preferences = { userPreferences.values.first() },
-      identity = RepositoryOnlineIdentityClient(identity),
+      identity = RepositoryOnlineIdentityClient(onlineIdentityRepository),
       tokenClient = AuthenticatorOnlineTokenClient(
-        TokenAuthenticator(identity, refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS),
+        TokenAuthenticator(onlineIdentityRepository, refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS),
       ),
       api = syncApi,
       summaries = RoomDailySummaryUploadStore(database.dailyNotificationSummaryDao()),
@@ -135,6 +170,13 @@ class AfterchimeApplication : Application() {
 
   internal fun scheduleOnlineSync() {
     onlineWorkManager()?.let { OnlineSyncScheduler(it).scheduleImmediate() }
+  }
+
+  internal suspend fun recordProductUse(
+    event: AnalyticsEvent,
+    screenName: String? = null,
+  ): AnalyticsRecordResult = productUseReporter.record(event, screenName).also { result ->
+    if (result == AnalyticsRecordResult.RECORDED) scheduleOnlineSync()
   }
 
   override fun onCreate() {
