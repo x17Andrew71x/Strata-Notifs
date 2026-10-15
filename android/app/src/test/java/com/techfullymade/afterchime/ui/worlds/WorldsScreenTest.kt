@@ -2,8 +2,6 @@ package com.techfullymade.afterchime.ui.worlds
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import com.techfullymade.afterchime.catalog.DevelopmentWorldState
 import com.techfullymade.afterchime.render.World
 import com.techfullymade.afterchime.ui.theme.AfterchimeTheme
@@ -18,7 +16,7 @@ class WorldsScreenTest {
   @get:Rule val composeRule = createComposeRule()
 
   @Test
-  fun `catalogue lists worlds in declaration order and exposes explicit dev actions`() {
+  fun `catalogue lists only the launch world without development unlocks`() {
     val owned = mutableSetOf(World.PRIMEVAL_STRATA)
     composeRule.setContent {
       AfterchimeTheme {
@@ -35,9 +33,8 @@ class WorldsScreenTest {
     World.entries.forEach { world ->
       composeRule.onNodeWithTag("world-row-${world.name.lowercase()}").assertExists()
     }
-    composeRule.onNodeWithTag("world-unlock-deep_space").assertExists()
-    composeRule.onNodeWithText("Development-only unlock Deep Space").performClick()
-    composeRule.runOnIdle { assert(World.DEEP_SPACE in owned) }
+    composeRule.onNodeWithTag("world-unlock-primeval_strata").assertDoesNotExist()
+    composeRule.onNodeWithTag("world-development-reset").assertDoesNotExist()
   }
 
   @Test
@@ -45,14 +42,13 @@ class WorldsScreenTest {
     composeRule.setContent {
       AfterchimeTheme {
         WorldsScreen(
-          state = DevelopmentWorldState(setOf(World.PRIMEVAL_STRATA, World.DEEP_SPACE), World.PRIMEVAL_STRATA),
+          state = DevelopmentWorldState(),
           developmentControlsEnabled = false,
           onBack = {}, onOwnForDevelopment = {}, onSelect = {}, onResetDevelopment = {},
         )
       }
     }
-    composeRule.onNodeWithTag("world-unlock-deep_space").assertDoesNotExist()
-    composeRule.onNodeWithTag("world-select-deep_space").assertDoesNotExist()
+    composeRule.onNodeWithTag("world-unlock-primeval_strata").assertDoesNotExist()
     composeRule.onNodeWithTag("world-development-reset").assertDoesNotExist()
   }
 }

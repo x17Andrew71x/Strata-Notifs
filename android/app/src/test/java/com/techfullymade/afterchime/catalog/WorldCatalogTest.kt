@@ -2,7 +2,6 @@ package com.techfullymade.afterchime.catalog
 
 import com.techfullymade.afterchime.render.World
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertSame
 import org.junit.Test
 
 class WorldCatalogTest {
@@ -21,20 +20,19 @@ class WorldCatalogTest {
   }
 
   @Test
-  fun `selection of an unowned world does not mutate state or grant ownership`() {
+  fun `base selection cannot create another ownership state`() {
     val initial = DevelopmentWorldState()
-    val (result, outcome) = initial.select(World.DEEP_SPACE)
+    val (result, outcome) = initial.select(World.PRIMEVAL_STRATA)
 
-    assertEquals(WorldSelectionResult.UNOWNED_WORLD, outcome)
+    assertEquals(WorldSelectionResult.SELECTED, outcome)
     assertEquals(initial, result)
-    assertSame(initial, result)
     assertEquals(setOf(World.PRIMEVAL_STRATA), result.ownedWorlds)
   }
 
   @Test
-  fun `development ownership can be explicitly added and reset to base`() {
-    val owned = DevelopmentWorldState().ownForDevelopment(World.DEEP_SPACE)
-    assertEquals(setOf(World.PRIMEVAL_STRATA, World.DEEP_SPACE), owned.ownedWorlds)
+  fun `development ownership and reset remain base only`() {
+    val owned = DevelopmentWorldState().ownForDevelopment(World.PRIMEVAL_STRATA)
+    assertEquals(setOf(World.PRIMEVAL_STRATA), owned.ownedWorlds)
     assertEquals(DevelopmentWorldState(), owned.resetDevelopmentOwnership())
   }
 }

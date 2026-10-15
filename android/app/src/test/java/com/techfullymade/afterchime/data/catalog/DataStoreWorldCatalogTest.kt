@@ -49,22 +49,22 @@ class DataStoreWorldCatalogTest {
   }
 
   @Test
-  fun `unowned selection is rejected without changing persisted state`() = runBlocking {
+  fun `base selection remains selected without changing ownership`() = runBlocking {
     val catalog = DataStoreWorldCatalog(dataStore)
     val before = catalog.state.first()
 
-    assertEquals(WorldSelectionResult.UNOWNED_WORLD, catalog.select(World.DEEP_SPACE))
+    assertEquals(WorldSelectionResult.SELECTED, catalog.select(World.PRIMEVAL_STRATA))
     assertEquals(before, DataStoreWorldCatalog(dataStore).state.first())
   }
 
   @Test
-  fun `local development ownership and selection survive a new repository instance`() = runBlocking {
+  fun `local development operations cannot create another series`() = runBlocking {
     val catalog = DataStoreWorldCatalog(dataStore)
-    catalog.ownForDevelopment(World.DEEP_SPACE)
-    assertEquals(WorldSelectionResult.SELECTED, catalog.select(World.DEEP_SPACE))
+    catalog.ownForDevelopment(World.PRIMEVAL_STRATA)
+    assertEquals(WorldSelectionResult.SELECTED, catalog.select(World.PRIMEVAL_STRATA))
 
     assertEquals(
-      DevelopmentWorldState(setOf(World.PRIMEVAL_STRATA, World.DEEP_SPACE), World.DEEP_SPACE),
+      DevelopmentWorldState(),
       DataStoreWorldCatalog(dataStore).state.first(),
     )
   }
@@ -72,8 +72,8 @@ class DataStoreWorldCatalogTest {
   @Test
   fun `reset restores base-only ownership and selection`() = runBlocking {
     val catalog = DataStoreWorldCatalog(dataStore)
-    catalog.ownForDevelopment(World.DEEP_SPACE)
-    catalog.select(World.DEEP_SPACE)
+    catalog.ownForDevelopment(World.PRIMEVAL_STRATA)
+    catalog.select(World.PRIMEVAL_STRATA)
     catalog.resetDevelopmentOwnership()
 
     assertEquals(DevelopmentWorldState(), DataStoreWorldCatalog(dataStore).state.first())
@@ -87,7 +87,7 @@ class DataStoreWorldCatalogTest {
 
     dataStore.edit { preferences ->
       preferences[ownedKey] = setOf(World.PRIMEVAL_STRATA.name, "NOT_A_WORLD")
-      preferences[selectedKey] = World.DEEP_SPACE.name
+      preferences[selectedKey] = "DEEP_SPACE"
     }
     assertEquals(DevelopmentWorldState(), repository.state.first())
 
@@ -99,7 +99,7 @@ class DataStoreWorldCatalogTest {
 
     dataStore.edit { preferences ->
       preferences[ownedKey] = setOf(World.PRIMEVAL_STRATA.name)
-      preferences[selectedKey] = World.DEEP_SPACE.name
+      preferences[selectedKey] = "BOTANICAL_ARCHIVE"
     }
     assertEquals(DevelopmentWorldState(), repository.state.first())
   }

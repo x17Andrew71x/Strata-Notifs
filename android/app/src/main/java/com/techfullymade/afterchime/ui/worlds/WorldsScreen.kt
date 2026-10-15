@@ -69,7 +69,7 @@ fun WorldsScreen(
         }
       }
     }
-    if (developmentControlsEnabled) {
+    if (developmentControlsEnabled && WorldCatalog.entries.size > 1) {
       TextButton(onClick = onResetDevelopment, modifier = Modifier.testTag("world-development-reset")) {
         Text(stringResource(R.string.world_development_reset))
       }

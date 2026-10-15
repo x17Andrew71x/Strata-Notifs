@@ -10,10 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.techfullymade.afterchime.render.abyss.AbyssRenderer
-import com.techfullymade.afterchime.render.botanical.BotanicalRenderer
 import com.techfullymade.afterchime.render.primeval.PrimevalRenderer
-import com.techfullymade.afterchime.render.space.DeepSpaceRenderer
 import kotlin.math.roundToInt
 
 /** A renderer produces a deterministic, bounded visual plan for one cosmetic world. */
@@ -48,9 +45,6 @@ interface WorldRenderer {
 object WorldRenderers {
   private val renderers = listOf(
     PrimevalRenderer(),
-    DeepSpaceRenderer(),
-    BotanicalRenderer(),
-    AbyssRenderer(),
   )
 
   fun forWorld(world: World): WorldRenderer = renderers.first { it.world == world }

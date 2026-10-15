@@ -25,17 +25,17 @@ class SpecimenDetailScreenTest {
   val composeRule = createComposeRule()
 
   @Test
-  fun `detail renderer follows selected cosmetic world`() {
+  fun `detail renderer uses the launch world`() {
     composeRule.setContent {
       AfterchimeTheme {
         SpecimenDetailScreen(
           specimen = specimen(),
-          world = com.techfullymade.afterchime.render.World.DEEP_SPACE,
+          world = com.techfullymade.afterchime.render.World.PRIMEVAL_STRATA,
           onBack = {}, onSetLocked = {}, onBeginCombine = {},
         )
       }
     }
-    composeRule.onNodeWithContentDescription("Deep Space specimen").assertExists()
+    composeRule.onNodeWithContentDescription("Primeval Strata specimen").assertExists()
     composeRule.onNodeWithTag("specimen-detail-renderer").assertExists()
   }
 

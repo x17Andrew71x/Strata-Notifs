@@ -29,12 +29,12 @@ class MuseumScreenTest {
   val composeRule = createComposeRule()
 
   @Test
-  fun `selected world changes only the museum renderer presentation`() {
+  fun `launch world renders the museum specimen`() {
     setMuseum(
       specimens = listOf(specimen(id = "common", family = Family.AMMONITE, tier = Tier.COMMON)),
-      world = com.techfullymade.afterchime.render.World.BOTANICAL_ARCHIVE,
+      world = com.techfullymade.afterchime.render.World.PRIMEVAL_STRATA,
     )
-    composeRule.onNodeWithContentDescription("Botanical Archive specimen").assertExists()
+    composeRule.onNodeWithContentDescription("Primeval Strata specimen").assertExists()
     composeRule.onNodeWithTag("museum-specimen-common").assertExists()
   }
 

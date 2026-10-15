@@ -12,9 +12,6 @@ enum class World(
   val accessibilityLabel: String,
 ) {
   PRIMEVAL_STRATA("Primeval Strata specimen"),
-  DEEP_SPACE("Deep Space specimen"),
-  BOTANICAL_ARCHIVE("Botanical Archive specimen"),
-  THE_ABYSS("The Abyss specimen"),
 }
 
 /** Pixel target for a deterministic renderer plan. */
