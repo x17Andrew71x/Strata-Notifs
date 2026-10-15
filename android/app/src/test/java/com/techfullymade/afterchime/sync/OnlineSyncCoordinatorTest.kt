@@ -376,9 +376,11 @@ class OnlineSyncCoordinatorTest {
     }
   }
 
-  private class MemoryPersistence : SyncStatePersistence {
+  private class MemoryPersistence : SyncStatePersistence, SyncStateKeyPersistence {
     private val strings = mutableMapOf<String, String>()
     private val booleans = mutableMapOf<String, Boolean>()
+
+    override fun keys(): Set<String> = strings.keys + booleans.keys
 
     override fun readString(key: String): StoredValue<String> =
       strings[key]?.let { StoredValue.Present(it) }
