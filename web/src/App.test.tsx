@@ -589,7 +589,9 @@ describe("full shell application", () => {
       expect(screen.getByText(detail)).toBeTruthy();
     }
     expect(
-      screen.getAllByText(/never includes notification text, app names, senders, contacts, or media/i),
+      screen.getAllByText(
+        /never includes notification text, app names, senders, contacts, or media/i,
+      ),
     ).toHaveLength(2);
     expect(screen.queryByText(/pseudonymous|aggregate sharing|product analytics/i)).toBeNull();
     expect(screen.queryByRole("checkbox", { name: /Haptics/i })).toBeNull();
@@ -693,9 +695,7 @@ describe("full shell application", () => {
       expect(within(card).queryByRole("button")).toBeNull();
     }
     expect(container.querySelectorAll("svg.world-lock-icon")).toHaveLength(1);
-    expect(WORLD_ASSET_PATHS).toContain(
-      "/worlds/signal-ruins-artifact-67f7d4054fb5.webp",
-    );
+    expect(WORLD_ASSET_PATHS).toContain("/worlds/signal-ruins-artifact-67f7d4054fb5.webp");
     for (const removedPrefix of ["/worlds/field-", "/worlds/control-", "/worlds/atlas-"]) {
       expect(WORLD_ASSET_PATHS.some((asset) => asset.startsWith(removedPrefix))).toBe(false);
     }

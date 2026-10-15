@@ -1069,9 +1069,7 @@ function Worlds({ state, onBack }: { state: ShellState; onBack(): void }) {
       </button>
       <p className="eyebrow">Two authored series</p>
       <h1 id="worlds-title">Series</h1>
-      <p className="lead-small">
-        Relic Vault is available now. Signal Ruins is under development.
-      </p>
+      <p className="lead-small">Relic Vault is available now. Signal Ruins is under development.</p>
       <div className="world-list">
         {WORLD_DEFINITIONS.map((world) => {
           const selected = state.worlds.selected === world.id;

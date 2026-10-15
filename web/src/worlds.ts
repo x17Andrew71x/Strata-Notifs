@@ -279,12 +279,10 @@ for (const [legacyId, canonicalId] of Object.entries(LEGACY_RELIC_ARTIFACT_ALIAS
 
 export const WORLD_ASSET_PATHS = [
   ...new Set(
-    WORLD_DEFINITIONS.flatMap((world) =>
-      [
-        ...(world.cardImage ? [world.cardImage] : []),
-        ...world.artifacts.flatMap((artifact) => [artifact.museumImage, artifact.excavationImage]),
-      ],
-    ),
+    WORLD_DEFINITIONS.flatMap((world) => [
+      ...(world.cardImage ? [world.cardImage] : []),
+      ...world.artifacts.flatMap((artifact) => [artifact.museumImage, artifact.excavationImage]),
+    ]),
   ),
 ];
 
@@ -298,7 +296,8 @@ export function artifactById(id: string | null | undefined): Artifact | null {
 
 export function artifactFor(world: World, specimenKey = "decorative"): Artifact {
   const definition = worldDefinition(world);
-  const artifacts = definition.artifacts.length > 0 ? definition.artifacts : WORLD_DEFINITIONS[0].artifacts;
+  const artifacts =
+    definition.artifacts.length > 0 ? definition.artifacts : WORLD_DEFINITIONS[0].artifacts;
   if (specimenKey === "decorative") return artifacts[0];
   let hash = 2166136261;
   for (let index = 0; index < specimenKey.length; index += 1) {

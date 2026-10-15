@@ -53,18 +53,13 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "id"
-          ]
+          "columnNames": ["id"]
         },
         "indices": [
           {
             "name": "index_reduced_notifications_local_date_occurred_at_epoch_millis",
             "unique": false,
-            "columnNames": [
-              "local_date",
-              "occurred_at_epoch_millis"
-            ],
+            "columnNames": ["local_date", "occurred_at_epoch_millis"],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_reduced_notifications_local_date_occurred_at_epoch_millis` ON `${TABLE_NAME}` (`local_date`, `occurred_at_epoch_millis`)"
           }
@@ -107,9 +102,7 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "local_date"
-          ]
+          "columnNames": ["local_date"]
         }
       },
       {
@@ -152,9 +145,7 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "local_date"
-          ]
+          "columnNames": ["local_date"]
         }
       },
       {
@@ -200,17 +191,13 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "specimen_id"
-          ]
+          "columnNames": ["specimen_id"]
         },
         "indices": [
           {
             "name": "index_specimens_anchored_local_date",
             "unique": true,
-            "columnNames": [
-              "anchored_local_date"
-            ],
+            "columnNames": ["anchored_local_date"],
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_specimens_anchored_local_date` ON `${TABLE_NAME}` (`anchored_local_date`)"
           }
@@ -271,21 +258,15 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "specimen_id"
-          ]
+          "columnNames": ["specimen_id"]
         },
         "foreignKeys": [
           {
             "table": "specimens",
             "onDelete": "CASCADE",
             "onUpdate": "NO ACTION",
-            "columns": [
-              "specimen_id"
-            ],
-            "referencedColumns": [
-              "specimen_id"
-            ]
+            "columns": ["specimen_id"],
+            "referencedColumns": ["specimen_id"]
           }
         ]
       },
@@ -395,26 +376,20 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "item_id"
-          ]
+          "columnNames": ["item_id"]
         },
         "indices": [
           {
             "name": "index_inventory_items_source_specimen_id",
             "unique": true,
-            "columnNames": [
-              "source_specimen_id"
-            ],
+            "columnNames": ["source_specimen_id"],
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_items_source_specimen_id` ON `${TABLE_NAME}` (`source_specimen_id`)"
           },
           {
             "name": "index_inventory_items_consumed_by_mutation_id",
             "unique": false,
-            "columnNames": [
-              "consumed_by_mutation_id"
-            ],
+            "columnNames": ["consumed_by_mutation_id"],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_inventory_items_consumed_by_mutation_id` ON `${TABLE_NAME}` (`consumed_by_mutation_id`)"
           }
@@ -424,12 +399,8 @@
             "table": "specimens",
             "onDelete": "RESTRICT",
             "onUpdate": "NO ACTION",
-            "columns": [
-              "source_specimen_id"
-            ],
-            "referencedColumns": [
-              "specimen_id"
-            ]
+            "columns": ["source_specimen_id"],
+            "referencedColumns": ["specimen_id"]
           }
         ]
       },
@@ -476,17 +447,13 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "mutation_id"
-          ]
+          "columnNames": ["mutation_id"]
         },
         "indices": [
           {
             "name": "index_inventory_mutations_output_item_id",
             "unique": true,
-            "columnNames": [
-              "output_item_id"
-            ],
+            "columnNames": ["output_item_id"],
             "orders": [],
             "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_inventory_mutations_output_item_id` ON `${TABLE_NAME}` (`output_item_id`)"
           }
@@ -517,9 +484,7 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "event_id"
-          ]
+          "columnNames": ["event_id"]
         }
       },
       {
@@ -563,9 +528,7 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "local_date"
-          ]
+          "columnNames": ["local_date"]
         }
       },
       {
@@ -645,9 +608,7 @@
         ],
         "primaryKey": {
           "autoGenerate": false,
-          "columnNames": [
-            "local_date"
-          ]
+          "columnNames": ["local_date"]
         }
       }
     ],

@@ -14,6 +14,7 @@ import com.techfullymade.afterchime.gameplay.FossilCatalog
 import com.techfullymade.afterchime.gameplay.FossilCatalogItem
 import com.techfullymade.afterchime.gameplay.GameBalance
 import com.techfullymade.afterchime.gameplay.NotificationEnergyPolicy
+import com.techfullymade.afterchime.security.LocalSecretException
 import java.time.Clock
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -263,7 +264,11 @@ class LocalFormationRepository(
     database.withTransaction {
       val dao = database.dailyExcavationDao()
       if (dao.get(localDate.toString()) != null) return@withTransaction
-      val item = selectDailyFossil(localDate)
+      val item = try {
+        selectDailyFossil(localDate)
+      } catch (_: LocalSecretException) {
+        return@withTransaction
+      }
       dao.insertIfAbsent(
         DailyExcavationEntity(
           localDate = localDate.toString(),

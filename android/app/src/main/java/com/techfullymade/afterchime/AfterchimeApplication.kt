@@ -218,7 +218,6 @@ class AfterchimeApplication : Application() {
     NotificationCaptureRuntimeRegistry.runtime = null
     ObservationRuntimeRegistry.repository = null
     SealDayRuntimeRegistry.useCase = null
-    database.close()
     super.onTerminate()
   }
 

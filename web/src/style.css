@@ -1586,17 +1586,6 @@ p {
   background: color-mix(in srgb, var(--card-bg) 72%, #171918 28%);
 }
 
-.world-card.locked .world-preview .specimen-visual,
-.world-card.locked .world-card-image {
-  filter: grayscale(1) saturate(0);
-  opacity: 0.38;
-}
-
-.world-card.locked .world-copy {
-  filter: grayscale(1);
-  opacity: 0.62;
-}
-
 .world-preview {
   position: relative;
   overflow: hidden;
@@ -1632,11 +1621,6 @@ p {
   transform: translate(-50%, -50%);
 }
 
-.world-lock-overlay .world-lock-icon {
-  width: 22px;
-  height: 22px;
-}
-
 .world-copy {
   min-width: 0;
 }
@@ -1651,7 +1635,6 @@ p {
   font-size: 22px;
   font-weight: 500;
 }
-
 
 .world-card p {
   margin-top: 5px;
@@ -1683,6 +1666,22 @@ p {
   width: 15px;
   height: 15px;
   flex: 0 0 auto;
+}
+
+.world-card.locked .world-preview .specimen-visual,
+.world-card.locked .world-card-image {
+  filter: grayscale(1) saturate(0);
+  opacity: 0.38;
+}
+
+.world-card.locked .world-copy {
+  filter: grayscale(1);
+  opacity: 0.62;
+}
+
+.world-lock-overlay .world-lock-icon {
+  width: 22px;
+  height: 22px;
 }
 
 .modal-backdrop {

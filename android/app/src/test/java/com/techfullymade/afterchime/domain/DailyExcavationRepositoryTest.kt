@@ -8,6 +8,7 @@ import com.techfullymade.afterchime.data.local.entity.ReducedNotificationEntity
 import com.techfullymade.afterchime.gameplay.FossilCatalog
 import com.techfullymade.afterchime.gameplay.GameBalance
 import com.techfullymade.afterchime.gameplay.NotificationEnergyPolicy
+import com.techfullymade.afterchime.security.LocalSecretUnavailableException
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -20,6 +21,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -96,6 +98,18 @@ class DailyExcavationRepositoryTest {
     assertEquals(1, excavation.capturedNotificationCount)
     assertEquals(1, excavation.eligibleNotificationCount)
     assertEquals(1, excavation.energyAvailable)
+  }
+
+  @Test
+  fun `unavailable protected identity leaves formation observable without creating excavation`() = runBlocking {
+    val unavailableRepository = LocalFormationRepository(
+      database = database,
+      clock = Clock.fixed(now, ZoneOffset.UTC),
+      selectDailyFossil = { throw LocalSecretUnavailableException() },
+    )
+
+    assertNull(unavailableRepository.observe(localDate).first().excavation)
+    assertNull(database.dailyExcavationDao().get(localDate.toString()))
   }
 
   @Test
