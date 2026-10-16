@@ -1,6 +1,7 @@
-const CACHE_NAME = "afterchime-shell-v32";
+const CACHE_NAME = "afterchime-shell-v33";
 const CATALOG_REVISION = 2;
 const LEGACY_CACHE_NAMES = [
+  "afterchime-shell-v32",
   "afterchime-shell-v31",
   "afterchime-shell-v30",
   "afterchime-shell-v29",
@@ -34,6 +35,8 @@ const ENTRY = "/";
 const STATE_KEY = "/.afterchime/current";
 const ASSET_PATTERN =
   /^(?:\/afterchime-mark\.webp|\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)|\/worlds\/[a-z0-9-]{1,128}-[a-f0-9]{12}\.(?:jpg|webp))$/;
+const BUILD_ASSET_REFERENCE_PATTERN =
+  /["'`]((?:\/)?assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css))(?=["'`])/g;
 const BRAND_ASSETS = ["/afterchime-mark.webp"];
 const WORLD_ASSETS = [
   "/worlds/relic-dactylioceras-ammonite-museum-6a351e2bb9c1.webp",
@@ -145,10 +148,12 @@ async function promoteCompleteShell(response, cache) {
     ),
   ].map((match) => match[1]);
   if (entryReferences.length === 0 || entryReferences.length > 32) return false;
-  const references = [...new Set([...entryReferences, ...BRAND_ASSETS, ...WORLD_ASSETS])];
+  const references = new Set([...entryReferences, ...BRAND_ASSETS, ...WORLD_ASSETS]);
+  const pending = [...references];
 
   const assets = [];
-  for (const pathname of new Set(references)) {
+  while (pending.length > 0) {
+    const pathname = pending.shift();
     const assetUrl = new URL(pathname, self.location.origin);
     const asset = await fetch(assetUrl, { credentials: "same-origin", redirect: "error" });
     const contentType = asset.headers.get("content-type") || "";
@@ -162,6 +167,15 @@ async function promoteCompleteShell(response, cache) {
       return false;
     const bytes = await asset.clone().arrayBuffer();
     assets.push({ pathname, response: asset, digest: await sha256(bytes) });
+    if (/^(?:text|application)\/javascript\b/i.test(contentType)) {
+      const source = await asset.clone().text();
+      for (const dependency of buildAssetReferences(source)) {
+        if (references.has(dependency)) continue;
+        if (references.size >= 320) return false;
+        references.add(dependency);
+        pending.push(dependency);
+      }
+    }
   }
 
   const entryBytes = await response.clone().arrayBuffer();
@@ -189,6 +203,15 @@ async function promoteCompleteShell(response, cache) {
     ),
   );
   return true;
+}
+
+function buildAssetReferences(source) {
+  const references = [];
+  for (const match of source.matchAll(BUILD_ASSET_REFERENCE_PATTERN)) {
+    const pathname = match[1].startsWith("/") ? match[1] : `/${match[1]}`;
+    if (ASSET_PATTERN.test(pathname)) references.push(pathname);
+  }
+  return references;
 }
 
 async function assetWithOfflineFallback(request) {

@@ -187,7 +187,7 @@ describe("last-known-good web shell", () => {
     );
 
     await worker.activate();
-    const state = stores.get("afterchime-shell-v32")?.get(`${origin}/.afterchime/current`);
+    const state = stores.get("afterchime-shell-v33")?.get(`${origin}/.afterchime/current`);
     expect(await state?.clone().json()).toMatchObject({ catalogRevision: 2 });
     offline = true;
 
@@ -250,6 +250,45 @@ describe("last-known-good web shell", () => {
     const cached = await worker.navigate();
     expect(cached.status).toBe(200);
     expect(await cached.text()).toContain('id="root"');
+  });
+
+  it("discovers, verifies, and caches lazy JavaScript and CSS dependencies", async () => {
+    let offline = false;
+    const worker = await createWorker(async (input) => {
+      if (offline) throw new TypeError("offline");
+      const url = new URL(responseUrl(input), origin);
+      if (url.pathname === "/") {
+        return new Response(entryHtml("/assets/main-AbCdEf123456.js"), {
+          headers: { "content-type": "text/html" },
+        });
+      }
+      if (url.pathname === "/assets/main-AbCdEf123456.js") {
+        return assetResponse(
+          'const dependencies=["assets/Feedback-QrStUv123456.js","assets/Feedback-WxYzAb123456.css"]',
+        );
+      }
+      if (url.pathname === "/assets/Feedback-QrStUv123456.js") {
+        return assetResponse("lazy feedback runtime");
+      }
+      if (url.pathname === "/assets/Feedback-WxYzAb123456.css") {
+        const response = new Response(".feedback { color: mintcream; }", {
+          headers: { "content-type": "text/css; charset=utf-8" },
+        });
+        Object.defineProperty(response, "type", { value: "basic" });
+        return response;
+      }
+      return new Response("missing", { status: 404 });
+    });
+
+    await worker.activate();
+    offline = true;
+
+    expect(await (await worker.asset("/assets/Feedback-QrStUv123456.js")).text()).toBe(
+      "lazy feedback runtime",
+    );
+    expect(await (await worker.asset("/assets/Feedback-WxYzAb123456.css")).text()).toContain(
+      "mintcream",
+    );
   });
 
   it("includes the exact authored world artwork in the verified offline shell", async () => {
@@ -321,10 +360,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v33";',
             'const CACHE_NAME = "afterchime-shell-v32";',
-            'const CACHE_NAME = "afterchime-shell-v31";',
           )
-          .replace('  "afterchime-shell-v31",\n', ""),
+          .replace('  "afterchime-shell-v32",\n', ""),
     });
     await prior.activate();
     offline = true;

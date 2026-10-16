@@ -7,6 +7,7 @@ import App, {
   EXCAVATION_CLEAR_MS,
   IMAGE_RETRY_DELAYS_MS,
   launchSafeDisplayState,
+  loadDevelopmentFeedbackRuntime,
   registerShellWorker,
   SHELL_STATE_REFRESH_MS,
   TOAST_DURATION_MS,
@@ -88,6 +89,21 @@ describe("service worker registration", () => {
 });
 
 describe("full shell application", () => {
+  it("contains an optional development-tool load failure", async () => {
+    const runtime = await loadDevelopmentFeedbackRuntime(async () => {
+      throw new Error("development chunk unavailable");
+    });
+
+    expect(
+      runtime.default({
+        route: "today",
+        shellRevision: "a".repeat(64),
+        appVersion: "0.1.10-dev-debug",
+        registerResponseSink: vi.fn(),
+      }),
+    ).toBeTruthy();
+  });
+
   it("receives replies on the injected WebView bridge channel", () => {
     render(<App />);
     expect(native.onmessage).toBeTypeOf("function");

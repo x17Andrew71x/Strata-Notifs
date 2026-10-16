@@ -69,9 +69,25 @@ const EXCAVATION_TILE_IDS = Array.from(
 );
 const LAUNCH_WORLD: World = "PRIMEVAL_STRATA";
 const DEV_FEEDBACK_BUILD = import.meta.env.VITE_DEV_FEEDBACK_ENABLED === "true";
-const DevelopmentFeedbackRuntime = DEV_FEEDBACK_BUILD
-  ? lazy(() => import("./dev-feedback/DevelopmentFeedbackRuntime"))
-  : null;
+const DevelopmentFeedbackRuntime = DEV_FEEDBACK_BUILD ? lazy(loadDevelopmentFeedbackRuntime) : null;
+
+type DevelopmentFeedbackRuntimeModule = typeof import("./dev-feedback/DevelopmentFeedbackRuntime");
+
+function DevelopmentFeedbackUnavailable() {
+  return <span hidden aria-hidden="true" />;
+}
+
+export async function loadDevelopmentFeedbackRuntime(
+  loader: () => Promise<DevelopmentFeedbackRuntimeModule> = () =>
+    import("./dev-feedback/DevelopmentFeedbackRuntime"),
+): Promise<DevelopmentFeedbackRuntimeModule> {
+  try {
+    return await loader();
+  } catch {
+    // Optional development tooling must never take down the product shell.
+    return { default: DevelopmentFeedbackUnavailable };
+  }
+}
 
 export function launchSafeDisplayState(state: ShellState): ShellState {
   return {
