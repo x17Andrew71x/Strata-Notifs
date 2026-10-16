@@ -320,6 +320,7 @@ describe("full shell application", () => {
 
     expect(container.querySelector(".app-shell")).toHaveClass("route-today", "world-relic");
     expect(container.querySelector(".brand-mark")).toHaveAttribute("src", "/afterchime-mark.webp");
+    expect(container.querySelector(".brand strong")).toHaveTextContent("Afterchime");
     expect(
       screen.getByRole("img", {
         name: "Today's notifications settling into a forming specimen",

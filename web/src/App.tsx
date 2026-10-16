@@ -455,7 +455,7 @@ function Brand() {
   return (
     <div className="brand">
       <img className="brand-mark" src={BRAND_MARK_PATH} alt="" draggable="false" />
-      <strong>afterchime</strong>
+      <strong>Afterchime</strong>
     </div>
   );
 }
