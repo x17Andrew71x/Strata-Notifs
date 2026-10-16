@@ -653,8 +653,7 @@ p {
   box-shadow: 0 2px 12px #0007;
 }
 
-.excavation-hud span,
-.excavation-capture {
+.excavation-hud span {
   color: var(--muted);
   font-size: 9px;
   font-weight: 800;
@@ -672,14 +671,6 @@ p {
 
 .excavation-hud strong.energy-gained {
   animation: dig-energy-gain 700ms cubic-bezier(0.2, 0.82, 0.24, 1);
-}
-
-.excavation-capture {
-  overflow: hidden;
-  margin: 0;
-  text-align: center;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .formation {

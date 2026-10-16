@@ -361,7 +361,7 @@ describe("full shell application", () => {
     expect(sediment[3]).toHaveAttribute("data-category", "CATEGORY_NEW");
   });
 
-  it("renders the actual daily fossil beneath a spendable excavation bed", () => {
+  it("renders the actual daily fossil beneath a concise spendable excavation bed", () => {
     const { container } = render(<App />);
     sendState({
       ...baseState,
@@ -387,7 +387,7 @@ describe("full shell application", () => {
 
     expect(screen.getByRole("heading", { name: "Excavate today’s fossil" })).toBeTruthy();
     expect(screen.queryByText(/notifications captured;.*counted after pacing/i)).toBeNull();
-    expect(screen.getByText("6 energy earned · 3 per tile", { exact: true })).toBeTruthy();
+    expect(screen.queryByText("6 energy earned · 3 per tile", { exact: true })).toBeNull();
     expect(screen.queryByText(/captured/i)).toBeNull();
     expect(container.querySelector(".excavation-artifact")).toHaveAttribute(
       "src",
@@ -396,7 +396,6 @@ describe("full shell application", () => {
     const excavationBed = container.querySelector(".excavation-bed");
     expect(excavationBed).toContainElement(container.querySelector(".excavation-grid"));
     expect(excavationBed).not.toContainElement(container.querySelector(".excavation-hud"));
-    expect(excavationBed).not.toContainElement(container.querySelector(".excavation-capture"));
     expect(container.querySelectorAll(".excavation-tile")).toHaveLength(25);
     expect(container.querySelectorAll(".excavation-tile.dug")).toHaveLength(1);
     expect(container.querySelector('[data-tile-index="0"]')).toHaveClass(

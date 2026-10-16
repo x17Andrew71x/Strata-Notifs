@@ -732,9 +732,6 @@ function Excavation({
           })}
         </div>
       </div>
-      <p className="excavation-capture">
-        {excavation.energyEarned} energy earned · {excavation.tileEnergyCost} per tile
-      </p>
     </fieldset>
   );
 }
