@@ -40,6 +40,21 @@ describe("Museum rarity card styling", () => {
 });
 
 describe("excavation motion", () => {
+  it("rounds every corner tile to follow the fossil beneath the excavation bed", () => {
+    expect(declarationBlock(".excavation-tile-corner-top-left")).toContain(
+      "border-top-left-radius: 15px",
+    );
+    expect(declarationBlock(".excavation-tile-corner-top-right")).toContain(
+      "border-top-right-radius: 15px",
+    );
+    expect(declarationBlock(".excavation-tile-corner-bottom-left")).toContain(
+      "border-bottom-left-radius: 15px",
+    );
+    expect(declarationBlock(".excavation-tile-corner-bottom-right")).toContain(
+      "border-bottom-right-radius: 15px",
+    );
+  });
+
   it("gives new digs a bounded brush-away, grit burst, and energy pulse", () => {
     expect(declarationBlock(".excavation-tile.dug.is-clearing")).toContain(
       "animation: excavation-brush-away 600ms",

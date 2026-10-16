@@ -536,6 +536,22 @@ p {
   -webkit-tap-highlight-color: transparent;
 }
 
+.excavation-tile-corner-top-left {
+  border-top-left-radius: 15px;
+}
+
+.excavation-tile-corner-top-right {
+  border-top-right-radius: 15px;
+}
+
+.excavation-tile-corner-bottom-left {
+  border-bottom-left-radius: 15px;
+}
+
+.excavation-tile-corner-bottom-right {
+  border-bottom-right-radius: 15px;
+}
+
 .excavation-tile:nth-child(even) {
   --brush-x: -16px;
   --brush-rotate: -4deg;

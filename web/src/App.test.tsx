@@ -394,6 +394,18 @@ describe("full shell application", () => {
     );
     expect(container.querySelectorAll(".excavation-tile")).toHaveLength(25);
     expect(container.querySelectorAll(".excavation-tile.dug")).toHaveLength(1);
+    expect(container.querySelector('[data-tile-index="0"]')).toHaveClass(
+      "excavation-tile-corner-top-left",
+    );
+    expect(container.querySelector('[data-tile-index="4"]')).toHaveClass(
+      "excavation-tile-corner-top-right",
+    );
+    expect(container.querySelector('[data-tile-index="20"]')).toHaveClass(
+      "excavation-tile-corner-bottom-left",
+    );
+    expect(container.querySelector('[data-tile-index="24"]')).toHaveClass(
+      "excavation-tile-corner-bottom-right",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Excavate tile 1 for 3 energy" }));
     expect(lastRequest()).toMatchObject({

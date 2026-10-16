@@ -685,11 +685,23 @@ function Excavation({
         {EXCAVATION_TILE_IDS.slice(0, tileCount).map((tileId) => {
           const tileIndex = Number(tileId.slice("excavation-tile-".length));
           const dug = dugTiles.has(tileIndex);
+          const row = Math.floor(tileIndex / excavation.gridColumns);
+          const column = tileIndex % excavation.gridColumns;
+          const cornerClass =
+            row === 0 && column === 0
+              ? " excavation-tile-corner-top-left"
+              : row === 0 && column === excavation.gridColumns - 1
+                ? " excavation-tile-corner-top-right"
+                : row === excavation.gridRows - 1 && column === 0
+                  ? " excavation-tile-corner-bottom-left"
+                  : row === excavation.gridRows - 1 && column === excavation.gridColumns - 1
+                    ? " excavation-tile-corner-bottom-right"
+                    : "";
           return (
             <button
               type="button"
               key={tileId}
-              className={`excavation-tile${dug ? " dug" : ""}${clearingTiles.has(tileIndex) ? " is-clearing" : ""}`}
+              className={`excavation-tile${cornerClass}${dug ? " dug" : ""}${clearingTiles.has(tileIndex) ? " is-clearing" : ""}`}
               data-tile-index={tileIndex}
               aria-label={
                 dug
