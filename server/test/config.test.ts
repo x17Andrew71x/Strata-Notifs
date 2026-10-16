@@ -19,6 +19,8 @@ describe("loadConfig", () => {
     expect(config.buildChannel).toBe("dev");
     expect(config.tokenAudience).toBe("afterchime-dev");
     expect(config.allowDevAuth).toBe(false);
+    expect(config.developmentModuleEnabled).toBe(false);
+    expect(config.deployedRevision).toBe("0".repeat(40));
     expect(config.corsOrigins).toEqual(["https://one.example", "https://two.example"]);
   });
 
@@ -36,5 +38,43 @@ describe("loadConfig", () => {
         ACCESS_TOKEN_SECRET: "short",
       }),
     ).toThrow();
+  });
+
+  it("accepts only an explicit development feedback flag and lowercase deployed revision", () => {
+    const config = loadConfig({
+      ...validEnvironment,
+      ADMIN_API_KEY_HASH: "d".repeat(64),
+      DEV_FEEDBACK_ENABLED: "true",
+      RAILWAY_GIT_COMMIT_SHA: "a".repeat(40),
+    });
+    expect(config.developmentModuleEnabled).toBe(true);
+    expect(config.deployedRevision).toBe("a".repeat(40));
+    expect(() => loadConfig({ ...validEnvironment, DEPLOYED_REVISION: "A".repeat(40) })).toThrow();
+    expect(() => loadConfig({ ...validEnvironment, DEV_FEEDBACK_ENABLED: "yes" })).toThrow();
+    expect(() => loadConfig({ ...validEnvironment, DEV_FEEDBACK_ENABLED: "true" })).toThrow(
+      "development feedback requires an admin key digest",
+    );
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        ADMIN_API_KEY_HASH: "d".repeat(64),
+        DEV_FEEDBACK_ENABLED: "true",
+      }),
+    ).toThrow("development feedback requires Railway source revision proof");
+  });
+
+  it("uses Railway's exact source revision when no explicit override is supplied", () => {
+    const config = loadConfig({
+      ...validEnvironment,
+      RAILWAY_GIT_COMMIT_SHA: "b".repeat(40),
+    });
+    expect(config.deployedRevision).toBe("b".repeat(40));
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        DEPLOYED_REVISION: "c".repeat(40),
+        RAILWAY_GIT_COMMIT_SHA: "b".repeat(40),
+      }),
+    ).toThrow("deployed revision conflicts with Railway source revision");
   });
 });

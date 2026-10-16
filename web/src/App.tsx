@@ -1,4 +1,13 @@
-import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   installResponseListener,
   type NativeAction,
@@ -10,6 +19,7 @@ import {
   type Tier,
   type World,
 } from "./bridge";
+import type { DevFeedbackResponseSink } from "./dev-feedback/DevelopmentFeedbackRuntime";
 import { referenceNotesFor } from "./relic-reference";
 import {
   type Artifact,
@@ -58,6 +68,10 @@ const EXCAVATION_TILE_IDS = Array.from(
   (_, tileIndex) => `excavation-tile-${tileIndex}`,
 );
 const LAUNCH_WORLD: World = "PRIMEVAL_STRATA";
+const DEV_FEEDBACK_BUILD = import.meta.env.VITE_DEV_FEEDBACK_ENABLED === "true";
+const DevelopmentFeedbackRuntime = DEV_FEEDBACK_BUILD
+  ? lazy(() => import("./dev-feedback/DevelopmentFeedbackRuntime"))
+  : null;
 
 export function launchSafeDisplayState(state: ShellState): ShellState {
   return {
@@ -134,12 +148,15 @@ export async function waitForCatalogAssets(
 }
 
 function App() {
+  const devFeedbackResponseSink = useRef<DevFeedbackResponseSink | null>(null);
   const [shellState, setShellState] = useState<ShellState | null>(null);
   const [access, setAccess] = useState<boolean | null>(null);
   const [appDetailsAction, setAppDetailsAction] = useState(false);
   const [message, setMessage] = useState("");
   const [toastExiting, setToastExiting] = useState(false);
   const [metadata, setMetadata] = useState<ShellMetadata | null>(null);
+  const [devFeedbackEnabled, setDevFeedbackEnabled] = useState(false);
+  const [nativeAppVersion, setNativeAppVersion] = useState("");
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.hash));
   const [tier, setTier] = useState<Tier | "ALL">("ALL");
 
@@ -157,12 +174,15 @@ function App() {
         .catch(() => undefined);
     }
     const stop = installResponseListener((response: NativeResponse) => {
+      devFeedbackResponseSink.current?.(response);
       if (response.type === "shell.state") {
         setShellState(response);
         setAccess(response.notificationAccess);
       } else if (response.type === "capabilities.state") {
         setAccess(response.notificationAccess);
         setAppDetailsAction(response.appDetailsAction);
+        setDevFeedbackEnabled(DEV_FEEDBACK_BUILD && response.devFeedback === true);
+        setNativeAppVersion(response.appVersion ?? "");
         if (response.catalogUpdates && remoteOrigin && !catalogSyncStarted) {
           catalogSyncStarted = true;
           void waitForCatalogAssets(RELIC_VAULT_CATALOG_REVISION).then((ready) => {
@@ -231,17 +251,35 @@ function App() {
     return true;
   };
 
+  const registerDevFeedbackResponseSink = useCallback((sink: DevFeedbackResponseSink | null) => {
+    devFeedbackResponseSink.current = sink;
+  }, []);
+  const feedbackTool =
+    DevelopmentFeedbackRuntime && devFeedbackEnabled && metadata && nativeAppVersion ? (
+      <Suspense fallback={null}>
+        <DevelopmentFeedbackRuntime
+          route={route}
+          shellRevision={metadata.revision}
+          appVersion={nativeAppVersion}
+          registerResponseSink={registerDevFeedbackResponseSink}
+        />
+      </Suspense>
+    ) : null;
+
   if (!shellState) {
     return (
-      <main className="boot-screen">
-        <Brand />
-        <div className="boot-orbit" aria-hidden="true" />
-        <p>
-          {window.AfterchimeBridge
-            ? "Loading your collection…"
-            : "Open Afterchime on Android to view your collection."}
-        </p>
-      </main>
+      <>
+        <main className="boot-screen">
+          <Brand />
+          <div className="boot-orbit" aria-hidden="true" />
+          <p>
+            {window.AfterchimeBridge
+              ? "Loading your collection…"
+              : "Open Afterchime on Android to view your collection."}
+          </p>
+        </main>
+        {feedbackTool}
+      </>
     );
   }
 
@@ -249,22 +287,25 @@ function App() {
   const effectiveAccess = access ?? displayState.notificationAccess;
   if (!displayState.preferences.onboardingComplete) {
     return (
-      <Onboarding
-        access={effectiveAccess}
-        appDetailsAction={appDetailsAction}
-        message={message}
-        onContinue={() => act("onboarding.complete", undefined, "Preparing your collection…")}
-        onOpenSettings={() =>
-          act("notificationAccess.openSettings", undefined, "Opening notification access…")
-        }
-        onOpenAppInfo={() =>
-          act(
-            "notificationAccess.openAppDetails",
-            undefined,
-            "In App info, tap ⋮ and choose Allow restricted settings.",
-          )
-        }
-      />
+      <>
+        <Onboarding
+          access={effectiveAccess}
+          appDetailsAction={appDetailsAction}
+          message={message}
+          onContinue={() => act("onboarding.complete", undefined, "Preparing your collection…")}
+          onOpenSettings={() =>
+            act("notificationAccess.openSettings", undefined, "Opening notification access…")
+          }
+          onOpenAppInfo={() =>
+            act(
+              "notificationAccess.openAppDetails",
+              undefined,
+              "In App info, tap ⋮ and choose Allow restricted settings.",
+            )
+          }
+        />
+        {feedbackTool}
+      </>
     );
   }
 
@@ -366,6 +407,7 @@ function App() {
           {message}
         </div>
       )}
+      {feedbackTool}
     </div>
   );
 }

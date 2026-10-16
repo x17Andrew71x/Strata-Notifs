@@ -1,0 +1,194 @@
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  type DevFeedbackItem,
+  DevFeedbackTool,
+  type DevFeedbackTransport,
+  elementSelectionContext,
+} from "./DevFeedbackTool";
+
+afterEach(() => cleanup());
+
+function item(overrides: Partial<DevFeedbackItem> = {}): DevFeedbackItem {
+  return {
+    id: "11111111-1111-4111-8111-111111111111",
+    queuePosition: 1,
+    revision: 1,
+    title: "Tighten the excavation card",
+    description: "Reduce the empty space above the fossil.",
+    status: "queued",
+    note: "Queued in submission order.",
+    createdAt: "2026-10-16T00:00:00.000Z",
+    updatedAt: "2026-10-16T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+function transport(items: DevFeedbackItem[] = []): DevFeedbackTransport {
+  return {
+    listOpen: vi.fn(async () => items),
+    submit: vi.fn(async (draft) => item({ title: draft.title, description: draft.description })),
+    amend: vi.fn(async (_id, draft) => item({ revision: 2, title: draft.title })),
+    accept: vi.fn(async (id) => item({ id, status: "accepted" })),
+    refreshShell: vi.fn(async () => undefined),
+  };
+}
+
+describe("development feedback tool", () => {
+  it("selects a rendered element and submits bounded context through the transport", async () => {
+    const api = transport();
+    render(
+      <>
+        <button type="button" data-dev-id="excavation-primary-action" aria-label="Excavate tile 1">
+          Excavate
+        </button>
+        <DevFeedbackTool
+          route="today"
+          shellRevision={"a".repeat(64)}
+          appVersion="0.1.10-dev-debug"
+          transport={api}
+        />
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select an element" }));
+    fireEvent.click(screen.getByRole("button", { name: "Excavate tile 1" }));
+
+    expect(screen.getByRole("heading", { name: "Stage targeted change" })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Change title"), {
+      target: { value: "Tighten the excavation action" },
+    });
+    fireEvent.change(screen.getByLabelText("Describe the change"), {
+      target: { value: "Make this control shorter without moving the fossil." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Queue work item" }));
+
+    await waitFor(() => expect(api.submit).toHaveBeenCalledTimes(1));
+    expect(api.submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Tighten the excavation action",
+        description: "Make this control shorter without moving the fossil.",
+        route: "today",
+        shellRevision: "a".repeat(64),
+        appVersion: "0.1.10-dev-debug",
+        selection: expect.objectContaining({
+          kind: "element",
+          devId: "excavation-primary-action",
+          role: "button",
+          accessibleLabel: "Excavate tile 1",
+        }),
+      }),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent("Queued in submission order.");
+  });
+
+  it("shows server order and permits acceptance only after Ready for QA", async () => {
+    const api = transport([
+      item({ id: "22222222-2222-4222-8222-222222222222", queuePosition: 2, title: "Second" }),
+      item({
+        id: "11111111-1111-4111-8111-111111111111",
+        queuePosition: 1,
+        title: "First",
+        status: "ready_for_qa",
+        note: "Deployed to Railway development and ready to check.",
+      }),
+    ]);
+    render(
+      <DevFeedbackTool
+        route="museum"
+        shellRevision={"b".repeat(64)}
+        appVersion="0.1.10-dev-debug"
+        transport={api}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work items" }));
+
+    const rows = await screen.findAllByTestId("dev-feedback-item");
+    expect(rows[0]).toHaveTextContent("First");
+    expect(rows[1]).toHaveTextContent("Second");
+    expect(screen.getAllByRole("button", { name: "Accept result" })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Accept result" }));
+    await waitFor(() =>
+      expect(api.accept).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111"),
+    );
+  });
+
+  it("offers an in-tool shell refresh without clearing application state", async () => {
+    const api = transport();
+    render(
+      <DevFeedbackTool
+        route="more"
+        shellRevision={"c".repeat(64)}
+        appVersion="0.1.10-dev-debug"
+        transport={api}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Refresh development app" }));
+
+    await waitFor(() => expect(api.refreshShell).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Refreshing the verified development shell…")).toBeTruthy();
+  });
+
+  it("appends an amendment to the original ordered item with fresh selection context", async () => {
+    const original = item({ status: "ready_for_qa" });
+    const api = transport([original]);
+    render(
+      <>
+        <div data-dev-id="excavation-card">Daily excavation</div>
+        <DevFeedbackTool
+          route="today"
+          shellRevision={"d".repeat(64)}
+          appVersion="0.1.10-dev-debug"
+          transport={api}
+        />
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work items" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add amendment" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select an element" }));
+    fireEvent.click(screen.getByText("Daily excavation"));
+    fireEvent.change(screen.getByLabelText("Describe the change"), {
+      target: { value: "The deployed spacing is better; move the label slightly lower." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Queue amendment" }));
+
+    await waitFor(() => expect(api.amend).toHaveBeenCalledTimes(1));
+    expect(api.amend).toHaveBeenCalledWith(
+      original.id,
+      expect.objectContaining({
+        title: original.title,
+        selection: expect.objectContaining({ devId: "excavation-card" }),
+      }),
+    );
+  });
+
+  it("bounds semantic element context and excludes tool-owned controls", () => {
+    const target = document.createElement("button");
+    target.dataset.devId = "collection-card";
+    target.dataset.devLabel = "B".repeat(300);
+    target.setAttribute("aria-label", "A".repeat(300));
+    const hiddenPrivateText = document.createElement("span");
+    hiddenPrivateText.hidden = true;
+    hiddenPrivateText.textContent = "private notification preview";
+    target.append(hiddenPrivateText);
+    document.body.append(target);
+
+    const context = elementSelectionContext(target, { x: 1, y: 2, width: 30, height: 40 });
+    expect(context?.devId).toBe("collection-card");
+    expect(context?.accessibleLabel.length).toBeLessThanOrEqual(160);
+    expect(context?.visibleLabel.length).toBeLessThanOrEqual(160);
+    expect(context?.visibleLabel).not.toContain("private notification preview");
+
+    const tool = document.createElement("button");
+    tool.dataset.devFeedbackUi = "true";
+    expect(elementSelectionContext(tool, { x: 0, y: 0, width: 1, height: 1 })).toBeNull();
+  });
+});

@@ -54,6 +54,17 @@ jobs:
       - name: Run repository checks
         run: ./scripts/check.sh
 
+      - name: Prove production excludes development feedback
+        run: |
+          corepack pnpm --filter @afterchime/web build
+          NODE_ENV=production DEV_FEEDBACK_ENABLED=false corepack pnpm --filter @afterchime/server build
+          (cd android && ./gradlew --no-daemon :app:assembleProdRelease)
+          python3 scripts/check_dev_feedback_exclusion.py \
+            --web web/dist \
+            --server server/dist \
+            --migrations server/runtime-migrations \
+            --apk android/app/build/outputs/apk/prod/release/app-prod-release-unsigned.apk
+
       - name: Upload test reports
         if: >-
           success() &&

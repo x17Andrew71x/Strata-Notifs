@@ -1,6 +1,9 @@
-export const BRIDGE_VERSION = 2 as const;
+import type { DevFeedbackItem } from "./dev-feedback/model";
 
-const NO_PAYLOAD_ACTIONS = [
+export const BRIDGE_VERSION = 2 as const;
+const DEV_FEEDBACK_BUILD = import.meta.env.VITE_DEV_FEEDBACK_ENABLED === "true";
+
+const CORE_NO_PAYLOAD_ACTIONS = [
   "capabilities.get",
   "state.get",
   "notificationAccess.openSettings",
@@ -9,7 +12,8 @@ const NO_PAYLOAD_ACTIONS = [
   "formation.reveal",
   "worlds.reset",
 ] as const;
-const PAYLOAD_ACTIONS = [
+const DEV_NO_PAYLOAD_ACTIONS = ["devFeedback.items", "devFeedback.refresh"] as const;
+const CORE_PAYLOAD_ACTIONS = [
   "catalog.update",
   "preferences.update",
   "museum.lock",
@@ -19,6 +23,17 @@ const PAYLOAD_ACTIONS = [
   "worlds.select",
   "worlds.own",
 ] as const;
+const DEV_PAYLOAD_ACTIONS = [
+  "devFeedback.submit",
+  "devFeedback.amend",
+  "devFeedback.accept",
+] as const;
+const NO_PAYLOAD_ACTIONS: readonly string[] = DEV_FEEDBACK_BUILD
+  ? [...CORE_NO_PAYLOAD_ACTIONS, ...DEV_NO_PAYLOAD_ACTIONS]
+  : CORE_NO_PAYLOAD_ACTIONS;
+const PAYLOAD_ACTIONS: readonly string[] = DEV_FEEDBACK_BUILD
+  ? [...CORE_PAYLOAD_ACTIONS, ...DEV_PAYLOAD_ACTIONS]
+  : CORE_PAYLOAD_ACTIONS;
 const FOSSIL_FAMILIES: ReadonlySet<string> = new Set([
   "AMMONITE",
   "BELEMNITE",
@@ -44,7 +59,11 @@ const FOSSIL_FAMILIES: ReadonlySet<string> = new Set([
   "COPROLITE",
 ]);
 
-export type NativeAction = (typeof NO_PAYLOAD_ACTIONS)[number] | (typeof PAYLOAD_ACTIONS)[number];
+export type NativeAction =
+  | (typeof CORE_NO_PAYLOAD_ACTIONS)[number]
+  | (typeof DEV_NO_PAYLOAD_ACTIONS)[number]
+  | (typeof CORE_PAYLOAD_ACTIONS)[number]
+  | (typeof DEV_PAYLOAD_ACTIONS)[number];
 export type PreferenceKey =
   | "onlineFeaturesEnabled"
   | "productAnalyticsEnabled"
@@ -55,6 +74,7 @@ export type PreferenceKey =
 export type World = "PRIMEVAL_STRATA" | "DEEP_SPACE" | "BOTANICAL_ARCHIVE" | "THE_ABYSS";
 export type Tier = "COMMON" | "UNCOMMON" | "RARE" | "EXCEPTIONAL" | "SINGULAR";
 export type CollectibleState = "ORDINARY" | "RESTORED" | "CENTRE_PIECE";
+export type DevFeedbackOperation = "list" | "submit" | "amend" | "accept";
 
 export type NativeRequest = {
   version: 2;
@@ -148,6 +168,8 @@ export type NativeResponse =
       notificationAccess: boolean;
       appDetailsAction: boolean;
       catalogUpdates?: boolean;
+      devFeedback?: boolean;
+      appVersion?: string;
     }
   | {
       version: 2;
@@ -155,6 +177,16 @@ export type NativeResponse =
       type: "action.result";
       action: NativeAction;
       ok: boolean;
+    }
+  | {
+      version: 2;
+      id: string;
+      type: "devFeedback.state";
+      operation: DevFeedbackOperation;
+      ok: boolean;
+      error: string | null;
+      item: DevFeedbackItem | null;
+      items: DevFeedbackItem[];
     };
 
 declare global {
@@ -232,7 +264,9 @@ function parseNativeResponse(value: unknown): NativeResponse | null {
     ];
     const catalogKeys = [...legacyKeys, "catalogUpdates"];
     if (
-      (hasExactKeys(value, legacyKeys) || hasExactKeys(value, catalogKeys)) &&
+      (hasExactKeys(value, legacyKeys) ||
+        hasExactKeys(value, catalogKeys) ||
+        (DEV_FEEDBACK_BUILD && isDevFeedbackCapabilities(value, catalogKeys))) &&
       value.bridgeVersion === BRIDGE_VERSION &&
       typeof value.notificationAccess === "boolean" &&
       typeof value.appDetailsAction === "boolean" &&
@@ -240,6 +274,9 @@ function parseNativeResponse(value: unknown): NativeResponse | null {
     ) {
       return value as NativeResponse;
     }
+  }
+  if (DEV_FEEDBACK_BUILD && value.type === "devFeedback.state" && isDevFeedbackState(value)) {
+    return value;
   }
   if (
     value.type === "action.result" &&
@@ -251,6 +288,17 @@ function parseNativeResponse(value: unknown): NativeResponse | null {
     return value as NativeResponse;
   }
   return isShellState(value) ? value : null;
+}
+
+function isDevFeedbackCapabilities(
+  value: Record<string, unknown>,
+  catalogKeys: readonly string[],
+): boolean {
+  return (
+    hasExactKeys(value, [...catalogKeys, "devFeedback", "appVersion"]) &&
+    typeof value.devFeedback === "boolean" &&
+    validBoundedText(value.appVersion, 1, 64)
+  );
 }
 
 function isShellState(value: Record<string, unknown>): value is ShellState {
@@ -465,6 +513,53 @@ function isWorldState(value: unknown): value is ShellState["worlds"] {
   );
 }
 
+function isDevFeedbackState(
+  value: Record<string, unknown>,
+): value is Extract<NativeResponse, { type: "devFeedback.state" }> {
+  return (
+    hasExactKeys(value, ["version", "id", "type", "operation", "ok", "error", "item", "items"]) &&
+    typeof value.operation === "string" &&
+    ["list", "submit", "amend", "accept"].includes(value.operation) &&
+    typeof value.ok === "boolean" &&
+    (value.error === null || validBoundedText(value.error, 1, 80)) &&
+    (value.item === null || isDevFeedbackItem(value.item)) &&
+    Array.isArray(value.items) &&
+    value.items.length <= 200 &&
+    value.items.every(isDevFeedbackItem)
+  );
+}
+
+function isDevFeedbackItem(value: unknown): value is DevFeedbackItem {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, [
+      "id",
+      "queuePosition",
+      "revision",
+      "title",
+      "description",
+      "status",
+      "note",
+      "createdAt",
+      "updatedAt",
+    ])
+  ) {
+    return false;
+  }
+  return (
+    isUuid(value.id) &&
+    isInteger(value.queuePosition, 1) &&
+    isInteger(value.revision, 1, 10_000) &&
+    validBoundedText(value.title, 1, 120) &&
+    validBoundedText(value.description, 1, 4_000) &&
+    typeof value.status === "string" &&
+    ["queued", "in_progress", "blocked", "ready_for_qa", "accepted"].includes(value.status) &&
+    (value.note === "" || validBoundedText(value.note, 1, 600)) &&
+    isIsoTimestamp(value.createdAt) &&
+    isIsoTimestamp(value.updatedAt)
+  );
+}
+
 function validPayload(type: string, payload: Record<string, unknown>): boolean {
   if (type === "catalog.update") return isCatalogUpdate(payload);
   if (type === "preferences.update") {
@@ -507,7 +602,93 @@ function validPayload(type: string, payload: Record<string, unknown>): boolean {
   if (type === "worlds.select" || type === "worlds.own") {
     return hasExactKeys(payload, ["world"]) && isWorld(payload.world);
   }
+  if (DEV_FEEDBACK_BUILD && type === "devFeedback.accept") {
+    return hasExactKeys(payload, ["itemId"]) && isUuid(payload.itemId);
+  }
+  if (DEV_FEEDBACK_BUILD && type === "devFeedback.submit") {
+    return isDevFeedbackDraft(payload, false);
+  }
+  if (DEV_FEEDBACK_BUILD && type === "devFeedback.amend") {
+    return isDevFeedbackDraft(payload, true);
+  }
   return false;
+}
+
+function isDevFeedbackDraft(payload: Record<string, unknown>, amendment: boolean): boolean {
+  const keys = [
+    ...(amendment ? ["itemId"] : []),
+    "idempotencyKey",
+    "title",
+    "description",
+    "route",
+    "shellRevision",
+    "appVersion",
+    "selection",
+  ];
+  return (
+    hasExactKeys(payload, keys) &&
+    (!amendment || isUuid(payload.itemId)) &&
+    isUuid(payload.idempotencyKey) &&
+    validBoundedText(payload.title, 1, 120) &&
+    validBoundedText(payload.description, 1, 4_000) &&
+    validBoundedText(payload.route, 1, 160) &&
+    typeof payload.shellRevision === "string" &&
+    /^[0-9a-f]{64}$/.test(payload.shellRevision) &&
+    validBoundedText(payload.appVersion, 1, 64) &&
+    isDevFeedbackSelection(payload.selection)
+  );
+}
+
+function isDevFeedbackSelection(value: unknown): boolean {
+  if (
+    !isRecord(value) ||
+    !hasExactKeys(value, [
+      "kind",
+      "rect",
+      "viewportWidth",
+      "viewportHeight",
+      "devId",
+      "tag",
+      "role",
+      "accessibleLabel",
+      "visibleLabel",
+      "domPath",
+    ]) ||
+    (value.kind !== "element" && value.kind !== "region") ||
+    !isInteger(value.viewportWidth, 1, 16_384) ||
+    !isInteger(value.viewportHeight, 1, 16_384) ||
+    !isSelectionRect(value.rect) ||
+    !validOptionalText(value.devId, 96) ||
+    !validOptionalText(value.tag, 32) ||
+    !validOptionalText(value.role, 64) ||
+    !validOptionalText(value.accessibleLabel, 160) ||
+    !validOptionalText(value.visibleLabel, 160) ||
+    !validOptionalText(value.domPath, 512)
+  ) {
+    return false;
+  }
+  if (value.kind === "region") {
+    return [
+      value.devId,
+      value.tag,
+      value.role,
+      value.accessibleLabel,
+      value.visibleLabel,
+      value.domPath,
+    ].every((field) => field === "");
+  }
+  return value.tag !== "" && value.domPath !== "";
+}
+
+function isSelectionRect(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasExactKeys(value, ["x", "y", "width", "height"]) &&
+    isInteger(value.x, 0, 16_384) &&
+    isInteger(value.y, 0, 16_384) &&
+    isInteger(value.width, 1, 16_384) &&
+    isInteger(value.height, 1, 16_384)
+  );
 }
 
 function isCatalogUpdate(payload: Record<string, unknown>): boolean {
@@ -558,6 +739,43 @@ function isWorld(value: unknown): value is World {
   return (
     typeof value === "string" &&
     ["PRIMEVAL_STRATA", "DEEP_SPACE", "BOTANICAL_ARCHIVE", "THE_ABYSS"].includes(value)
+  );
+}
+
+function validBoundedText(value: unknown, minimum: number, maximum: number): value is string {
+  return (
+    typeof value === "string" &&
+    value === value.trim() &&
+    value.length >= minimum &&
+    value.length <= maximum &&
+    !hasControlCharacter(value)
+  );
+}
+
+function hasControlCharacter(value: string): boolean {
+  return Array.from(value).some((character) => {
+    const code = character.charCodeAt(0);
+    return code < 32 || code === 127;
+  });
+}
+
+function validOptionalText(value: unknown, maximum: number): value is string {
+  return value === "" || validBoundedText(value, 1, maximum);
+}
+
+function isUuid(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value)
+  );
+}
+
+function isIsoTimestamp(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length >= 20 &&
+    value.length <= 40 &&
+    Number.isFinite(Date.parse(value))
   );
 }
 

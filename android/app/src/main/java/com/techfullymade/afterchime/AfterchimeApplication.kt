@@ -22,6 +22,7 @@ import com.techfullymade.afterchime.domain.FormationRepository
 import com.techfullymade.afterchime.domain.LocalFormationRepository
 import com.techfullymade.afterchime.domain.LocalMuseumRepository
 import com.techfullymade.afterchime.domain.MuseumRepository
+
 import com.techfullymade.afterchime.gameplay.FossilCatalogStore
 import com.techfullymade.afterchime.gameplay.SharedPreferencesFossilCatalogPersistence
 import com.techfullymade.afterchime.generation.GenerationResult
@@ -29,6 +30,7 @@ import com.techfullymade.afterchime.identity.AfterchimeIdentityGateway
 import com.techfullymade.afterchime.identity.AndroidCredentialCipher
 import com.techfullymade.afterchime.identity.AtomicCredentialEnvelopeStorage
 import com.techfullymade.afterchime.identity.CredentialStore
+import com.techfullymade.afterchime.identity.IdentityResult
 import com.techfullymade.afterchime.identity.OnlineIdentityRepository
 import com.techfullymade.afterchime.identity.TokenAuthenticator
 import com.techfullymade.afterchime.network.NetworkModule
@@ -56,7 +58,10 @@ import com.techfullymade.afterchime.sync.SharedPreferencesOnlineSyncStateStore
 import java.time.Clock
 import java.time.ZoneId
 import java.util.Locale
+import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 class AfterchimeApplication : Application() {
@@ -98,6 +103,10 @@ class AfterchimeApplication : Application() {
       ),
     )
   }
+  private val onlineTokenAuthenticator: TokenAuthenticator by lazy {
+    TokenAuthenticator(onlineIdentityRepository, refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS)
+  }
+
   private val productUseReporter: ProductUseReporter by lazy {
     ProductUseReporter(
       preferences = { userPreferences.values.first() },
@@ -127,9 +136,7 @@ class AfterchimeApplication : Application() {
     OnlineSyncCoordinator(
       preferences = { userPreferences.values.first() },
       identity = RepositoryOnlineIdentityClient(onlineIdentityRepository),
-      tokenClient = AuthenticatorOnlineTokenClient(
-        TokenAuthenticator(onlineIdentityRepository, refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS),
-      ),
+      tokenClient = AuthenticatorOnlineTokenClient(onlineTokenAuthenticator),
       api = syncApi,
       summaries = RoomDailySummaryUploadStore(database.dailyNotificationSummaryDao()),
       analyticsOutbox = AnalyticsOutboxUploader(
@@ -170,6 +177,37 @@ class AfterchimeApplication : Application() {
 
   internal fun scheduleOnlineSync() {
     onlineWorkManager()?.let { OnlineSyncScheduler(it).scheduleImmediate() }
+  }
+
+  internal suspend fun developmentFeedbackToken(): String? {
+    if (!BuildConfig.DEV_FEEDBACK_ENABLED) return null
+    return withContext(Dispatchers.IO) {
+      val current = when (val session = onlineIdentityRepository.currentSession()) {
+        is IdentityResult.Success -> session.value
+        is IdentityResult.Failure -> return@withContext null
+      }
+      if (current == null) {
+        val preferences = getSharedPreferences(DEV_FEEDBACK_IDENTITY_STORE, MODE_PRIVATE)
+        val idempotencyKey = preferences.getString(DEV_FEEDBACK_IDEMPOTENCY_KEY, null)
+          ?: UUID.randomUUID().toString().also { generated ->
+            if (!preferences.edit().putString(DEV_FEEDBACK_IDEMPOTENCY_KEY, generated).commit()) {
+              return@withContext null
+            }
+          }
+        val registered = onlineIdentityRepository.register(
+          RegistrationRequest(
+            appVersion = BuildConfig.VERSION_NAME,
+            androidApiLevel = Build.VERSION.SDK_INT,
+            deviceClass = onlineDeviceClass(resources.configuration.smallestScreenWidthDp),
+          ),
+          idempotencyKey,
+        )
+        if (registered !is IdentityResult.Success) return@withContext null
+        preferences.edit().remove(DEV_FEEDBACK_IDEMPOTENCY_KEY).commit()
+      }
+      (onlineTokenAuthenticator.accessToken() as? com.techfullymade.afterchime.identity.TokenResult.Available)
+        ?.accessToken
+    }
   }
 
   internal suspend fun recordProductUse(
@@ -229,6 +267,8 @@ class AfterchimeApplication : Application() {
 
   private companion object {
     const val DATABASE_NAME = "afterchime.db"
+    const val DEV_FEEDBACK_IDENTITY_STORE = "development_feedback_identity"
+    const val DEV_FEEDBACK_IDEMPOTENCY_KEY = "registration_idempotency_key"
     const val ONLINE_TOKEN_REFRESH_SKEW_MILLIS = 60_000L
   }
 }

@@ -35,8 +35,8 @@ android {
     applicationId = "com.techfullymade.afterchime"
     minSdk = 31
     targetSdk = 36
-    versionCode = 1009
-    versionName = "0.1.9"
+    versionCode = 1010
+    versionName = "0.1.10"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -48,6 +48,7 @@ android {
       versionNameSuffix = "-dev"
       buildConfigField("String", "API_BASE_URL", "\"${devApiBaseUrl.get()}\"")
       buildConfigField("String", "SHELL_URL", "\"${shellUrl}\"")
+      buildConfigField("boolean", "DEV_FEEDBACK_ENABLED", "true")
       buildConfigField("boolean", "PRODUCTION_ENABLED", "false")
       resValue("string", "app_name", "Afterchime Dev")
     }
@@ -55,6 +56,7 @@ android {
       dimension = "environment"
       buildConfigField("String", "API_BASE_URL", "\"https://production-disabled.invalid\"")
       buildConfigField("String", "SHELL_URL", "\"https://production-disabled.invalid/\"")
+      buildConfigField("boolean", "DEV_FEEDBACK_ENABLED", "false")
       buildConfigField("boolean", "PRODUCTION_ENABLED", "false")
       resValue("string", "app_name", "Afterchime")
     }

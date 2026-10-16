@@ -11,6 +11,8 @@ export const testConfig: ServerConfig = {
   accessTokenSecret: "test-access-token-secret-at-least-32-characters",
   refreshTokenPepper: "test-refresh-token-pepper-at-least-32-characters",
   adminApiKeyHash: "",
+  developmentModuleEnabled: false,
+  deployedRevision: "0000000000000000000000000000000000000000",
   corsOrigins: [],
   allowDevAuth: true,
   billingProvider: "fake",

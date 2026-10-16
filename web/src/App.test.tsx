@@ -52,6 +52,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 describe("service worker registration", () => {
@@ -128,6 +129,47 @@ describe("full shell application", () => {
       revision: RELIC_VAULT_CATALOG_REVISION,
     });
     expect(update.payload.items).toHaveLength(17);
+  });
+
+  it("mounts development feedback only after native capability and hosted revision proof", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              shellVersion: 2,
+              bridgeVersion: 2,
+              revision: "a".repeat(64),
+              entry: "/",
+            }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          ),
+      ),
+    );
+    render(<App />);
+    sendState(baseState);
+    expect(screen.queryByRole("button", { name: "Open development feedback" })).toBeNull();
+
+    act(() => {
+      native.onmessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            version: 2,
+            id: "capabilities",
+            type: "capabilities.state",
+            bridgeVersion: 2,
+            notificationAccess: true,
+            appDetailsAction: true,
+            catalogUpdates: true,
+            devFeedback: true,
+            appVersion: "0.1.10-dev-debug",
+          }),
+        }),
+      );
+    });
+
+    expect(await screen.findByRole("button", { name: "Open development feedback" })).toBeTruthy();
   });
 
   it("requests bridge state and renders private onboarding from native state", () => {

@@ -21,6 +21,7 @@ describe("GET /health/live", () => {
       service: "afterchime-api",
       version: "0.1.0",
       environment: "test",
+      revision: "0000000000000000000000000000000000000000",
     });
     expect(response.headers["x-content-type-options"]).toBe("nosniff");
     expect(response.headers).not.toHaveProperty("x-powered-by");

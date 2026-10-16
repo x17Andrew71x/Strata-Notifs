@@ -11,6 +11,15 @@ const configSchema = z.object({
   ACCESS_TOKEN_SECRET: secret,
   REFRESH_TOKEN_PEPPER: secret,
   ADMIN_API_KEY_HASH: z.string().default(""),
+  DEV_FEEDBACK_ENABLED: z.enum(["true", "false"]).default("false"),
+  DEPLOYED_REVISION: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
+  RAILWAY_GIT_COMMIT_SHA: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/)
+    .optional(),
   CORS_ORIGINS: z.string().default(""),
   ALLOW_DEV_AUTH: z.enum(["true", "false"]).default("false"),
   BILLING_PROVIDER: z.enum(["fake", "google-play"]).default("fake"),
@@ -28,6 +37,8 @@ export type ServerConfig = Readonly<{
   accessTokenSecret: string;
   refreshTokenPepper: string;
   adminApiKeyHash: string;
+  developmentModuleEnabled: boolean;
+  deployedRevision: string;
   corsOrigins: readonly string[];
   allowDevAuth: boolean;
   billingProvider: "fake" | "google-play";
@@ -36,6 +47,29 @@ export type ServerConfig = Readonly<{
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ServerConfig {
   const value = configSchema.parse(environment);
+  if (value.DEV_FEEDBACK_ENABLED === "true" && !/^[0-9a-f]{64}$/.test(value.ADMIN_API_KEY_HASH)) {
+    throw new Error("development feedback requires an admin key digest");
+  }
+  if (
+    value.DEPLOYED_REVISION &&
+    value.RAILWAY_GIT_COMMIT_SHA &&
+    value.DEPLOYED_REVISION !== value.RAILWAY_GIT_COMMIT_SHA
+  ) {
+    throw new Error("deployed revision conflicts with Railway source revision");
+  }
+  const deployedRevision =
+    value.RAILWAY_GIT_COMMIT_SHA ??
+    value.DEPLOYED_REVISION ??
+    "0000000000000000000000000000000000000000";
+  if (value.DEV_FEEDBACK_ENABLED === "true" && !value.RAILWAY_GIT_COMMIT_SHA) {
+    throw new Error("development feedback requires Railway source revision proof");
+  }
+  if (
+    value.DEV_FEEDBACK_ENABLED === "true" &&
+    deployedRevision === "0000000000000000000000000000000000000000"
+  ) {
+    throw new Error("development feedback requires a deployed revision");
+  }
   const buildChannel = value.NODE_ENV === "production" ? "prod" : "dev";
   return {
     nodeEnv: value.NODE_ENV,
@@ -48,6 +82,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     accessTokenSecret: value.ACCESS_TOKEN_SECRET,
     refreshTokenPepper: value.REFRESH_TOKEN_PEPPER,
     adminApiKeyHash: value.ADMIN_API_KEY_HASH,
+    developmentModuleEnabled: value.DEV_FEEDBACK_ENABLED === "true",
+    deployedRevision,
     corsOrigins: value.CORS_ORIGINS.split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),

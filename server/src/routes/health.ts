@@ -7,6 +7,7 @@ const responseSchema = z.object({
   service: z.literal("afterchime-api"),
   version: z.string(),
   environment: z.enum(["development", "test", "production"]),
+  revision: z.string().regex(/^[0-9a-f]{40}$/),
 });
 
 export async function registerHealthRoutes(
@@ -27,6 +28,7 @@ export async function registerHealthRoutes(
       service: "afterchime-api" as const,
       version: "0.1.0",
       environment: config.nodeEnv,
+      revision: config.deployedRevision,
     }),
   );
 }

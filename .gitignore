@@ -25,6 +25,7 @@ node_modules/
 .pnpm-store/
 coverage/
 **/dist/
+server/runtime-migrations/
 *.tsbuildinfo
 
 # Editors and OS

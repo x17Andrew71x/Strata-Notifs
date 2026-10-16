@@ -1,4 +1,10 @@
 FROM node:22.22.3-alpine AS build
+ARG DEV_FEEDBACK_ENABLED=false
+ARG VITE_DEV_FEEDBACK_ENABLED=false
+ARG NODE_ENV=production
+ENV DEV_FEEDBACK_ENABLED=$DEV_FEEDBACK_ENABLED
+ENV VITE_DEV_FEEDBACK_ENABLED=$VITE_DEV_FEEDBACK_ENABLED
+ENV NODE_ENV=$NODE_ENV
 WORKDIR /workspace
 RUN corepack enable
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
@@ -18,7 +24,7 @@ WORKDIR /app
 COPY --from=build --chown=node:node /out ./
 COPY --from=build --chown=node:node /workspace/server/dist ./dist
 # Railway runs the compiled migrator as a fail-closed pre-deploy command.
-COPY --from=build --chown=node:node /workspace/server/migrations ./migrations
+COPY --from=build --chown=node:node /workspace/server/runtime-migrations ./migrations
 COPY --from=build --chown=node:node /workspace/web/dist ./web/dist
 EXPOSE 3000
 CMD ["node", "dist/index.js"]

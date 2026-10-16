@@ -20,6 +20,7 @@ import { attestRuntimeRole, type RuntimeDatabaseAttestation } from "./db/runtime
 import { registerAccountRoutes } from "./modules/account/routes.js";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
 import { registerConsentRoutes } from "./modules/consent/routes.js";
+
 import { registerIdentityRoutes } from "./modules/identity/routes.js";
 import { registerNotificationAggregateRoutes } from "./modules/notifications/routes.js";
 import { registerHealthRoutes } from "./routes/health.js";
@@ -96,6 +97,13 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     await registerConsentRoutes(app, options.config, options.database);
     await registerAnalyticsRoutes(app, options.config, options.database);
     await registerNotificationAggregateRoutes(app, options.config, options.database);
+    if (options.config.developmentModuleEnabled && options.config.buildChannel === "dev") {
+      const modulePath = "./modules/" + "dev-" + "feedback/routes.js";
+      const developmentModule = (await import(modulePath)) as {
+        registerDevelopmentModule: typeof registerIdentityRoutes;
+      };
+      await developmentModule.registerDevelopmentModule(app, options.config, options.database);
+    }
   }
   return app;
 }

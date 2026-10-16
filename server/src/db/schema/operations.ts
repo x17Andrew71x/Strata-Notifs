@@ -21,7 +21,6 @@ export const outboxJobStatus = pgEnum("outbox_job_status", [
   "failed",
 ]);
 export const jobRunStatus = pgEnum("job_run_status", ["running", "succeeded", "failed"]);
-
 export const idempotencyRecords = pgTable(
   "idempotency_records",
   {

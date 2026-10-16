@@ -48,6 +48,13 @@ class MainActivityTest {
   }
 
   @Test
+  fun `development feedback is compile-time gated to the non-production dev flavour`() {
+    assertTrue(isDevelopmentFeedbackEnabled("dev", productionEnabled = false))
+    assertFalse(isDevelopmentFeedbackEnabled("prod", productionEnabled = false))
+    assertFalse(isDevelopmentFeedbackEnabled("dev", productionEnabled = true))
+  }
+
+  @Test
   fun `remote shell requires the bounded bridge and an enabled HTTPS origin`() {
     assertTrue(isRemoteShellEnabled(Uri.parse("https://shell.example/"), bridgeSupported = true))
     assertFalse(isRemoteShellEnabled(Uri.parse("https://shell.example/"), bridgeSupported = false))
@@ -177,6 +184,58 @@ class MainActivityTest {
   }
 
   @Test
+  fun `development feedback bridge accepts only strict dev-only context`() {
+    val payload = JSONObject()
+      .put("idempotencyKey", "22222222-2222-4222-8222-222222222222")
+      .put("title", "Tighten the action")
+      .put("description", "Reduce the empty space above it.")
+      .put("route", "today")
+      .put("shellRevision", "a".repeat(64))
+      .put("appVersion", "0.1.10-dev-debug")
+      .put(
+        "selection",
+        JSONObject()
+          .put("kind", "element")
+          .put("rect", JSONObject().put("x", 10).put("y", 20).put("width", 120).put("height", 44))
+          .put("viewportWidth", 360)
+          .put("viewportHeight", 800)
+          .put("devId", "excavation-action")
+          .put("tag", "button")
+          .put("role", "button")
+          .put("accessibleLabel", "Excavate tile 1")
+          .put("visibleLabel", "Excavate")
+          .put("domPath", "[data-dev-id=excavation-action]"),
+      )
+    val request = JSONObject()
+      .put("version", 2)
+      .put("id", "feedback_submit")
+      .put("type", "devFeedback.submit")
+      .put("payload", payload)
+
+    assertNull(parseBridgeRequest(request.toString()))
+    assertEquals(
+      "devFeedback.submit",
+      parseBridgeRequest(request.toString(), developmentFeedback = EnabledDevelopmentFeedbackRequestPolicy)?.type,
+    )
+    payload.put("arbitraryState", JSONObject().put("private", true))
+    assertNull(parseBridgeRequest(request.toString(), developmentFeedback = EnabledDevelopmentFeedbackRequestPolicy))
+    assertEquals(
+      "devFeedback.items",
+      parseBridgeRequest(
+        """{"version":2,"id":"feedback_items","type":"devFeedback.items"}""",
+        developmentFeedback = EnabledDevelopmentFeedbackRequestPolicy,
+      )?.type,
+    )
+    assertEquals(
+      "devFeedback.refresh",
+      parseBridgeRequest(
+        """{"version":2,"id":"feedback_refresh","type":"devFeedback.refresh"}""",
+        developmentFeedback = EnabledDevelopmentFeedbackRequestPolicy,
+      )?.type,
+    )
+  }
+
+  @Test
   fun `notification settings action opens this listeners app and type filters`() {
     val activity = Robolectric.buildActivity(MainActivity::class.java).setup().get()
     assertTrue(activity.openNotificationAccessSettings())
@@ -198,6 +257,20 @@ class MainActivityTest {
     assertEquals("capabilities.state", response.getString("type"))
     assertTrue(response.getBoolean("appDetailsAction"))
     assertTrue(response.getBoolean("catalogUpdates"))
+    assertEquals(
+      BuildConfig.DEV_FEEDBACK_ENABLED,
+      response.getBoolean("devFeedback"),
+    )
+    assertEquals(BuildConfig.VERSION_NAME, response.getString("appVersion"))
+  }
+
+  @Test
+  fun `development refresh keeps the configured origin and adds cache bypass`() {
+    val refreshed = developmentRefreshUrl(Uri.parse("https://shell.example/app"), 1234L)
+    assertEquals("https", refreshed.scheme)
+    assertEquals("shell.example", refreshed.host)
+    assertEquals("/app", refreshed.path)
+    assertEquals("1234", refreshed.getQueryParameter("dev-refresh"))
   }
 
   @Test
