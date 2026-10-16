@@ -34,6 +34,9 @@ import {
 
 type ShellWorkerRegistrar = {
   register(scriptURL: string, options?: RegistrationOptions): Promise<unknown>;
+  readonly controller?: unknown;
+  addEventListener?(type: "controllerchange", listener: () => void): void;
+  removeEventListener?(type: "controllerchange", listener: () => void): void;
 };
 
 type ShellMetadata = {
@@ -116,6 +119,24 @@ export async function registerShellWorker(
   }
 }
 
+export function reloadOnShellWorkerChange(
+  registrar: ShellWorkerRegistrar | undefined = typeof navigator !== "undefined" &&
+  "serviceWorker" in navigator
+    ? navigator.serviceWorker
+    : undefined,
+  reload: () => void = () => window.location.reload(),
+): () => void {
+  if (!registrar?.controller || !registrar.addEventListener) return () => undefined;
+  let handled = false;
+  const onControllerChange = () => {
+    if (handled) return;
+    handled = true;
+    reload();
+  };
+  registrar.addEventListener("controllerchange", onControllerChange);
+  return () => registrar.removeEventListener?.("controllerchange", onControllerChange);
+}
+
 type CatalogCacheStorage = Pick<CacheStorage, "keys" | "open">;
 
 export async function catalogAssetsAreCached(
@@ -180,6 +201,7 @@ function App() {
     const remoteOrigin = window.location.hostname !== "appassets.androidplatform.net";
     let active = true;
     let catalogSyncStarted = false;
+    const stopWorkerReload = remoteOrigin ? reloadOnShellWorkerChange() : () => undefined;
     void registerShellWorker(import.meta.env.PROD && remoteOrigin);
     if (remoteOrigin) {
       void fetch("/shell/metadata", { cache: "no-store", credentials: "same-origin" })
@@ -222,6 +244,7 @@ function App() {
     sendNativeRequest("state.get");
     return () => {
       active = false;
+      stopWorkerReload();
       stop();
       window.clearInterval(refreshInterval);
       window.removeEventListener("hashchange", onHashChange);

@@ -9,6 +9,7 @@ import App, {
   launchSafeDisplayState,
   loadDevelopmentFeedbackRuntime,
   registerShellWorker,
+  reloadOnShellWorkerChange,
   SHELL_STATE_REFRESH_MS,
   TOAST_DURATION_MS,
   TOAST_FADE_START_MS,
@@ -70,6 +71,38 @@ describe("service worker registration", () => {
     expect(register).not.toHaveBeenCalled();
     await registerShellWorker(true, { register });
     expect(register).toHaveBeenCalledWith("/service-worker.js", { scope: "/" });
+  });
+
+  it("reloads once when an existing shell worker is replaced", () => {
+    let listener: (() => void) | null = null;
+    const reload = vi.fn();
+    const registrar = {
+      controller: {},
+      register: vi.fn().mockResolvedValue(undefined),
+      addEventListener: vi.fn((_type: "controllerchange", next: () => void) => {
+        listener = next;
+      }),
+      removeEventListener: vi.fn(),
+    };
+
+    const stop = reloadOnShellWorkerChange(registrar, reload);
+    expect(listener).toBeTypeOf("function");
+    (listener as unknown as () => void)();
+    (listener as unknown as () => void)();
+    expect(reload).toHaveBeenCalledTimes(1);
+    stop();
+    expect(registrar.removeEventListener).toHaveBeenCalledWith("controllerchange", listener);
+
+    const firstInstallListener = vi.fn();
+    reloadOnShellWorkerChange(
+      {
+        controller: null,
+        register: vi.fn().mockResolvedValue(undefined),
+        addEventListener: firstInstallListener,
+      },
+      reload,
+    );
+    expect(firstInstallListener).not.toHaveBeenCalled();
   });
 
   it("authorizes a native catalogue only after the matching complete artwork set is cached", async () => {
