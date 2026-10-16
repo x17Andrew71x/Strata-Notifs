@@ -1084,7 +1084,7 @@ function More({
         />
         <Toggle
           label="Help improve Afterchime"
-          detail="Send which parts of Afterchime are used and basic device details such as app version, Android version, language, and phone or tablet. Never includes notification text, app names, senders, contacts, or media."
+          detail="Send which parts of Afterchime are used and basic device details such as app version, Android version, language, and phone or tablet."
           checked={preferences.productAnalyticsEnabled}
           disabled={!preferences.onlineFeaturesEnabled}
           onChange={(value) => onPreference("productAnalyticsEnabled", value)}

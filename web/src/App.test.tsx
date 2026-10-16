@@ -696,7 +696,13 @@ describe("full shell application", () => {
       screen.getAllByText(
         /never includes notification text, app names, senders, contacts, or media/i,
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+    expect(
+      screen.getByText(
+        "Send which parts of Afterchime are used and basic device details such as app version, Android version, language, and phone or tablet.",
+        { exact: true },
+      ),
+    ).toBeTruthy();
     expect(screen.queryByText(/pseudonymous|aggregate sharing|product analytics/i)).toBeNull();
     expect(screen.queryByRole("checkbox", { name: /Haptics/i })).toBeNull();
 
