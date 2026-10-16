@@ -70,14 +70,20 @@ describe("web shell routes", () => {
     apps.push(app);
     const response = await app.inject({
       method: "GET",
-      url: "/downloads/Afterchime-0.1.8-dev.zip",
+      url: "/downloads/Afterchime-0.1.10-dev.zip",
     });
     expect(response.statusCode).toBe(302);
     expect(response.headers.location).toBe(
-      "https://raw.githubusercontent.com/x17Andrew71x/Strata-Notifs/3f286b6ca46211b8e774c126583268fc6849c35e/Afterchime-0.1.8-dev.zip",
+      "https://raw.githubusercontent.com/x17Andrew71x/Strata-Notifs/3aafa36de1e7355f3bf877f158cc017a6ba78a39/Afterchime-0.1.10-dev.zip",
     );
     expect(response.headers["cache-control"]).toBe("no-store");
     expect(response.headers["x-content-type-options"]).toBe("nosniff");
+
+    const retiredPackage = await app.inject({
+      method: "GET",
+      url: "/downloads/Afterchime-0.1.8-dev.zip",
+    });
+    expect(retiredPackage.statusCode).toBe(404);
 
     const retiredApk = await app.inject({
       method: "GET",
