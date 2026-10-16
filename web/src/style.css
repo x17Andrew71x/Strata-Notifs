@@ -627,12 +627,14 @@ p {
 
 .excavation-hud {
   position: absolute;
-  right: 0;
-  bottom: 17px;
-  left: 0;
+  z-index: 3;
+  top: 12px;
+  right: 12px;
+  left: 12px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  pointer-events: none;
 }
 
 .excavation-hud > div {
@@ -640,8 +642,11 @@ p {
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  border-top: 1px solid #c39b6540;
-  padding: 7px 3px 0;
+  border: 1px solid #c39b6540;
+  border-radius: 7px;
+  padding: 6px 8px;
+  background: #0a0805b8;
+  box-shadow: 0 2px 12px #0007;
 }
 
 .excavation-hud span,
