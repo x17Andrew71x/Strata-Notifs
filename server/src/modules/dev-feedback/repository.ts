@@ -188,7 +188,9 @@ export class DevFeedbackRepository {
         WHERE id = ${itemId} AND installation_id = ${identity.installationId}
         FOR UPDATE
       `;
-      if (!item || item.status === "accepted") throw new DevFeedbackNotReadyError();
+      if (!item || item.status === "accepted" || item.status === "in_progress") {
+        throw new DevFeedbackNotReadyError();
+      }
       const revision = item.current_revision + 1;
       const revisionId = randomUUID();
       const operation = `dev_feedback_amend:${itemId}`;
@@ -271,7 +273,7 @@ export class DevFeedbackRepository {
     });
   }
 
-  public async claim(leaseSeconds = 3_600): Promise<DevFeedbackAdminItem | null> {
+  public async claim(leaseSeconds = 300): Promise<DevFeedbackAdminItem | null> {
     const leaseId = randomUUID();
     const [row] = await this.database<AdminRow[]>`
       SELECT * FROM public.afterchime_claim_dev_feedback(${leaseId}, ${leaseSeconds})
@@ -290,9 +292,10 @@ export class DevFeedbackRepository {
     itemId: string,
     leaseId: string,
     revision: number,
+    leaseSeconds = 300,
   ): Promise<DevFeedbackAdminItem> {
     const [row] = await this.database<AdminRow[]>`
-      SELECT * FROM public.afterchime_heartbeat_dev_feedback(${itemId}, ${leaseId}, ${revision}, 3600)
+      SELECT * FROM public.afterchime_heartbeat_dev_feedback(${itemId}, ${leaseId}, ${revision}, ${leaseSeconds})
     `;
     if (!row) throw new DevFeedbackConflictError("stale_dev_feedback_lease");
     return mapAdminItem(row);

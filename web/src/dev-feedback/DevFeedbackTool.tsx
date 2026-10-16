@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type {
   DevFeedbackDraft,
   DevFeedbackItem,
@@ -37,6 +38,8 @@ const LABEL_LIMIT = 160;
 const PATH_DEPTH = 7;
 const POSITION_KEY = "afterchime.dev-feedback.position.v1";
 const POLL_INTERVAL_MS = 15_000;
+const PANEL_Z_INDEX = 223;
+const HIGHLIGHT_Z_INDEX = 221;
 
 export function DevFeedbackTool({
   route,
@@ -48,6 +51,7 @@ export function DevFeedbackTool({
   const [selectionMode, setSelectionMode] = useState<"element" | "region" | null>(null);
   const [selection, setSelection] = useState<DevFeedbackSelection | null>(null);
   const [items, setItems] = useState<DevFeedbackItem[]>([]);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [idempotencyKey, setIdempotencyKey] = useState(() => newUuid());
@@ -128,6 +132,24 @@ export function DevFeedbackTool({
     };
   }, [position]);
 
+  const clearDraft = () => {
+    setSelection(null);
+    setSelectionMode(null);
+    setAreaStart(null);
+    setAreaCurrent(null);
+    setTitle("");
+    setDescription("");
+    setIdempotencyKey(newUuid());
+    setAmending(null);
+    setExpandedItemId(null);
+    setMessage("");
+  };
+
+  const closePanel = () => {
+    clearDraft();
+    setView(null);
+  };
+
   const startSelection = (mode: "element" | "region") => {
     if (!selection) setIdempotencyKey(newUuid());
     setSelection(null);
@@ -141,8 +163,11 @@ export function DevFeedbackTool({
   const submit = async () => {
     if (!selection || !title.trim() || !description.trim() || pending) return;
     setPending(true);
-    setCapturing(true);
-    setMessage("Capturing this exact view…");
+    flushSync(() => {
+      setCapturing(true);
+      setMessage("Capturing the selected view without development controls…");
+    });
+    await nextPaint();
     await nextPaint();
     const draft: DevFeedbackDraft = {
       idempotencyKey,
@@ -202,11 +227,14 @@ export function DevFeedbackTool({
   };
 
   const beginAmendment = (entry: DevFeedbackItem) => {
+    if (entry.status === "in_progress" || entry.status === "accepted") return;
     setAmending(entry);
     setTitle(entry.title);
-    setDescription("");
+    setDescription(entry.description);
+    setSelection(null);
+    setIdempotencyKey(newUuid());
     setView("menu");
-    setMessage("Select the changed element or area for this amendment.");
+    setMessage("Revise the request, then select fresh supporting evidence.");
   };
 
   const triggerStyle = position ? { left: position.x, top: position.y } : undefined;
@@ -261,7 +289,8 @@ export function DevFeedbackTool({
         }}
         onClick={() => {
           if (drag.current?.moved) return;
-          setView((current) => (current ? null : "menu"));
+          if (view) closePanel();
+          else setView("menu");
         }}
       >
         DEV
@@ -272,17 +301,14 @@ export function DevFeedbackTool({
           className="dev-feedback-panel"
           aria-label="Development feedback"
           data-dev-feedback-ui="true"
+          style={{ zIndex: PANEL_Z_INDEX }}
         >
           <div className="dev-feedback-panel-header">
             <div>
               <span>Development tools</span>
               <strong>{amending ? `Amend #${amending.queuePosition}` : "Targeted changes"}</strong>
             </div>
-            <button
-              type="button"
-              aria-label="Close development feedback"
-              onClick={() => setView(null)}
-            >
+            <button type="button" aria-label="Close development feedback" onClick={closePanel}>
               ×
             </button>
           </div>
@@ -383,32 +409,54 @@ export function DevFeedbackTool({
               {items.length === 0 ? (
                 <p className="dev-feedback-empty">No open work items.</p>
               ) : (
-                items.map((entry) => (
-                  <article key={entry.id} data-testid="dev-feedback-item">
-                    <div className="dev-feedback-item-title">
-                      <span>#{entry.queuePosition}</span>
-                      <strong>{entry.title}</strong>
-                      <em className={`status-${entry.status}`}>{statusLabel(entry.status)}</em>
-                    </div>
-                    {entry.note && <p>{entry.note}</p>}
-                    <div className="dev-feedback-item-actions">
-                      {entry.status !== "accepted" && (
-                        <button type="button" onClick={() => beginAmendment(entry)}>
-                          Add amendment
-                        </button>
+                items.map((entry) => {
+                  const expanded = expandedItemId === entry.id;
+                  const amendable = entry.status !== "in_progress" && entry.status !== "accepted";
+                  return (
+                    <article key={entry.id} data-testid="dev-feedback-item">
+                      <button
+                        type="button"
+                        className="dev-feedback-item-summary"
+                        aria-expanded={expanded}
+                        aria-label={`View work item #${entry.queuePosition}: ${entry.title}`}
+                        onClick={() => setExpandedItemId(expanded ? null : entry.id)}
+                      >
+                        <span className="dev-feedback-item-title">
+                          <span>#{entry.queuePosition}</span>
+                          <strong>{entry.title}</strong>
+                          <em className={`status-${entry.status}`}>{statusLabel(entry.status)}</em>
+                        </span>
+                      </button>
+                      {entry.note && <p>{entry.note}</p>}
+                      {expanded && (
+                        <div className="dev-feedback-item-detail">
+                          <strong>Submitted request</strong>
+                          <p>{entry.description}</p>
+                          <small>Revision {entry.revision} · Original order retained</small>
+                        </div>
                       )}
-                      {entry.status === "ready_for_qa" && (
-                        <button
-                          type="button"
-                          disabled={pending}
-                          onClick={() => void accept(entry.id)}
-                        >
-                          Accept result
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                ))
+                      <div className="dev-feedback-item-actions">
+                        {amendable && (
+                          <button type="button" onClick={() => beginAmendment(entry)}>
+                            {entry.status === "queued" ? "Revise queued item" : "Add amendment"}
+                          </button>
+                        )}
+                        {entry.status === "in_progress" && (
+                          <span className="dev-feedback-item-locked">Locked while working</span>
+                        )}
+                        {entry.status === "ready_for_qa" && (
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() => void accept(entry.id)}
+                          >
+                            Accept result
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })
               )}
             </div>
           )}
@@ -467,6 +515,7 @@ function SelectionHighlight({ selection }: Readonly<{ selection: DevFeedbackSele
       className="dev-feedback-highlight"
       aria-hidden="true"
       style={{
+        zIndex: HIGHLIGHT_Z_INDEX,
         left: selection.rect.x,
         top: selection.rect.y,
         width: selection.rect.width,
@@ -609,10 +658,14 @@ function newUuid(): string {
 
 async function nextPaint(): Promise<void> {
   await new Promise<void>((resolve) => {
-    if (typeof window.requestAnimationFrame === "function") {
-      window.requestAnimationFrame(() => resolve());
-    } else {
-      window.setTimeout(resolve, 0);
-    }
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(fallback);
+      resolve();
+    };
+    const fallback = window.setTimeout(finish, 100);
+    if (typeof window.requestAnimationFrame === "function") window.requestAnimationFrame(finish);
   });
 }

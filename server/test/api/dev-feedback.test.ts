@@ -112,8 +112,8 @@ describePostgres("development feedback API", () => {
     await submit(app, second.accessToken, randomUUID(), feedbackPayload("Second item"));
 
     const concurrentClaims = await Promise.all([
-      admin(app, "claim", null, {}),
-      admin(app, "claim", null, {}),
+      admin(app, "claim", null, { leaseSeconds: 300 }),
+      admin(app, "claim", null, { leaseSeconds: 300 }),
     ]);
     expect(concurrentClaims.every((response) => response.statusCode === 200)).toBe(true);
     const claimedItems = concurrentClaims.map((response) => response.json().item);
@@ -122,6 +122,14 @@ describePostgres("development feedback API", () => {
     if (!firstClaim) throw new Error("one concurrent claim must succeed");
     expect(firstClaim.item.title).toBe("First item");
     expect((await admin(app, "claim", null, {})).json().item).toBeNull();
+
+    const inProgressAmendment = await app.inject({
+      headers: { authorization: `Bearer ${first.accessToken}`, "idempotency-key": randomUUID() },
+      method: "POST",
+      payload: feedbackPayload("Must wait for the active run"),
+      url: `/v1/dev-feedback/items/${firstClaim.item.id}/amendments`,
+    });
+    expect(inProgressAmendment.statusCode).toBe(409);
 
     const progressed = await admin(app, "progress", firstClaim.item.id, {
       leaseId: firstClaim.leaseId,

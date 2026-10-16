@@ -130,7 +130,10 @@ const adminItemResponse = z.object({
   screenshotHeight: z.number().int().positive(),
 });
 const adminStateResponse = z.object({ item: adminItemResponse.nullable() });
+const leaseSeconds = z.number().int().min(60).max(900);
+const claimBody = z.object({ leaseSeconds: leaseSeconds.optional() }).strict();
 const leaseBody = z.object({ leaseId: uuid, revision: z.number().int().positive() }).strict();
+const heartbeatBody = leaseBody.extend({ leaseSeconds: leaseSeconds.optional() }).strict();
 const progressBody = leaseBody
   .extend({ note: boundedText(1, 600), targetCommit: commit.nullable().optional() })
   .strict();
@@ -253,14 +256,15 @@ export async function registerDevelopmentModule(
     {
       schema: {
         headers: adminHeaders,
-        body: z.object({}).strict(),
+        body: claimBody,
         response: { 200: adminStateResponse, 401: authorizationError },
       },
     },
     async (request, reply) => {
       if (!adminAuthorized(request.headers, config))
         return reply.code(401).send({ error: "unauthorized" });
-      return reply.send({ item: await repository.claim() });
+      const body = claimBody.parse(request.body);
+      return reply.send({ item: await repository.claim(body.leaseSeconds) });
     },
   );
 
@@ -289,9 +293,14 @@ export async function registerDevelopmentModule(
       return reply.code(401).send({ error: "unauthorized" });
     try {
       if (operation === "heartbeat") {
-        const body = leaseBody.parse(request.body);
+        const body = heartbeatBody.parse(request.body);
         return reply.send({
-          item: await repository.heartbeat(request.params.itemId, body.leaseId, body.revision),
+          item: await repository.heartbeat(
+            request.params.itemId,
+            body.leaseId,
+            body.revision,
+            body.leaseSeconds,
+          ),
         });
       }
       if (operation === "progress") {
@@ -345,7 +354,7 @@ export async function registerDevelopmentModule(
           headers: adminHeaders,
           body:
             operation === "heartbeat"
-              ? leaseBody
+              ? heartbeatBody
               : operation === "ready"
                 ? readyBody
                 : operation === "block"

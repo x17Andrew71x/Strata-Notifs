@@ -37,6 +37,14 @@ function transport(items: DevFeedbackItem[] = []): DevFeedbackTransport {
 describe("development feedback tool", () => {
   it("selects a rendered element and submits bounded context through the transport", async () => {
     const api = transport();
+    vi.mocked(api.submit).mockImplementation(async (draft) => {
+      expect(document.querySelector(".dev-feedback-tool.capturing")).toBeTruthy();
+      const panel = document.querySelector<HTMLElement>(".dev-feedback-panel");
+      const highlight = document.querySelector<HTMLElement>(".dev-feedback-highlight");
+      expect(panel).toBeTruthy();
+      expect(highlight).toBeTruthy();
+      return item({ title: draft.title, description: draft.description });
+    });
     render(
       <>
         <button type="button" data-dev-id="excavation-primary-action" aria-label="Excavate tile 1">
@@ -56,6 +64,14 @@ describe("development feedback tool", () => {
     fireEvent.click(screen.getByRole("button", { name: "Excavate tile 1" }));
 
     expect(screen.getByRole("heading", { name: "Stage targeted change" })).toBeTruthy();
+    const panelLayer = Number(
+      window.getComputedStyle(document.querySelector(".dev-feedback-panel") as HTMLElement).zIndex,
+    );
+    const highlightLayer = Number(
+      window.getComputedStyle(document.querySelector(".dev-feedback-highlight") as HTMLElement)
+        .zIndex,
+    );
+    expect(panelLayer).toBeGreaterThan(highlightLayer);
     fireEvent.change(screen.getByLabelText("Change title"), {
       target: { value: "Tighten the excavation action" },
     });
@@ -81,6 +97,39 @@ describe("development feedback tool", () => {
       }),
     );
     expect(await screen.findByRole("status")).toHaveTextContent("Queued in submission order.");
+  });
+
+  it("clears the draft when the panel is closed", () => {
+    const api = transport();
+    render(
+      <>
+        <button type="button" aria-label="Excavate tile 2">
+          Excavate
+        </button>
+        <DevFeedbackTool
+          route="today"
+          shellRevision={"a".repeat(64)}
+          appVersion="0.1.10-dev-debug"
+          transport={api}
+        />
+      </>,
+    );
+
+    const selectTarget = () => {
+      fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+      fireEvent.click(screen.getByRole("button", { name: "Select an element" }));
+      fireEvent.click(screen.getByRole("button", { name: "Excavate tile 2" }));
+    };
+    selectTarget();
+    fireEvent.change(screen.getByLabelText("Change title"), { target: { value: "Old title" } });
+    fireEvent.change(screen.getByLabelText("Describe the change"), {
+      target: { value: "Old description" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Close development feedback" }));
+
+    selectTarget();
+    expect(screen.getByLabelText("Change title")).toHaveValue("");
+    expect(screen.getByLabelText("Describe the change")).toHaveValue("");
   });
 
   it("shows server order and permits acceptance only after Ready for QA", async () => {
@@ -109,12 +158,34 @@ describe("development feedback tool", () => {
     const rows = await screen.findAllByTestId("dev-feedback-item");
     expect(rows[0]).toHaveTextContent("First");
     expect(rows[1]).toHaveTextContent("Second");
+    fireEvent.click(screen.getByRole("button", { name: "View work item #2: Second" }));
+    expect(screen.getByText("Reduce the empty space above the fossil.")).toBeTruthy();
+    expect(screen.getByText("Revision 1 · Original order retained")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "Accept result" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Revise queued item" })).toHaveLength(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Accept result" }));
     await waitFor(() =>
       expect(api.accept).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111"),
     );
+  });
+
+  it("locks amendments while an item is actively running", async () => {
+    const api = transport([item({ status: "in_progress" })]);
+    render(
+      <DevFeedbackTool
+        route="today"
+        shellRevision={"c".repeat(64)}
+        appVersion="0.1.10-dev-debug"
+        transport={api}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work items" }));
+    expect(await screen.findByText("Locked while working")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Revise queued item" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add amendment" })).toBeNull();
   });
 
   it("offers an in-tool shell refresh without clearing application state", async () => {
@@ -155,6 +226,8 @@ describe("development feedback tool", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add amendment" }));
     fireEvent.click(screen.getByRole("button", { name: "Select an element" }));
     fireEvent.click(screen.getByText("Daily excavation"));
+    expect(screen.getByLabelText("Change title")).toHaveValue(original.title);
+    expect(screen.getByLabelText("Describe the change")).toHaveValue(original.description);
     fireEvent.change(screen.getByLabelText("Describe the change"), {
       target: { value: "The deployed spacing is better; move the label slightly lower." },
     });

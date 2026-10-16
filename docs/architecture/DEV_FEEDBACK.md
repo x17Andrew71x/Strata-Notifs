@@ -11,7 +11,7 @@ A movable in-app development control lets Andrew:
 1. select a rendered element or drag a screen region;
 2. add a short title and description;
 3. submit an immutable context bundle and highlighted screenshot;
-4. see work items in submission order;
+4. open work items to inspect the submitted request in submission order;
 5. receive a concise progress or blocker note;
 6. amend an open item without losing its original evidence;
 7. refresh the remote shell without force-quitting the app; and
@@ -28,7 +28,11 @@ The feature is split into isolated adapters rather than embedded throughout prod
 - `server/src/modules/dev-feedback/` owns strict schemas, ordered state, immutable amendments, leases and deployment-gated transitions.
 - Alfred's controller owns queue intake, implementation orchestration, verification, Railway development deployment and lifecycle updates.
 
-The controller is a separately supervised, owner-only service. It claims one lease at a time, persists the bounded packet and screenshot under a private state directory, runs a fresh host-pinned Terra session, heartbeats the lease, and deterministically verifies local HEAD, `origin/dev`, and the live Railway development health revision before requesting **Ready for QA**. A crash or stale amendment cannot authorize completion: the lease expires and the same queue position is recoverable.
+The controller is a separately supervised, owner-only service. It claims one five-minute renewable lease at a time, persists the bounded packet and screenshot under a private state directory, and runs a fresh host-pinned Terra session in a dedicated Git clone. The interpretive worker receives bounded file/search, skill, web and vision capabilities but no terminal or writable Git metadata. It can edit only allowlisted product/test paths; it cannot run commands, create commits, publish, or access the canonical checkout, controller secrets, deployment credentials, the user service bus or ordinary Git remote. Each model run executes in a child transient systemd unit with a 3.5 GiB memory ceiling, no swap, a one-hour wall-clock ceiling, a private user/home/filesystem view and a lifecycle binding to the controller.
+
+After the model returns, the controller validates path, file-count, type and byte limits, then runs the fixed release gates in a second credential-free sandbox. The verifier receives neither provider authentication nor deployment credentials, and candidate bytes must remain unchanged through verification. Only then does the controller create the commit, import it through the isolated clone boundary, fast-forward the clean canonical checkout, push it and wait for Railway development. Lease heartbeats fence preparation, evidence capture, verification and every irreversible integration step. The controller itself is OOM-protected, so a child OOM or timeout cannot kill queue supervision.
+
+Before every attempt the controller records the clean development baseline and resets only the isolated clone to it. If a run is interrupted, it durably preserves the clone's bounded tracked patch, local commits and allowed untracked evidence, records truncated or omitted evidence in a capped manifest, then resets that clone to `origin/dev`; the canonical checkout remains clean. If the controller itself restarts after a controller-created candidate commit, the durable state and isolated HEAD let it finish integration or deployment verification without repeating model work. Otherwise, the short lease expires, the same queue position is reclaimed and the recorded running attempt enters the bounded recovery path. The controller retries up to three times with increasing backoff, applies a global state/run quota, and turns repeated infrastructure failures into **Blocked** rather than looping forever or exhausting disk.
 
 The web control knows no repository path, deployment credential or agent endpoint. It receives only an opaque project identity and a narrow transport. Repository, branch, skills and deployment policy remain server/controller-side.
 
@@ -46,6 +50,8 @@ Each revision contains only bounded development evidence:
 - one WebP screenshot and its SHA-256 digest; and
 - creation timestamp, revision number and idempotency key.
 
+The development panel, trigger and selection hint are synchronously removed from the capture frame only; the selected-area highlight remains visible over the underlying product screen. Closing the panel clears its unsent draft. The panel always renders above the selection highlight while Andrew is entering details.
+
 No notification text, sender, contact, action, media, raw package identity, credentials, cookies, request bodies, arbitrary application state, filesystem data or unrestricted logs may enter this channel.
 
 ## Lifecycle and ordering
@@ -60,7 +66,7 @@ Rules:
 - Only one item may be actively worked for a project.
 - The oldest blocked item prevents later work until resolved.
 - A Ready-for-QA item does not prevent the next queued item from being implemented.
-- An amendment appends a new immutable revision, revokes the current lease, preserves the original queue position and returns the item to Queued.
+- A queued, blocked or Ready-for-QA amendment appends a new immutable revision, preserves the original queue position and returns the item to Queued. Active Working items are locked against amendment so a visible edit cannot revoke a live worker lease.
 - Every worker mutation is fenced by the current lease and item revision.
 - A stale worker cannot update status after an amendment or lease recovery.
 - Accept is idempotent and valid only from Ready for QA.
