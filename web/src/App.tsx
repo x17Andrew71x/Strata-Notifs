@@ -668,54 +668,6 @@ function Excavation({
       className="excavation"
       aria-label={`Excavate today’s concealed fossil. ${excavation.energyAvailable} energy available.`}
     >
-      <RetryingImage
-        key={artifact.excavationImage}
-        className="excavation-artifact"
-        src={artifact.excavationImage}
-      />
-      <div
-        className="excavation-grid"
-        style={
-          {
-            "--excavation-columns": excavation.gridColumns,
-            "--excavation-rows": excavation.gridRows,
-          } as CSSProperties
-        }
-      >
-        {EXCAVATION_TILE_IDS.slice(0, tileCount).map((tileId) => {
-          const tileIndex = Number(tileId.slice("excavation-tile-".length));
-          const dug = dugTiles.has(tileIndex);
-          const row = Math.floor(tileIndex / excavation.gridColumns);
-          const column = tileIndex % excavation.gridColumns;
-          const cornerClass =
-            row === 0 && column === 0
-              ? " excavation-tile-corner-top-left"
-              : row === 0 && column === excavation.gridColumns - 1
-                ? " excavation-tile-corner-top-right"
-                : row === excavation.gridRows - 1 && column === 0
-                  ? " excavation-tile-corner-bottom-left"
-                  : row === excavation.gridRows - 1 && column === excavation.gridColumns - 1
-                    ? " excavation-tile-corner-bottom-right"
-                    : "";
-          return (
-            <button
-              type="button"
-              key={tileId}
-              className={`excavation-tile${cornerClass}${dug ? " dug" : ""}${clearingTiles.has(tileIndex) ? " is-clearing" : ""}`}
-              data-tile-index={tileIndex}
-              aria-label={
-                dug
-                  ? `Excavation tile ${tileIndex + 1} cleared`
-                  : `Excavate tile ${tileIndex + 1} for ${excavation.tileEnergyCost} energy`
-              }
-              aria-hidden={dug ? "true" : undefined}
-              tabIndex={dug ? -1 : 0}
-              disabled={dug || digInFlight || !canAfford}
-              onClick={() => onDig(tileIndex)}
-            />
-          );
-        })}
-      </div>
       <div className="excavation-hud">
         <div>
           <span>Dig energy</span>
@@ -728,6 +680,56 @@ function Excavation({
           <strong>
             {excavation.dugTiles.length}/{tileCount}
           </strong>
+        </div>
+      </div>
+      <div className="excavation-bed">
+        <RetryingImage
+          key={artifact.excavationImage}
+          className="excavation-artifact"
+          src={artifact.excavationImage}
+        />
+        <div
+          className="excavation-grid"
+          style={
+            {
+              "--excavation-columns": excavation.gridColumns,
+              "--excavation-rows": excavation.gridRows,
+            } as CSSProperties
+          }
+        >
+          {EXCAVATION_TILE_IDS.slice(0, tileCount).map((tileId) => {
+            const tileIndex = Number(tileId.slice("excavation-tile-".length));
+            const dug = dugTiles.has(tileIndex);
+            const row = Math.floor(tileIndex / excavation.gridColumns);
+            const column = tileIndex % excavation.gridColumns;
+            const cornerClass =
+              row === 0 && column === 0
+                ? " excavation-tile-corner-top-left"
+                : row === 0 && column === excavation.gridColumns - 1
+                  ? " excavation-tile-corner-top-right"
+                  : row === excavation.gridRows - 1 && column === 0
+                    ? " excavation-tile-corner-bottom-left"
+                    : row === excavation.gridRows - 1 && column === excavation.gridColumns - 1
+                      ? " excavation-tile-corner-bottom-right"
+                      : "";
+            return (
+              <button
+                type="button"
+                key={tileId}
+                className={`excavation-tile${cornerClass}${dug ? " dug" : ""}${clearingTiles.has(tileIndex) ? " is-clearing" : ""}`}
+                data-tile-index={tileIndex}
+                aria-label={
+                  dug
+                    ? `Excavation tile ${tileIndex + 1} cleared`
+                    : `Excavate tile ${tileIndex + 1} for ${excavation.tileEnergyCost} energy`
+                }
+                aria-hidden={dug ? "true" : undefined}
+                tabIndex={dug ? -1 : 0}
+                disabled={dug || digInFlight || !canAfford}
+                onClick={() => onDig(tileIndex)}
+              />
+            );
+          })}
         </div>
       </div>
       <p className="excavation-capture">

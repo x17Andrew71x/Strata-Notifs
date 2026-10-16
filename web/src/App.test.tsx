@@ -393,6 +393,10 @@ describe("full shell application", () => {
       "src",
       "/worlds/relic-dactylioceras-ammonite-excavation-50dc0ab0359a.webp",
     );
+    const excavationBed = container.querySelector(".excavation-bed");
+    expect(excavationBed).toContainElement(container.querySelector(".excavation-grid"));
+    expect(excavationBed).not.toContainElement(container.querySelector(".excavation-hud"));
+    expect(excavationBed).not.toContainElement(container.querySelector(".excavation-capture"));
     expect(container.querySelectorAll(".excavation-tile")).toHaveLength(25);
     expect(container.querySelectorAll(".excavation-tile.dug")).toHaveLength(1);
     expect(container.querySelector('[data-tile-index="0"]')).toHaveClass(

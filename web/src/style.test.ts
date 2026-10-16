@@ -40,14 +40,16 @@ describe("Museum rarity card styling", () => {
 });
 
 describe("excavation motion", () => {
-  it("keeps dig statistics over the excavation artwork instead of beneath it", () => {
+  it("keeps dig statistics above and outside the excavation bed", () => {
     const excavation = declarationBlock(".excavation");
+    const excavationBed = declarationBlock(".excavation-bed");
     const hud = declarationBlock(".excavation-hud");
 
-    expect(excavation).toContain("position: relative");
-    expect(hud).toContain("z-index: 3");
-    expect(hud).toContain("top: 12px");
-    expect(hud).not.toContain("bottom:");
+    expect(excavation).toContain("display: flex");
+    expect(excavation).toContain("flex-direction: column");
+    expect(excavationBed).toContain("position: relative");
+    expect(hud).not.toContain("position: absolute");
+    expect(hud).not.toContain("z-index:");
   });
 
   it("rounds every corner tile to follow the fossil beneath the excavation bed", () => {

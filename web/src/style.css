@@ -464,7 +464,9 @@ p {
 }
 
 .excavation {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   width: auto;
   max-width: min(100%, 372px);
   height: min(100%, 432px);
@@ -473,6 +475,13 @@ p {
   border: 0;
   padding: 0;
   aspect-ratio: 0.86;
+}
+
+.excavation-bed {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  aspect-ratio: 1;
   isolation: isolate;
 }
 
@@ -626,11 +635,6 @@ p {
 }
 
 .excavation-hud {
-  position: absolute;
-  z-index: 3;
-  top: 12px;
-  right: 12px;
-  left: 12px;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
@@ -644,7 +648,7 @@ p {
   gap: 8px;
   border: 1px solid #c39b6540;
   border-radius: 7px;
-  padding: 6px 8px;
+  padding: 4px 8px;
   background: #0a0805b8;
   box-shadow: 0 2px 12px #0007;
 }
@@ -671,10 +675,6 @@ p {
 }
 
 .excavation-capture {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
   overflow: hidden;
   margin: 0;
   text-align: center;
