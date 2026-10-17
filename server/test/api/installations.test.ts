@@ -112,7 +112,7 @@ describePostgres("installation registration API", () => {
       }>[]
     >`
       SELECT
-        (SELECT count(*)::text FROM installations) AS installations,
+        (SELECT count(*)::text FROM installations WHERE is_synthetic = false) AS installations,
         (SELECT count(*)::text FROM auth_refresh_tokens) AS refresh_tokens,
         (SELECT count(*)::text FROM auth_refresh_tokens WHERE token_hash = ${createdBody.refreshToken}) AS raw_secret_count
     `;
