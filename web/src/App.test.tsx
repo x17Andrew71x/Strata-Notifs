@@ -728,6 +728,9 @@ describe("full shell application", () => {
     renderWithState(baseState);
     fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
 
+    expect(screen.getByRole("heading", { name: "Online & series" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Data & privacy" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Accessibility" })).toBeTruthy();
     expect(screen.getByText("Relic Vault · Included for launch", { exact: true })).toBeTruthy();
     for (const detail of [
       /Choose which apps may add layers/i,

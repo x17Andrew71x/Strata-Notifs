@@ -1458,9 +1458,21 @@ p {
   font-size: 13px;
 }
 
+.settings-section {
+  margin-top: 20px;
+}
+
+.settings-section-title {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-align: left;
+}
+
 .settings-group {
   overflow: hidden;
-  margin-top: 20px;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: #ffffff07;

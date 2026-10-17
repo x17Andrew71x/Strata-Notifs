@@ -1055,61 +1055,76 @@ function More({
         <p className="eyebrow">Local controls</p>
         <h1 id="settings-title">Settings</h1>
       </div>
-      <div className="settings-group">
-        <button type="button" className="settings-link" onClick={onWorlds}>
-          <span>
-            <strong>Series</strong>
-            <small>Relic Vault · Included for launch</small>
-          </span>
-          <span>›</span>
-        </button>
-        <button type="button" className="settings-link" onClick={onOpenSettings}>
-          <span>
-            <strong>Notification access</strong>
-            <small>
-              Choose which apps may add layers ·{" "}
-              {state.notificationAccess ? "Collecting" : "Paused"}
-            </small>
-          </span>
-          <span>›</span>
-        </button>
-      </div>
-      <div className="settings-group">
-        <Toggle
-          label="Online features"
-          detail="Connect to optional online tools; your collection still works offline"
-          checked={preferences.onlineFeaturesEnabled}
-          onChange={(value) => onPreference("onlineFeaturesEnabled", value)}
-        />
-        <Toggle
-          label="Help improve Afterchime"
-          detail="Send which parts of Afterchime are used and basic device details such as app version, Android version, language, and phone or tablet."
-          checked={preferences.productAnalyticsEnabled}
-          disabled={!preferences.onlineFeaturesEnabled}
-          onChange={(value) => onPreference("productAnalyticsEnabled", value)}
-        />
-        <Toggle
-          label="Share daily activity totals"
-          detail="Send one day’s counts by broad type and hour, plus whether collection was active all day. Never includes notification text, app names, senders, contacts, or media."
-          checked={preferences.notificationAggregateSharingEnabled}
-          disabled={!preferences.onlineFeaturesEnabled}
-          onChange={(value) => onPreference("notificationAggregateSharingEnabled", value)}
-        />
-      </div>
-      <div className="settings-group">
-        <Toggle
-          label="Reduce motion"
-          detail="Turn off excavation and reveal animations"
-          checked={preferences.reduceMotionEnabled}
-          onChange={(value) => onPreference("reduceMotionEnabled", value)}
-        />
-        <Toggle
-          label="High contrast"
-          detail="Increase separation between text, controls, and surfaces"
-          checked={preferences.highContrastEnabled}
-          onChange={(value) => onPreference("highContrastEnabled", value)}
-        />
-      </div>
+      <section className="settings-section" aria-labelledby="online-series-title">
+        <h2 id="online-series-title" className="settings-section-title">
+          Online & series
+        </h2>
+        <div className="settings-group">
+          <button type="button" className="settings-link" onClick={onWorlds}>
+            <span>
+              <strong>Series</strong>
+              <small>Relic Vault · Included for launch</small>
+            </span>
+            <span>›</span>
+          </button>
+          <Toggle
+            label="Online features"
+            detail="Connect to optional online tools; your collection still works offline"
+            checked={preferences.onlineFeaturesEnabled}
+            onChange={(value) => onPreference("onlineFeaturesEnabled", value)}
+          />
+        </div>
+      </section>
+      <section className="settings-section" aria-labelledby="data-privacy-title">
+        <h2 id="data-privacy-title" className="settings-section-title">
+          Data & privacy
+        </h2>
+        <div className="settings-group">
+          <button type="button" className="settings-link" onClick={onOpenSettings}>
+            <span>
+              <strong>Notification access</strong>
+              <small>
+                Choose which apps may add layers ·{" "}
+                {state.notificationAccess ? "Collecting" : "Paused"}
+              </small>
+            </span>
+            <span>›</span>
+          </button>
+          <Toggle
+            label="Help improve Afterchime"
+            detail="Send which parts of Afterchime are used and basic device details such as app version, Android version, language, and phone or tablet."
+            checked={preferences.productAnalyticsEnabled}
+            disabled={!preferences.onlineFeaturesEnabled}
+            onChange={(value) => onPreference("productAnalyticsEnabled", value)}
+          />
+          <Toggle
+            label="Share daily activity totals"
+            detail="Send one day’s counts by broad type and hour, plus whether collection was active all day. Never includes notification text, app names, senders, contacts, or media."
+            checked={preferences.notificationAggregateSharingEnabled}
+            disabled={!preferences.onlineFeaturesEnabled}
+            onChange={(value) => onPreference("notificationAggregateSharingEnabled", value)}
+          />
+        </div>
+      </section>
+      <section className="settings-section" aria-labelledby="accessibility-title">
+        <h2 id="accessibility-title" className="settings-section-title">
+          Accessibility
+        </h2>
+        <div className="settings-group">
+          <Toggle
+            label="Reduce motion"
+            detail="Turn off excavation and reveal animations"
+            checked={preferences.reduceMotionEnabled}
+            onChange={(value) => onPreference("reduceMotionEnabled", value)}
+          />
+          <Toggle
+            label="High contrast"
+            detail="Increase separation between text, controls, and surfaces"
+            checked={preferences.highContrastEnabled}
+            onChange={(value) => onPreference("highContrastEnabled", value)}
+          />
+        </div>
+      </section>
       <p className="version-line">
         Shell {metadata ? `v${metadata.shellVersion} · ${metadata.revision.slice(0, 8)}` : "cached"}{" "}
         · Bridge v2
