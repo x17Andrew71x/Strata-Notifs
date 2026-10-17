@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import type { DatabaseClient } from "../../db/client.js";
+import type { DevFeedbackProject } from "./project.js";
 
 export type DevFeedbackStatus =
   | "queued"
@@ -12,6 +13,7 @@ export type DevFeedbackStatus =
 
 export type DevFeedbackIdentity = Readonly<{
   installationId: string;
+  projectId: DevFeedbackProject;
   userId: string;
 }>;
 
@@ -19,6 +21,7 @@ export type DevFeedbackRevisionInput = Readonly<{
   context: postgres.JSONValue;
   description: string;
   idempotencyKey: string;
+  projectId: DevFeedbackProject;
   requestHash: string;
   screenshot: Buffer;
   screenshotHeight: number;
@@ -107,7 +110,10 @@ export class DevFeedbackRepository {
   public async list(identity: DevFeedbackIdentity): Promise<DevFeedbackState> {
     return this.database.begin(async (transaction) => {
       await setIdentity(transaction, identity);
-      return { item: null, items: await listOpen(transaction, identity.installationId) };
+      return {
+        item: null,
+        items: await listOpen(transaction, identity.installationId, identity.projectId),
+      };
     });
   }
 
@@ -115,6 +121,7 @@ export class DevFeedbackRepository {
     identity: DevFeedbackIdentity,
     input: DevFeedbackRevisionInput,
   ): Promise<DevFeedbackState> {
+    if (input.projectId !== identity.projectId) throw new DevFeedbackConflictError();
     return this.database.begin(async (transaction) => {
       await setIdentity(transaction, identity);
       const replay = await findRevisionByIdempotency(
@@ -124,7 +131,7 @@ export class DevFeedbackRepository {
         input.requestHash,
       );
       if (replay) {
-        return stateFor(transaction, identity.installationId, replay.item_id);
+        return stateFor(transaction, identity.installationId, identity.projectId, replay.item_id);
       }
 
       const itemId = randomUUID();
@@ -153,18 +160,23 @@ export class DevFeedbackRepository {
         if (!existing?.result_id || existing.request_hash !== input.requestHash) {
           throw new DevFeedbackConflictError();
         }
-        return stateFor(transaction, identity.installationId, existing.result_id);
+        return stateFor(
+          transaction,
+          identity.installationId,
+          identity.projectId,
+          existing.result_id,
+        );
       }
 
       await transaction`
         INSERT INTO dev_feedback_items (
-          id, installation_id, current_revision, title, description
+          id, installation_id, project_id, current_revision, title, description
         ) VALUES (
-          ${itemId}, ${identity.installationId}, 1, ${input.title}, ${input.description}
+          ${itemId}, ${identity.installationId}, ${input.projectId}, 1, ${input.title}, ${input.description}
         )
       `;
       await insertRevision(transaction, identity.installationId, itemId, revisionId, 1, input);
-      return stateFor(transaction, identity.installationId, itemId);
+      return stateFor(transaction, identity.installationId, identity.projectId, itemId);
     });
   }
 
@@ -173,6 +185,7 @@ export class DevFeedbackRepository {
     itemId: string,
     input: DevFeedbackRevisionInput,
   ): Promise<DevFeedbackState> {
+    if (input.projectId !== identity.projectId) throw new DevFeedbackConflictError();
     return this.database.begin(async (transaction) => {
       await setIdentity(transaction, identity);
       const replay = await findRevisionByIdempotency(
@@ -183,7 +196,7 @@ export class DevFeedbackRepository {
       );
       if (replay) {
         if (replay.item_id !== itemId) throw new DevFeedbackConflictError();
-        return stateFor(transaction, identity.installationId, replay.item_id);
+        return stateFor(transaction, identity.installationId, identity.projectId, replay.item_id);
       }
 
       const [item] = await transaction<
@@ -192,6 +205,7 @@ export class DevFeedbackRepository {
         SELECT current_revision, status
         FROM dev_feedback_items
         WHERE id = ${itemId} AND installation_id = ${identity.installationId}
+          AND project_id = ${identity.projectId}
         FOR UPDATE
       `;
       if (
@@ -226,7 +240,7 @@ export class DevFeedbackRepository {
         if (!replayAfterConflict || replayAfterConflict.item_id !== itemId) {
           throw new DevFeedbackConflictError();
         }
-        return stateFor(transaction, identity.installationId, itemId);
+        return stateFor(transaction, identity.installationId, identity.projectId, itemId);
       }
       await insertRevision(
         transaction,
@@ -250,8 +264,9 @@ export class DevFeedbackRepository {
             deployed_commit = NULL,
             updated_at = now()
         WHERE id = ${itemId} AND installation_id = ${identity.installationId}
+          AND project_id = ${identity.projectId}
       `;
-      return stateFor(transaction, identity.installationId, itemId);
+      return stateFor(transaction, identity.installationId, identity.projectId, itemId);
     });
   }
 
@@ -262,6 +277,7 @@ export class DevFeedbackRepository {
         SELECT status
         FROM dev_feedback_items
         WHERE id = ${itemId} AND installation_id = ${identity.installationId}
+          AND project_id = ${identity.projectId}
         FOR UPDATE
       `;
       if (!item) throw new DevFeedbackNotReadyError();
@@ -274,12 +290,18 @@ export class DevFeedbackRepository {
               accepted_at = now(),
               updated_at = now()
           WHERE id = ${itemId} AND installation_id = ${identity.installationId}
+          AND project_id = ${identity.projectId}
         `;
       }
-      const [accepted] = await itemRows(transaction, identity.installationId, itemId);
+      const [accepted] = await itemRows(
+        transaction,
+        identity.installationId,
+        identity.projectId,
+        itemId,
+      );
       return {
         item: accepted ? mapItem(accepted) : null,
-        items: await listOpen(transaction, identity.installationId),
+        items: await listOpen(transaction, identity.installationId, identity.projectId),
       };
     });
   }
@@ -291,6 +313,7 @@ export class DevFeedbackRepository {
         SELECT status
         FROM dev_feedback_items
         WHERE id = ${itemId} AND installation_id = ${identity.installationId}
+          AND project_id = ${identity.projectId}
         FOR UPDATE
       `;
       if (!item) throw new DevFeedbackNotReadyError();
@@ -307,41 +330,50 @@ export class DevFeedbackRepository {
               lease_expires_at = NULL,
               updated_at = now()
           WHERE id = ${itemId} AND installation_id = ${identity.installationId}
+          AND project_id = ${identity.projectId}
         `;
       }
-      return stateFor(transaction, identity.installationId, itemId);
+      return stateFor(transaction, identity.installationId, identity.projectId, itemId);
     });
   }
 
-  public async claim(leaseSeconds = 300): Promise<DevFeedbackAdminItem | null> {
+  public async claim(
+    projectId: DevFeedbackProject,
+    leaseSeconds = 300,
+  ): Promise<DevFeedbackAdminItem | null> {
     const leaseId = randomUUID();
     const [row] = await this.database<AdminRow[]>`
-      SELECT * FROM public.afterchime_claim_dev_feedback(${leaseId}, ${leaseSeconds})
+      SELECT * FROM public.afterchime_claim_dev_feedback(${projectId}, ${leaseId}, ${leaseSeconds})
     `;
     return row ? mapAdminItem(row) : null;
   }
 
-  public async adminGet(itemId: string): Promise<DevFeedbackAdminItem | null> {
+  public async adminGet(
+    projectId: DevFeedbackProject,
+    itemId: string,
+  ): Promise<DevFeedbackAdminItem | null> {
     const [row] = await this.database<AdminRow[]>`
-      SELECT * FROM public.afterchime_get_dev_feedback(${itemId})
+      SELECT * FROM public.afterchime_get_dev_feedback(${projectId}, ${itemId})
     `;
     return row ? mapAdminItem(row) : null;
   }
 
   public async heartbeat(
+    projectId: DevFeedbackProject,
     itemId: string,
     leaseId: string,
     revision: number,
     leaseSeconds = 300,
   ): Promise<DevFeedbackAdminItem> {
     const [row] = await this.database<AdminRow[]>`
-      SELECT * FROM public.afterchime_heartbeat_dev_feedback(${itemId}, ${leaseId}, ${revision}, ${leaseSeconds})
+      SELECT * FROM public.afterchime_heartbeat_dev_feedback(${projectId}, ${itemId}, ${leaseId}, ${revision}, ${leaseSeconds})
     `;
     if (!row) throw new DevFeedbackConflictError("stale_dev_feedback_lease");
     return mapAdminItem(row);
   }
 
   public async progress(
+    projectId: DevFeedbackProject,
     itemId: string,
     leaseId: string,
     revision: number,
@@ -350,7 +382,7 @@ export class DevFeedbackRepository {
   ): Promise<DevFeedbackAdminItem> {
     const [row] = await this.database<AdminRow[]>`
       SELECT * FROM public.afterchime_progress_dev_feedback(
-        ${itemId}, ${leaseId}, ${revision}, ${note}, ${targetCommit}
+        ${projectId}, ${itemId}, ${leaseId}, ${revision}, ${note}, ${targetCommit}
       )
     `;
     if (!row) throw new DevFeedbackConflictError("stale_dev_feedback_lease");
@@ -358,19 +390,21 @@ export class DevFeedbackRepository {
   }
 
   public async block(
+    projectId: DevFeedbackProject,
     itemId: string,
     leaseId: string,
     revision: number,
     note: string,
   ): Promise<DevFeedbackAdminItem> {
     const [row] = await this.database<AdminRow[]>`
-      SELECT * FROM public.afterchime_block_dev_feedback(${itemId}, ${leaseId}, ${revision}, ${note})
+      SELECT * FROM public.afterchime_block_dev_feedback(${projectId}, ${itemId}, ${leaseId}, ${revision}, ${note})
     `;
     if (!row) throw new DevFeedbackConflictError("stale_dev_feedback_lease");
     return mapAdminItem(row);
   }
 
   public async ready(
+    projectId: DevFeedbackProject,
     itemId: string,
     leaseId: string,
     revision: number,
@@ -383,7 +417,7 @@ export class DevFeedbackRepository {
     try {
       [row] = await this.database<AdminRow[]>`
         SELECT * FROM public.afterchime_ready_dev_feedback(
-          ${itemId}, ${leaseId}, ${revision}, ${note},
+          ${projectId}, ${itemId}, ${leaseId}, ${revision}, ${note},
           ${targetCommit}, ${deployedCommit}, ${liveDeployedRevision}
         )
       `;
@@ -448,32 +482,39 @@ async function findRevisionByIdempotency(
 async function stateFor(
   database: postgres.TransactionSql,
   installationId: string,
+  projectId: DevFeedbackProject,
   itemId: string,
 ): Promise<DevFeedbackState> {
-  const [row] = await itemRows(database, installationId, itemId);
-  return { item: row ? mapItem(row) : null, items: await listOpen(database, installationId) };
+  const [row] = await itemRows(database, installationId, projectId, itemId);
+  return {
+    item: row ? mapItem(row) : null,
+    items: await listOpen(database, installationId, projectId),
+  };
 }
 
 async function itemRows(
   database: postgres.TransactionSql,
   installationId: string,
+  projectId: DevFeedbackProject,
   itemId: string,
 ): Promise<ItemRow[]> {
   return database<ItemRow[]>`
     SELECT id, queue_position, current_revision, title, description, status, note, created_at, updated_at
     FROM dev_feedback_items
-    WHERE installation_id = ${installationId} AND id = ${itemId}
+    WHERE installation_id = ${installationId} AND project_id = ${projectId} AND id = ${itemId}
   `;
 }
 
 async function listOpen(
   database: postgres.TransactionSql,
   installationId: string,
+  projectId: DevFeedbackProject,
 ): Promise<DevFeedbackItem[]> {
   const rows = await database<ItemRow[]>`
     SELECT id, queue_position, current_revision, title, description, status, note, created_at, updated_at
     FROM dev_feedback_items
     WHERE installation_id = ${installationId}
+      AND project_id = ${projectId}
       AND status NOT IN ('accepted'::dev_feedback_status, 'closed'::dev_feedback_status)
     ORDER BY queue_position
     LIMIT 200

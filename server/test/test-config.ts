@@ -11,6 +11,11 @@ export const testConfig: ServerConfig = {
   accessTokenSecret: "test-access-token-secret-at-least-32-characters",
   refreshTokenPepper: "test-refresh-token-pepper-at-least-32-characters",
   adminApiKeyHash: "",
+  feedbackProjects: {
+    afterchime: { adminKeyHash: "", clientKeyHash: null, deploymentUrl: null },
+    decree: { adminKeyHash: "", clientKeyHash: null, deploymentUrl: null },
+    "please-just-sleep": { adminKeyHash: "", clientKeyHash: null, deploymentUrl: null },
+  },
   developmentModuleEnabled: false,
   deployedRevision: "0000000000000000000000000000000000000000",
   corsOrigins: [],

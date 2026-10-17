@@ -6,6 +6,12 @@ import type { DatabaseClient } from "../../db/client.js";
 import { verifyAdminKey } from "../../security/admin-auth.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import {
+  type DevFeedbackProject,
+  devFeedbackProjects,
+  isDevFeedbackProject,
+  trustedProjectIdentities,
+} from "./project.js";
+import {
   DevFeedbackConflictError,
   type DevFeedbackIdentity,
   DevFeedbackNotReadyError,
@@ -15,7 +21,7 @@ import {
 
 const uuid = z.string().uuid();
 const commit = z.string().regex(/^[0-9a-f]{40}$/);
-const digest = z.string().regex(/^[0-9a-f]{64}$/);
+const digest = z.string().regex(/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/);
 const hasControlCharacter = (value: string) =>
   Array.from(value).some((character) => {
     const code = character.charCodeAt(0);
@@ -114,7 +120,16 @@ const stateResponse = z.object({
   item: itemResponse.nullable(),
   items: z.array(itemResponse).max(200),
 });
-const adminHeaders = z.object({ "x-afterchime-admin-key": z.string().min(1).max(256) });
+const projectHeader = z.enum(devFeedbackProjects).optional();
+const adminHeaders = z.object({
+  "x-afterchime-admin-key": z.string().min(1).max(256).optional(),
+  "x-dev-feedback-admin-key": z.string().min(1).max(256).optional(),
+  "x-dev-feedback-project": projectHeader,
+});
+const trustedHeaders = z.object({
+  "x-dev-feedback-client-key": z.string().min(1).max(256),
+  "x-dev-feedback-project": z.enum(["decree", "please-just-sleep"]),
+});
 const adminItemResponse = z.object({
   item: itemResponse,
   installationId: uuid,
@@ -181,7 +196,12 @@ export async function registerDevelopmentModule(
       try {
         const state = await repository.create(
           identity,
-          revisionInput(feedbackBody.parse(request.body), headers["idempotency-key"], config),
+          revisionInput(
+            feedbackBody.parse(request.body),
+            headers["idempotency-key"],
+            config,
+            "afterchime",
+          ),
         );
         return reply.code(201).send(state);
       } catch (error) {
@@ -216,7 +236,12 @@ export async function registerDevelopmentModule(
         const state = await repository.amend(
           identity,
           request.params.itemId,
-          revisionInput(feedbackBody.parse(request.body), headers["idempotency-key"], config),
+          revisionInput(
+            feedbackBody.parse(request.body),
+            headers["idempotency-key"],
+            config,
+            "afterchime",
+          ),
         );
         return reply.code(201).send(state);
       } catch (error) {
@@ -273,6 +298,117 @@ export async function registerDevelopmentModule(
     },
   );
 
+  app.get(
+    "/v1/dev-feedback/trusted/items",
+    {
+      schema: {
+        headers: trustedHeaders,
+        response: { 200: stateResponse, 401: authorizationError },
+      },
+    },
+    async (request, reply) => {
+      const identity = trustedIdentity(request.headers, config);
+      if (!identity) return reply.code(401).send({ error: "unauthorized" });
+      return reply.send(await repository.list(identity));
+    },
+  );
+
+  app.post(
+    "/v1/dev-feedback/trusted/items",
+    {
+      bodyLimit: 1_100 * 1_024,
+      schema: {
+        headers: trustedHeaders.merge(idempotencyHeaders),
+        body: feedbackBody,
+        response: { 201: stateResponse, 401: authorizationError, 409: authorizationError },
+      },
+    },
+    async (request, reply) => {
+      const identity = trustedIdentity(request.headers, config);
+      if (!identity) return reply.code(401).send({ error: "unauthorized" });
+      const headers = trustedHeaders.merge(idempotencyHeaders).parse(request.headers);
+      try {
+        const state = await repository.create(
+          identity,
+          revisionInput(
+            feedbackBody.parse(request.body),
+            headers["idempotency-key"],
+            config,
+            identity.projectId,
+          ),
+        );
+        return reply.code(201).send(state);
+      } catch (error) {
+        if (error instanceof DevFeedbackConflictError)
+          return reply.code(409).send({ error: "conflict" });
+        throw error;
+      }
+    },
+  );
+
+  app.post<{ Params: { itemId: string } }>(
+    "/v1/dev-feedback/trusted/items/:itemId/amendments",
+    {
+      bodyLimit: 1_100 * 1_024,
+      schema: {
+        params: z.object({ itemId: uuid }),
+        headers: trustedHeaders.merge(idempotencyHeaders),
+        body: feedbackBody,
+        response: { 201: stateResponse, 401: authorizationError, 409: authorizationError },
+      },
+    },
+    async (request, reply) => {
+      const identity = trustedIdentity(request.headers, config);
+      if (!identity) return reply.code(401).send({ error: "unauthorized" });
+      const headers = trustedHeaders.merge(idempotencyHeaders).parse(request.headers);
+      try {
+        const state = await repository.amend(
+          identity,
+          request.params.itemId,
+          revisionInput(
+            feedbackBody.parse(request.body),
+            headers["idempotency-key"],
+            config,
+            identity.projectId,
+          ),
+        );
+        return reply.code(201).send(state);
+      } catch (error) {
+        if (error instanceof DevFeedbackConflictError)
+          return reply.code(409).send({ error: "conflict" });
+        if (error instanceof DevFeedbackNotReadyError)
+          return reply.code(409).send({ error: "not_ready" });
+        throw error;
+      }
+    },
+  );
+
+  for (const operation of ["accept", "close"] as const) {
+    app.post<{ Params: { itemId: string } }>(
+      `/v1/dev-feedback/trusted/items/:itemId/${operation}`,
+      {
+        schema: {
+          params: z.object({ itemId: uuid }),
+          headers: trustedHeaders,
+          body: z.object({}).strict(),
+          response: { 200: stateResponse, 401: authorizationError, 409: authorizationError },
+        },
+      },
+      async (request, reply) => {
+        const identity = trustedIdentity(request.headers, config);
+        if (!identity) return reply.code(401).send({ error: "unauthorized" });
+        try {
+          const state = await repository[operation](identity, request.params.itemId);
+          return reply.send(state);
+        } catch (error) {
+          if (error instanceof DevFeedbackNotReadyError)
+            return reply.code(409).send({ error: "not_ready" });
+          throw error;
+        }
+      },
+    );
+  }
+
   app.post(
     "/v1/dev-feedback/admin/claim",
     {
@@ -283,10 +419,10 @@ export async function registerDevelopmentModule(
       },
     },
     async (request, reply) => {
-      if (!adminAuthorized(request.headers, config))
-        return reply.code(401).send({ error: "unauthorized" });
+      const projectId = authorizedProject(request.headers, config, "admin");
+      if (!projectId) return reply.code(401).send({ error: "unauthorized" });
       const body = claimBody.parse(request.body);
-      return reply.send({ item: await repository.claim(body.leaseSeconds) });
+      return reply.send({ item: await repository.claim(projectId, body.leaseSeconds) });
     },
   );
 
@@ -300,9 +436,9 @@ export async function registerDevelopmentModule(
       },
     },
     async (request, reply) => {
-      if (!adminAuthorized(request.headers, config))
-        return reply.code(401).send({ error: "unauthorized" });
-      return reply.send({ item: await repository.adminGet(request.params.itemId) });
+      const projectId = authorizedProject(request.headers, config, "admin");
+      if (!projectId) return reply.code(401).send({ error: "unauthorized" });
+      return reply.send({ item: await repository.adminGet(projectId, request.params.itemId) });
     },
   );
 
@@ -311,13 +447,14 @@ export async function registerDevelopmentModule(
     reply: FastifyReply,
     operation: "heartbeat" | "progress" | "block" | "ready",
   ) => {
-    if (!adminAuthorized(request.headers, config))
-      return reply.code(401).send({ error: "unauthorized" });
+    const projectId = authorizedProject(request.headers, config, "admin");
+    if (!projectId) return reply.code(401).send({ error: "unauthorized" });
     try {
       if (operation === "heartbeat") {
         const body = heartbeatBody.parse(request.body);
         return reply.send({
           item: await repository.heartbeat(
+            projectId,
             request.params.itemId,
             body.leaseId,
             body.revision,
@@ -329,6 +466,7 @@ export async function registerDevelopmentModule(
         const body = progressBody.parse(request.body);
         return reply.send({
           item: await repository.progress(
+            projectId,
             request.params.itemId,
             body.leaseId,
             body.revision,
@@ -341,6 +479,7 @@ export async function registerDevelopmentModule(
         const body = progressBody.omit({ targetCommit: true }).parse(request.body);
         return reply.send({
           item: await repository.block(
+            projectId,
             request.params.itemId,
             body.leaseId,
             body.revision,
@@ -349,15 +488,17 @@ export async function registerDevelopmentModule(
         });
       }
       const body = readyBody.parse(request.body);
+      const liveRevision = await deployedRevision(projectId, config);
       return reply.send({
         item: await repository.ready(
+          projectId,
           request.params.itemId,
           body.leaseId,
           body.revision,
           body.note,
           body.targetCommit,
           body.deployedCommit,
-          config.deployedRevision,
+          liveRevision,
         ),
       });
     } catch (error) {
@@ -394,6 +535,7 @@ function revisionInput(
   body: z.infer<typeof feedbackBody>,
   idempotencyKey: string,
   config: ServerConfig,
+  projectId: DevFeedbackProject,
 ): DevFeedbackRevisionInput {
   const screenshot = Buffer.from(body.screenshot.contentBase64, "base64");
   if (
@@ -406,8 +548,10 @@ function revisionInput(
   }
   const context = {
     ...body.context,
-    projectId: "afterchime",
-    submittedDeploymentRevision: config.deployedRevision,
+    projectId,
+    controlPlaneRevision: config.deployedRevision,
+    submittedDeploymentRevision:
+      projectId === "afterchime" ? config.deployedRevision : body.context.shellRevision,
   };
   const requestHash = createHash("sha256")
     .update(
@@ -425,6 +569,7 @@ function revisionInput(
     context,
     description: body.description,
     idempotencyKey,
+    projectId,
     requestHash,
     screenshot,
     screenshotHeight: body.screenshot.height,
@@ -441,20 +586,73 @@ function authenticatedIdentity(
 ): DevFeedbackIdentity | null {
   if (typeof authorization !== "string" || !authorization.startsWith("Bearer ")) return null;
   try {
-    return verifyAccessToken({
-      audience: config.tokenAudience,
-      secret: config.accessTokenSecret,
-      token: authorization.slice("Bearer ".length),
-    });
+    return {
+      ...verifyAccessToken({
+        audience: config.tokenAudience,
+        secret: config.accessTokenSecret,
+        token: authorization.slice("Bearer ".length),
+      }),
+      projectId: "afterchime",
+    };
   } catch {
     return null;
   }
 }
 
-function adminAuthorized(headers: Record<string, unknown>, config: ServerConfig): boolean {
-  const presented = headers["x-afterchime-admin-key"];
-  return verifyAdminKey(
-    typeof presented === "string" ? presented : undefined,
-    config.adminApiKeyHash,
-  );
+function requestedProject(headers: Record<string, unknown>): DevFeedbackProject | null {
+  const value = headers["x-dev-feedback-project"] ?? "afterchime";
+  return isDevFeedbackProject(value) ? value : null;
+}
+
+function authorizedProject(
+  headers: Record<string, unknown>,
+  config: ServerConfig,
+  kind: "admin" | "client",
+): DevFeedbackProject | null {
+  const projectId = requestedProject(headers);
+  if (!projectId) return null;
+  const keyName = kind === "admin" ? "x-dev-feedback-admin-key" : "x-dev-feedback-client-key";
+  const fallback = kind === "admin" ? headers["x-afterchime-admin-key"] : undefined;
+  const presented = headers[keyName] ?? fallback;
+  const digest =
+    kind === "admin"
+      ? config.feedbackProjects[projectId].adminKeyHash
+      : config.feedbackProjects[projectId].clientKeyHash;
+  return digest && verifyAdminKey(typeof presented === "string" ? presented : undefined, digest)
+    ? projectId
+    : null;
+}
+
+function trustedIdentity(
+  headers: Record<string, unknown>,
+  config: ServerConfig,
+): DevFeedbackIdentity | null {
+  const projectId = authorizedProject(headers, config, "client");
+  if (!projectId || projectId === "afterchime") return null;
+  return { ...trustedProjectIdentities[projectId], projectId };
+}
+
+async function deployedRevision(
+  projectId: DevFeedbackProject,
+  config: ServerConfig,
+): Promise<string> {
+  if (projectId === "afterchime") return config.deployedRevision;
+  const deploymentUrl = config.feedbackProjects[projectId].deploymentUrl;
+  if (!deploymentUrl) throw new DevFeedbackConflictError("development_not_configured");
+  try {
+    const response = await fetch(deploymentUrl, {
+      cache: "no-store",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!response.ok) throw new Error("development_unavailable");
+    const value = (await response.json()) as { revision?: unknown };
+    if (typeof value.revision !== "string" || !/^[0-9a-f]{40}$/.test(value.revision)) {
+      throw new Error("development_revision_invalid");
+    }
+    return value.revision;
+  } catch (error) {
+    if (error instanceof DevFeedbackConflictError) throw error;
+    throw new DevFeedbackConflictError("development_not_verified");
+  }
 }

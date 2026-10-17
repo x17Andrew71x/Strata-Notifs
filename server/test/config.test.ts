@@ -63,6 +63,35 @@ describe("loadConfig", () => {
     ).toThrow("development feedback requires Railway source revision proof");
   });
 
+  it("validates external development feedback projects as complete secret-backed sets", () => {
+    const config = loadConfig({
+      ...validEnvironment,
+      DEV_FEEDBACK_DECREE_ADMIN_KEY_HASH: "a".repeat(64),
+      DEV_FEEDBACK_DECREE_CLIENT_KEY_HASH: "b".repeat(64),
+      DEV_FEEDBACK_DECREE_DEPLOYMENT_URL: "https://decree.example/version.json",
+    });
+    expect(config.feedbackProjects.decree).toEqual({
+      adminKeyHash: "a".repeat(64),
+      clientKeyHash: "b".repeat(64),
+      deploymentUrl: "https://decree.example/version.json",
+    });
+    expect(config.feedbackProjects["please-just-sleep"].clientKeyHash).toBeNull();
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        DEV_FEEDBACK_DECREE_ADMIN_KEY_HASH: "a".repeat(64),
+      }),
+    ).toThrow("development feedback configuration is incomplete for decree");
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        DEV_FEEDBACK_PJS_ADMIN_KEY_HASH: "a".repeat(64),
+        DEV_FEEDBACK_PJS_CLIENT_KEY_HASH: "b".repeat(64),
+        DEV_FEEDBACK_PJS_DEPLOYMENT_URL: "http://pjs.example/version.json",
+      }),
+    ).toThrow("development feedback configuration is incomplete for please-just-sleep");
+  });
+
   it("uses Railway's exact source revision when no explicit override is supplied", () => {
     const config = loadConfig({
       ...validEnvironment,

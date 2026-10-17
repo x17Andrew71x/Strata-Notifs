@@ -66,3 +66,4 @@ pnpm exec vitest run test/api/account-deletion.test.ts --pool=threads --maxWorke
 pnpm exec vitest run test/api/consent.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
 pnpm exec vitest run test/api/analytics-ingest.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
 pnpm exec vitest run test/api/notification-aggregates.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism
+pnpm exec vitest run test/api/dev-feedback.test.ts --pool=threads --maxWorkers=1 --no-file-parallelism

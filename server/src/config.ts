@@ -1,4 +1,8 @@
 import { z } from "zod";
+import type {
+  DevFeedbackProject,
+  DevFeedbackProjectConfig,
+} from "./modules/dev-feedback/project.js";
 
 const secret = z.string().min(32);
 
@@ -11,6 +15,12 @@ const configSchema = z.object({
   ACCESS_TOKEN_SECRET: secret,
   REFRESH_TOKEN_PEPPER: secret,
   ADMIN_API_KEY_HASH: z.string().default(""),
+  DEV_FEEDBACK_DECREE_ADMIN_KEY_HASH: z.string().default(""),
+  DEV_FEEDBACK_DECREE_CLIENT_KEY_HASH: z.string().default(""),
+  DEV_FEEDBACK_DECREE_DEPLOYMENT_URL: z.string().default(""),
+  DEV_FEEDBACK_PJS_ADMIN_KEY_HASH: z.string().default(""),
+  DEV_FEEDBACK_PJS_CLIENT_KEY_HASH: z.string().default(""),
+  DEV_FEEDBACK_PJS_DEPLOYMENT_URL: z.string().default(""),
   DEV_FEEDBACK_ENABLED: z.enum(["true", "false"]).default("false"),
   DEPLOYED_REVISION: z
     .string()
@@ -37,6 +47,7 @@ export type ServerConfig = Readonly<{
   accessTokenSecret: string;
   refreshTokenPepper: string;
   adminApiKeyHash: string;
+  feedbackProjects: Readonly<Record<DevFeedbackProject, DevFeedbackProjectConfig>>;
   developmentModuleEnabled: boolean;
   deployedRevision: string;
   corsOrigins: readonly string[];
@@ -71,6 +82,25 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     throw new Error("development feedback requires a deployed revision");
   }
   const buildChannel = value.NODE_ENV === "production" ? "prod" : "dev";
+  const feedbackProjects = {
+    afterchime: {
+      adminKeyHash: value.ADMIN_API_KEY_HASH,
+      clientKeyHash: null,
+      deploymentUrl: null,
+    },
+    decree: externalFeedbackProject(
+      "decree",
+      value.DEV_FEEDBACK_DECREE_ADMIN_KEY_HASH,
+      value.DEV_FEEDBACK_DECREE_CLIENT_KEY_HASH,
+      value.DEV_FEEDBACK_DECREE_DEPLOYMENT_URL,
+    ),
+    "please-just-sleep": externalFeedbackProject(
+      "please-just-sleep",
+      value.DEV_FEEDBACK_PJS_ADMIN_KEY_HASH,
+      value.DEV_FEEDBACK_PJS_CLIENT_KEY_HASH,
+      value.DEV_FEEDBACK_PJS_DEPLOYMENT_URL,
+    ),
+  } satisfies Record<DevFeedbackProject, DevFeedbackProjectConfig>;
   return {
     nodeEnv: value.NODE_ENV,
     buildChannel,
@@ -82,6 +112,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     accessTokenSecret: value.ACCESS_TOKEN_SECRET,
     refreshTokenPepper: value.REFRESH_TOKEN_PEPPER,
     adminApiKeyHash: value.ADMIN_API_KEY_HASH,
+    feedbackProjects,
     developmentModuleEnabled: value.DEV_FEEDBACK_ENABLED === "true",
     deployedRevision,
     corsOrigins: value.CORS_ORIGINS.split(",")
@@ -91,4 +122,40 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     billingProvider: value.BILLING_PROVIDER,
     analyticsRawRetentionDays: value.ANALYTICS_RAW_RETENTION_DAYS,
   };
+}
+
+function externalFeedbackProject(
+  project: Exclude<DevFeedbackProject, "afterchime">,
+  adminKeyHash: string,
+  clientKeyHash: string,
+  deploymentUrl: string,
+): DevFeedbackProjectConfig {
+  const values = [adminKeyHash, clientKeyHash, deploymentUrl];
+  if (values.every((entry) => entry === "")) {
+    return { adminKeyHash: "", clientKeyHash: null, deploymentUrl: null };
+  }
+  if (
+    !/^[0-9a-f]{64}$/.test(adminKeyHash) ||
+    !/^[0-9a-f]{64}$/.test(clientKeyHash) ||
+    !exactDevelopmentUrl(deploymentUrl)
+  ) {
+    throw new Error(`development feedback configuration is incomplete for ${project}`);
+  }
+  return { adminKeyHash, clientKeyHash, deploymentUrl };
+}
+
+function exactDevelopmentUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash &&
+      url.pathname !== ""
+    );
+  } catch {
+    return false;
+  }
 }

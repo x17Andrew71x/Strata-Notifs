@@ -12,6 +12,7 @@ if (!enabled) {
   const developmentMigrations = [
     { tag: "0004_orange_human_fly", snapshot: "0004_snapshot.json" },
     { tag: "0005_magical_donald_blake", snapshot: "0005_snapshot.json" },
+    { tag: "0006_marvelous_randall_flagg", snapshot: "0006_snapshot.json" },
   ];
   for (const migration of developmentMigrations) {
     await rm(path.join(runtimeMigrations, `${migration.tag}.sql`), { force: true });

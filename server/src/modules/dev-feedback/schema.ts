@@ -36,6 +36,7 @@ export const devFeedbackItems = pgTable(
     installationId: uuid("installation_id")
       .notNull()
       .references(() => installations.id, { onDelete: "cascade" }),
+    projectId: varchar("project_id", { length: 32 }).notNull().default("afterchime"),
     queuePosition: bigint("queue_position", { mode: "number" })
       .notNull()
       .generatedAlwaysAsIdentity(),
@@ -56,6 +57,11 @@ export const devFeedbackItems = pgTable(
   (table) => [
     unique("dev_feedback_items_queue_position_unique").on(table.queuePosition),
     index("dev_feedback_items_status_queue_idx").on(table.status, table.queuePosition),
+    index("dev_feedback_items_project_status_queue_idx").on(
+      table.projectId,
+      table.status,
+      table.queuePosition,
+    ),
     index("dev_feedback_items_installation_status_queue_idx").on(
       table.installationId,
       table.status,
@@ -65,6 +71,10 @@ export const devFeedbackItems = pgTable(
     check("dev_feedback_items_title_check", sql`length("title") BETWEEN 1 AND 120`),
     check("dev_feedback_items_description_check", sql`length("description") BETWEEN 1 AND 4000`),
     check("dev_feedback_items_note_check", sql`length("note") <= 600`),
+    check(
+      "dev_feedback_items_project_check",
+      sql`"project_id" IN ('afterchime', 'decree', 'please-just-sleep')`,
+    ),
     check(
       "dev_feedback_items_lease_check",
       sql`(

@@ -9,6 +9,10 @@ import { testConfig } from "../test-config.js";
 const postgresConfig = loadPostgresTestConfig();
 const describePostgres = postgresConfig ? describe : describe.skip;
 const adminKey = "development-controller-key-with-sufficient-entropy";
+const decreeAdminKey = "decree-controller-key-with-sufficient-entropy";
+const decreeClientKey = "decree-shell-key-with-sufficient-client-entropy";
+const pjsAdminKey = "pjs-controller-key-with-sufficient-entropy";
+const pjsClientKey = "pjs-shell-key-with-sufficient-client-entropy";
 const deployedRevision = "a".repeat(40);
 const registration = {
   appVersion: "0.1.10-dev-debug",
@@ -46,6 +50,24 @@ describePostgres("development feedback API", () => {
       config: {
         ...testConfig,
         adminApiKeyHash: createHash("sha256").update(adminKey).digest("hex"),
+        feedbackProjects: {
+          ...testConfig.feedbackProjects,
+          afterchime: {
+            adminKeyHash: createHash("sha256").update(adminKey).digest("hex"),
+            clientKeyHash: null,
+            deploymentUrl: null,
+          },
+          decree: {
+            adminKeyHash: createHash("sha256").update(decreeAdminKey).digest("hex"),
+            clientKeyHash: createHash("sha256").update(decreeClientKey).digest("hex"),
+            deploymentUrl: "https://decree.example/version.json",
+          },
+          "please-just-sleep": {
+            adminKeyHash: createHash("sha256").update(pjsAdminKey).digest("hex"),
+            clientKeyHash: createHash("sha256").update(pjsClientKey).digest("hex"),
+            deploymentUrl: "https://pjs.example/version.json",
+          },
+        },
         databaseUrl: harness.runtimeDatabaseUrl,
         deployedRevision,
         developmentModuleEnabled: true,
@@ -66,6 +88,23 @@ describePostgres("development feedback API", () => {
     });
     expect(response.statusCode).toBe(201);
     return response.json() as { accessToken: string; installationId: string };
+  }
+
+  async function seedTrustedIdentities() {
+    await adminDatabase`
+      INSERT INTO users (id, build_channel, is_synthetic)
+      VALUES
+        ('10000000-0000-4000-8000-000000000001', 'dev', true),
+        ('20000000-0000-4000-8000-000000000001', 'dev', true)
+      ON CONFLICT (id) DO NOTHING
+    `;
+    await adminDatabase`
+      INSERT INTO installations (id, user_id, app_version, build_channel, is_synthetic)
+      VALUES
+        ('10000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001', 'dev-feedback-proxy', 'dev', true),
+        ('20000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000001', 'dev-feedback-proxy', 'dev', true)
+      ON CONFLICT (id) DO NOTHING
+    `;
   }
 
   it("stores one immutable screenshot revision idempotently and isolates installations", async () => {
@@ -102,6 +141,42 @@ describePostgres("development feedback API", () => {
       url: `/v1/dev-feedback/items/${secondItem.json().item.id}/amendments`,
     });
     expect(crossItemReplay.statusCode).toBe(409);
+  });
+
+  it("keeps trusted Decree and PJS queues isolated under separate credentials", async () => {
+    await seedTrustedIdentities();
+    const app = await appForDatabase();
+    const submitTrusted = (project: "decree" | "please-just-sleep", key: string, title: string) =>
+      app.inject({
+        method: "POST",
+        url: "/v1/dev-feedback/trusted/items",
+        headers: {
+          "idempotency-key": randomUUID(),
+          "x-dev-feedback-client-key": key,
+          "x-dev-feedback-project": project,
+        },
+        payload: feedbackPayload(title),
+      });
+    const claimTrusted = (project: "decree" | "please-just-sleep", key: string) =>
+      app.inject({
+        method: "POST",
+        url: "/v1/dev-feedback/admin/claim",
+        headers: {
+          "x-dev-feedback-admin-key": key,
+          "x-dev-feedback-project": project,
+        },
+        payload: {},
+      });
+
+    expect((await submitTrusted("decree", decreeClientKey, "Decree item")).statusCode).toBe(201);
+    expect((await submitTrusted("please-just-sleep", pjsClientKey, "PJS item")).statusCode).toBe(
+      201,
+    );
+    const decreeClaim = (await claimTrusted("decree", decreeAdminKey)).json().item;
+    const pjsClaim = (await claimTrusted("please-just-sleep", pjsAdminKey)).json().item;
+    expect(decreeClaim.item.title).toBe("Decree item");
+    expect(pjsClaim.item.title).toBe("PJS item");
+    expect(decreeClaim.installationId).not.toBe(pjsClaim.installationId);
   });
 
   it("claims strictly in order, fences stale leases, and gates QA on the live Railway revision", async () => {

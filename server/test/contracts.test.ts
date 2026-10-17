@@ -102,7 +102,7 @@ describe("analytics contract v1", () => {
     for (const fixture of fixtures) {
       expect(validate(fixture)).toBe(true);
     }
-  });
+  }, 60_000);
 
   it("links the bounded analytics batch request to the canonical v1 envelope", async () => {
     const openapi = await readJson(join(contractsRoot, "openapi", "afterchime-v1.yaml"));

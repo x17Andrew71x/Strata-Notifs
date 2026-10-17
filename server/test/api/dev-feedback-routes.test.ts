@@ -9,9 +9,24 @@ const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 afterEach(async () => Promise.all(apps.splice(0).map((app) => app.close())));
 
 const adminKey = "development-controller-key-with-sufficient-entropy";
+const decreeAdminKey = "decree-controller-key-with-sufficient-entropy";
+const decreeClientKey = "decree-shell-key-with-sufficient-client-entropy";
 const enabledConfig = {
   ...testConfig,
   adminApiKeyHash: createHash("sha256").update(adminKey).digest("hex"),
+  feedbackProjects: {
+    ...testConfig.feedbackProjects,
+    afterchime: {
+      adminKeyHash: createHash("sha256").update(adminKey).digest("hex"),
+      clientKeyHash: null,
+      deploymentUrl: null,
+    },
+    decree: {
+      adminKeyHash: createHash("sha256").update(decreeAdminKey).digest("hex"),
+      clientKeyHash: createHash("sha256").update(decreeClientKey).digest("hex"),
+      deploymentUrl: "https://decree.example/version.json",
+    },
+  },
   developmentModuleEnabled: true,
   deployedRevision: "a".repeat(40),
 };
@@ -49,6 +64,31 @@ describe("development feedback route boundary", () => {
           url: "/v1/dev-feedback/admin/claim",
           headers: { "x-afterchime-admin-key": `${adminKey}-wrong` },
           payload: {},
+        })
+      ).statusCode,
+    ).toBe(401);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/v1/dev-feedback/admin/claim",
+          headers: {
+            "x-dev-feedback-admin-key": adminKey,
+            "x-dev-feedback-project": "decree",
+          },
+          payload: {},
+        })
+      ).statusCode,
+    ).toBe(401);
+    expect(
+      (
+        await app.inject({
+          method: "GET",
+          url: "/v1/dev-feedback/trusted/items",
+          headers: {
+            "x-dev-feedback-client-key": `${decreeClientKey}-wrong`,
+            "x-dev-feedback-project": "decree",
+          },
         })
       ).statusCode,
     ).toBe(401);

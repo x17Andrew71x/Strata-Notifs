@@ -243,6 +243,12 @@ export class PostgresTestHarness {
     await this.admin.unsafe(
       `CREATE DATABASE "${TEST_DATABASE}" OWNER ${quoteIdentifier(MIGRATION_ROLE)}`,
     );
+    const testDatabase = createSqlClient(testDatabaseAdminUrl(this.adminDatabaseUrl));
+    try {
+      await testDatabase.unsafe(`ALTER SCHEMA public OWNER TO ${quoteIdentifier(MIGRATION_ROLE)}`);
+    } finally {
+      await testDatabase.end({ timeout: 5 });
+    }
     await this.admin.unsafe(`REVOKE ALL ON DATABASE "${TEST_DATABASE}" FROM PUBLIC`);
     await this.admin.unsafe(
       `GRANT CONNECT ON DATABASE "${TEST_DATABASE}" TO ${quoteIdentifier(RUNTIME_ROLE)}`,
