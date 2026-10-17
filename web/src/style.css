@@ -412,10 +412,6 @@ p {
   font-size: 15px;
 }
 
-.screen-heading.compact h1 {
-  margin-bottom: 0;
-}
-
 .today-screen {
   display: grid;
   grid-template-columns: minmax(280px, 0.78fr) minmax(340px, 1fr);
@@ -1981,6 +1977,7 @@ p {
 
   .screen {
     min-height: calc(100dvh - 140px - env(safe-area-inset-top));
+    padding-top: 16px;
   }
 
   .today-screen {
@@ -2000,16 +1997,16 @@ p {
     grid-row: 1;
   }
 
-  .today-screen .screen-heading .eyebrow {
+  .screen-heading .eyebrow {
     margin-bottom: 8px;
   }
 
-  .today-screen .screen-heading h1 {
+  .screen-heading h1 {
     margin-bottom: 7px;
     font-size: clamp(29px, 7.4vw, 36px);
   }
 
-  .today-screen .screen-heading > p:last-child {
+  .screen-heading > p:last-child {
     font-size: 13px;
     line-height: 1.42;
   }

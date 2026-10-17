@@ -263,6 +263,22 @@ describe("full shell application", () => {
     expect(screen.getByRole("heading", { name: "Settings" })).toBeTruthy();
   });
 
+  it("uses the shared heading treatment across root destinations", () => {
+    renderWithState(baseState);
+    const expectHeading = (label: string) => {
+      const heading = screen.getByRole("heading", { name: label });
+      expect(heading.parentElement).toHaveClass("screen-heading");
+    };
+
+    expectHeading("Today is still forming");
+    fireEvent.click(screen.getByRole("button", { name: "Collection" }));
+    expectHeading("Vault");
+    fireEvent.click(screen.getByRole("button", { name: "Exhibits" }));
+    expectHeading("Exhibits");
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    expectHeading("Settings");
+  });
+
   it("shows only active fossil rarities in the Collection filter", () => {
     renderWithState(baseState);
     fireEvent.click(screen.getByRole("button", { name: "Collection" }));

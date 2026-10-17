@@ -867,7 +867,7 @@ function Museum({
   );
   return (
     <section className="screen museum-screen" aria-labelledby="museum-title">
-      <div className="screen-heading compact">
+      <div className="screen-heading">
         <p className="eyebrow">{world.eyebrow}</p>
         <h1 id="museum-title">{world.collectionName}</h1>
       </div>
@@ -1025,9 +1025,11 @@ function ReferenceSeries({ artifactId, ownedCount }: { artifactId: string; owned
 function Community() {
   return (
     <section className="screen placeholder-screen" aria-labelledby="exhibits-title">
-      <p className="eyebrow">Optional and private</p>
-      <h1 id="exhibits-title">Exhibits</h1>
-      <p>Nothing leaves this device unless you explicitly enable an online feature.</p>
+      <div className="screen-heading">
+        <p className="eyebrow">Optional and private</p>
+        <h1 id="exhibits-title">Exhibits</h1>
+        <p>Nothing leaves this device unless you explicitly enable an online feature.</p>
+      </div>
       <div className="coming-soon">Shared exhibits are not enabled yet.</div>
     </section>
   );
@@ -1051,7 +1053,7 @@ function More({
   const preferences = state.preferences;
   return (
     <section className="screen more-screen" aria-labelledby="settings-title">
-      <div className="screen-heading compact">
+      <div className="screen-heading">
         <p className="eyebrow">Local controls</p>
         <h1 id="settings-title">Settings</h1>
       </div>
