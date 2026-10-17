@@ -351,6 +351,31 @@ describe("full shell application", () => {
     expect(container.querySelector(".imprint-relic")).toBeTruthy();
   });
 
+  it("moves nested-page back navigation into the app header", () => {
+    const { container } = renderWithState({
+      ...baseState,
+      museum: { specimens: [{ ...specimen, revealedAtEpochMillis: 2 }] },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Collection$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /artifact from Relic Vault/i }));
+
+    const header = container.querySelector(".app-header") as HTMLElement;
+    expect(within(header).getByRole("button", { name: "← Back" })).toBeTruthy();
+    expect(header.querySelector(".brand")).toBeNull();
+    expect(container.querySelector(".detail-screen .back-button")).toBeNull();
+
+    act(() => {
+      window.location.hash = "#more";
+      window.dispatchEvent(new Event("hashchange"));
+    });
+    fireEvent.click(screen.getByRole("button", { name: /^Series/i }));
+
+    expect(within(header).getByRole("button", { name: "← Back" })).toBeTruthy();
+    expect(header.querySelector(".brand")).toBeNull();
+    expect(container.querySelector(".worlds-screen .back-button")).toBeNull();
+  });
+
   it("adds exactly one new sediment course for each incoming notification", () => {
     const layers = Array.from({ length: 3 }, (_, index) => ({
       localHour: index,

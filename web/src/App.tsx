@@ -359,6 +359,7 @@ function App() {
     : null;
   const selectedRoot = rootFor(route);
   const selectedWorld = worldDefinition(displayState.worlds.selected);
+  const showHeaderBack = selectedSpecimenId !== null || route === "worlds";
 
   return (
     <div
@@ -368,7 +369,13 @@ function App() {
       data-world={selectedWorld.name}
     >
       <header className="app-header">
-        <Brand />
+        {showHeaderBack ? (
+          <button type="button" className="back-button" onClick={() => history.back()}>
+            ← Back
+          </button>
+        ) : (
+          <Brand />
+        )}
         <span className={`status-pill ${effectiveAccess ? "active" : "paused"}`}>
           {effectiveAccess ? "Collecting" : "Paused"}
         </span>
@@ -413,13 +420,12 @@ function App() {
             onWorlds={() => navigate("worlds")}
           />
         )}
-        {route === "worlds" && <Worlds state={displayState} onBack={() => history.back()} />}
+        {route === "worlds" && <Worlds state={displayState} />}
         {selectedSpecimenId && (
           <SpecimenDetail
             specimen={selectedSpecimen}
             world={displayState.worlds.selected}
             ownedCount={selectedStack?.specimens.length ?? 0}
-            onBack={() => history.back()}
           />
         )}
       </main>
@@ -930,19 +936,14 @@ function SpecimenDetail({
   specimen,
   world,
   ownedCount,
-  onBack,
 }: {
   specimen: ShellSpecimen | null;
   world: World;
   ownedCount: number;
-  onBack(): void;
 }) {
   if (!specimen || specimen.revealedAtEpochMillis === null) {
     return (
       <section className="screen detail-screen">
-        <button type="button" className="back-button" onClick={onBack}>
-          ← Back
-        </button>
         <h1>Specimen unavailable</h1>
         <p>This specimen is no longer in the local collection.</p>
       </section>
@@ -951,9 +952,6 @@ function SpecimenDetail({
   const artifact = artifactForSpecimen(world, specimen);
   return (
     <section className="screen detail-screen" aria-labelledby="detail-title">
-      <button type="button" className="back-button" onClick={onBack}>
-        ← Back
-      </button>
       <p className="eyebrow">{worldDefinition(world).name}</p>
       <h1 id="detail-title">{artifact.name}</h1>
       <div className="detail-card">
@@ -1155,12 +1153,9 @@ function Toggle({
   );
 }
 
-function Worlds({ state, onBack }: { state: ShellState; onBack(): void }) {
+function Worlds({ state }: { state: ShellState }) {
   return (
     <section className="screen worlds-screen" aria-labelledby="worlds-title">
-      <button type="button" className="back-button" onClick={onBack}>
-        ← Back
-      </button>
       <p className="eyebrow">Two authored series</p>
       <h1 id="worlds-title">Series</h1>
       <p className="lead-small">Relic Vault is available now. Signal Ruins is under development.</p>
