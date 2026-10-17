@@ -243,11 +243,37 @@
 }
 
 .dev-feedback-panel .dev-feedback-item-summary {
+  display: grid;
+  gap: 7px;
   width: 100%;
   padding: 0;
   border: 0;
   background: transparent;
   text-align: left;
+}
+
+.dev-feedback-item-request-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #aeb8b3;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.dev-feedback-item-request-label {
+  color: #89958f;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dev-feedback-item-summary[aria-expanded="true"] .dev-feedback-item-request-preview {
+  display: block;
+  overflow: visible;
 }
 
 .dev-feedback-item-title {
@@ -296,7 +322,7 @@
   font-size: 0.75rem;
 }
 
-.dev-feedback-item-detail {
+.dev-feedback-item-response {
   display: grid;
   gap: 5px;
   padding: 10px;
@@ -305,12 +331,22 @@
   background: rgba(0, 0, 0, 0.2);
 }
 
-.dev-feedback-item-detail > strong {
+.dev-feedback-item-response > strong {
   color: #f4f0e8;
   font-size: 0.76rem;
 }
 
-.dev-feedback-item-detail > small,
+.dev-feedback-item-response ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #aeb8b3;
+  font-size: 0.75rem;
+}
+
+.dev-feedback-item-response li::marker {
+  color: var(--dev-mint);
+}
+
 .dev-feedback-item-locked {
   color: #89958f;
   font-size: 0.68rem;

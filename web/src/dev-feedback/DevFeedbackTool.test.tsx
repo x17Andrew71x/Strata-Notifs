@@ -158,10 +158,16 @@ describe("development feedback tool", () => {
 
     const rows = await screen.findAllByTestId("dev-feedback-item");
     expect(rows[0]).toHaveTextContent("First");
+    expect(rows[0]).toHaveTextContent("Your request");
     expect(rows[1]).toHaveTextContent("Second");
+    expect(rows[0]).toHaveTextContent("Reduce the empty space above the fossil.");
+    expect(rows[0]).not.toHaveTextContent("Deployed to Railway development");
     fireEvent.click(screen.getByRole("button", { name: "View work item #2: Second" }));
-    expect(screen.getByText("Reduce the empty space above the fossil.")).toBeTruthy();
-    expect(screen.getByText("Revision 1 · Original order retained")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "View work item #2: Second" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.queryByText("Response")).toBeNull();
     expect(screen.getAllByRole("button", { name: "Accept result" })).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Revise queued item" })).toHaveLength(1);
 
@@ -169,6 +175,40 @@ describe("development feedback tool", () => {
     await waitFor(() =>
       expect(api.accept).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111"),
     );
+  });
+
+  it("reveals only one helpful response bullet for a blocked item", async () => {
+    const api = transport([
+      item({
+        status: "blocked",
+        description: "Keep the opened fossil name banner hidden after it is secured.",
+        note: "Choose whether the banner should remain hidden on secured fossils. Internal process details follow.",
+      }),
+    ]);
+    render(
+      <DevFeedbackTool
+        route="today"
+        shellRevision={"c".repeat(64)}
+        appVersion="0.1.11-dev-debug"
+        canCloseItems
+        transport={api}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work items" }));
+    const row = await screen.findByTestId("dev-feedback-item");
+    expect(row).toHaveTextContent("Keep the opened fossil name banner hidden after it is secured.");
+    expect(row).not.toHaveTextContent("Choose whether the banner should remain hidden");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "View work item #1: Tighten the excavation card" }),
+    );
+    expect(screen.getByText("Response")).toBeTruthy();
+    expect(screen.getByRole("list")).toHaveTextContent(
+      "Choose whether the banner should remain hidden on secured fossils.",
+    );
+    expect(screen.getByRole("list")).not.toHaveTextContent("Internal process details");
   });
 
   it("locks amendments while an item is actively running", async () => {

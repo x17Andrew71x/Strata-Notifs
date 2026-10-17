@@ -456,6 +456,7 @@ export function DevFeedbackTool({
                     entry.status !== "closed";
                   const closable = canCloseItems && amendable;
                   const confirmingClose = closingItemId === entry.id;
+                  const response = ownerResponse(entry);
                   return (
                     <article key={entry.id} data-testid="dev-feedback-item">
                       <button
@@ -470,13 +471,17 @@ export function DevFeedbackTool({
                           <strong>{entry.title}</strong>
                           <em className={`status-${entry.status}`}>{statusLabel(entry.status)}</em>
                         </span>
+                        <span className="dev-feedback-item-request-label">Your request</span>
+                        <span className="dev-feedback-item-request-preview">
+                          {entry.description}
+                        </span>
                       </button>
-                      {entry.note && <p>{entry.note}</p>}
-                      {expanded && (
-                        <div className="dev-feedback-item-detail">
-                          <strong>Submitted request</strong>
-                          <p>{entry.description}</p>
-                          <small>Revision {entry.revision} · Original order retained</small>
+                      {expanded && response && (
+                        <div className="dev-feedback-item-response">
+                          <strong>Response</strong>
+                          <ul>
+                            <li>{response}</li>
+                          </ul>
                         </div>
                       )}
                       <div className="dev-feedback-item-actions">
@@ -690,6 +695,14 @@ function statusLabel(status: DevFeedbackStatus): string {
     case "closed":
       return "Closed";
   }
+}
+
+function ownerResponse(entry: DevFeedbackItem): string | null {
+  if (entry.status !== "blocked") return null;
+  const note = entry.note.replace(/\s+/g, " ").trim();
+  if (!note) return null;
+  const sentence = note.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() ?? note;
+  return sentence.slice(0, 240);
 }
 
 function clampPosition(position: Position): Position {
