@@ -25,9 +25,9 @@ import { registerIdentityRoutes } from "./modules/identity/routes.js";
 import { registerNotificationAggregateRoutes } from "./modules/notifications/routes.js";
 import { registerHealthRoutes } from "./routes/health.js";
 
-const DEVELOPMENT_PACKAGE_FILENAME = "Afterchime-0.1.10-dev.zip";
+const DEVELOPMENT_PACKAGE_FILENAME = "Afterchime-0.1.11-dev.zip";
 const DEVELOPMENT_PACKAGE_URL =
-  "https://raw.githubusercontent.com/x17Andrew71x/Strata-Notifs/3aafa36de1e7355f3bf877f158cc017a6ba78a39/Afterchime-0.1.10-dev.zip";
+  "https://raw.githubusercontent.com/x17Andrew71x/Strata-Notifs/f36f85c3151a6516eb8bdfdba3efbda618170675/Afterchime-0.1.11-dev.zip";
 
 export type BuildAppOptions = Readonly<{
   config: ServerConfig;
