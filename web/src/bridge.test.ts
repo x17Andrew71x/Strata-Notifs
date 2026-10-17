@@ -162,6 +162,14 @@ describe("versioned native bridge requests", () => {
       }),
     ).not.toBeNull();
     expect(
+      parseNativeRequest({
+        version: 2,
+        id: "feedback_close",
+        type: "devFeedback.close",
+        payload: { itemId: "11111111-1111-4111-8111-111111111111" },
+      }),
+    ).not.toBeNull();
+    expect(
       parseNativeRequest({ version: 2, id: "feedback_list", type: "devFeedback.items" }),
     ).not.toBeNull();
     expect(

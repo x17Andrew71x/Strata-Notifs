@@ -22,6 +22,7 @@ export const devFeedbackStatus = pgEnum("dev_feedback_status", [
   "blocked",
   "ready_for_qa",
   "accepted",
+  "closed",
 ]);
 
 const bytea = customType<{ data: Buffer; driverData: Buffer }>({

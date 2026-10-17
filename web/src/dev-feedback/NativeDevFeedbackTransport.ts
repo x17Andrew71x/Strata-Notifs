@@ -58,6 +58,10 @@ export class NativeDevFeedbackTransport implements DevFeedbackTransport {
     return this.mutation("devFeedback.accept", { itemId: id }, "accept");
   }
 
+  public async close(id: string): Promise<DevFeedbackItem> {
+    return this.mutation("devFeedback.close", { itemId: id }, "close");
+  }
+
   public async refreshShell(): Promise<void> {
     const response = await this.request("devFeedback.refresh");
     if (response.type !== "action.result" || response.action !== "devFeedback.refresh") {
@@ -66,9 +70,9 @@ export class NativeDevFeedbackTransport implements DevFeedbackTransport {
   }
 
   private async mutation(
-    action: "devFeedback.submit" | "devFeedback.amend" | "devFeedback.accept",
+    action: "devFeedback.submit" | "devFeedback.amend" | "devFeedback.accept" | "devFeedback.close",
     payload: Record<string, unknown>,
-    operation: "submit" | "amend" | "accept",
+    operation: "submit" | "amend" | "accept" | "close",
   ): Promise<DevFeedbackItem> {
     const response = await this.request(action, payload);
     if (

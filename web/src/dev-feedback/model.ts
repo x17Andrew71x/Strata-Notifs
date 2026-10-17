@@ -1,4 +1,10 @@
-export type DevFeedbackStatus = "queued" | "in_progress" | "blocked" | "ready_for_qa" | "accepted";
+export type DevFeedbackStatus =
+  | "queued"
+  | "in_progress"
+  | "blocked"
+  | "ready_for_qa"
+  | "accepted"
+  | "closed";
 
 export type SelectionRect = Readonly<{
   x: number;
@@ -47,5 +53,16 @@ export type DevFeedbackTransport = Readonly<{
   submit(draft: DevFeedbackDraft): Promise<DevFeedbackItem>;
   amend(id: string, draft: DevFeedbackDraft): Promise<DevFeedbackItem>;
   accept(id: string): Promise<DevFeedbackItem>;
+  close(id: string): Promise<DevFeedbackItem>;
   refreshShell(): Promise<void>;
 }>;
+
+export function supportsDevFeedbackClose(appVersion: string): boolean {
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/.exec(appVersion);
+  if (!match) return false;
+  const [, majorText, minorText, patchText] = match;
+  const major = Number(majorText);
+  const minor = Number(minorText);
+  const patch = Number(patchText);
+  return major > 0 || minor > 1 || (minor === 1 && patch >= 11);
+}

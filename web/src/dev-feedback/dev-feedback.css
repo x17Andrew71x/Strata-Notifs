@@ -195,6 +195,44 @@
   color: var(--dev-mint);
 }
 
+.dev-feedback-item-actions {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.dev-feedback-panel .dev-feedback-close-button {
+  margin-left: auto;
+  border-color: rgba(225, 147, 102, 0.42);
+  color: #e7a578;
+}
+
+.dev-feedback-close-confirmation {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid rgba(225, 147, 102, 0.32);
+  border-radius: 10px;
+  background: rgba(225, 147, 102, 0.06);
+}
+
+.dev-feedback-close-confirmation > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dev-feedback-close-confirmation button {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.dev-feedback-close-confirmation button:last-child {
+  border-color: rgba(225, 147, 102, 0.55);
+  color: #efb088;
+}
+
 .dev-feedback-items article {
   display: grid;
   gap: 8px;

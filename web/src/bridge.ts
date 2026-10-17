@@ -27,6 +27,7 @@ const DEV_PAYLOAD_ACTIONS = [
   "devFeedback.submit",
   "devFeedback.amend",
   "devFeedback.accept",
+  "devFeedback.close",
 ] as const;
 const NO_PAYLOAD_ACTIONS: readonly string[] = DEV_FEEDBACK_BUILD
   ? [...CORE_NO_PAYLOAD_ACTIONS, ...DEV_NO_PAYLOAD_ACTIONS]
@@ -74,7 +75,7 @@ export type PreferenceKey =
 export type World = "PRIMEVAL_STRATA" | "DEEP_SPACE" | "BOTANICAL_ARCHIVE" | "THE_ABYSS";
 export type Tier = "COMMON" | "UNCOMMON" | "RARE" | "EXCEPTIONAL" | "SINGULAR";
 export type CollectibleState = "ORDINARY" | "RESTORED" | "CENTRE_PIECE";
-export type DevFeedbackOperation = "list" | "submit" | "amend" | "accept";
+export type DevFeedbackOperation = "list" | "submit" | "amend" | "accept" | "close";
 
 export type NativeRequest = {
   version: 2;
@@ -519,7 +520,7 @@ function isDevFeedbackState(
   return (
     hasExactKeys(value, ["version", "id", "type", "operation", "ok", "error", "item", "items"]) &&
     typeof value.operation === "string" &&
-    ["list", "submit", "amend", "accept"].includes(value.operation) &&
+    ["list", "submit", "amend", "accept", "close"].includes(value.operation) &&
     typeof value.ok === "boolean" &&
     (value.error === null || validBoundedText(value.error, 1, 80)) &&
     (value.item === null || isDevFeedbackItem(value.item)) &&
@@ -553,7 +554,9 @@ function isDevFeedbackItem(value: unknown): value is DevFeedbackItem {
     validBoundedText(value.title, 1, 120) &&
     validBoundedText(value.description, 1, 4_000) &&
     typeof value.status === "string" &&
-    ["queued", "in_progress", "blocked", "ready_for_qa", "accepted"].includes(value.status) &&
+    ["queued", "in_progress", "blocked", "ready_for_qa", "accepted", "closed"].includes(
+      value.status,
+    ) &&
     (value.note === "" || validBoundedText(value.note, 1, 600)) &&
     isIsoTimestamp(value.createdAt) &&
     isIsoTimestamp(value.updatedAt)
@@ -602,7 +605,7 @@ function validPayload(type: string, payload: Record<string, unknown>): boolean {
   if (type === "worlds.select" || type === "worlds.own") {
     return hasExactKeys(payload, ["world"]) && isWorld(payload.world);
   }
-  if (DEV_FEEDBACK_BUILD && type === "devFeedback.accept") {
+  if (DEV_FEEDBACK_BUILD && (type === "devFeedback.accept" || type === "devFeedback.close")) {
     return hasExactKeys(payload, ["itemId"]) && isUuid(payload.itemId);
   }
   if (DEV_FEEDBACK_BUILD && type === "devFeedback.submit") {

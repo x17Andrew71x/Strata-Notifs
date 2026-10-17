@@ -2,7 +2,13 @@ import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import type { DatabaseClient } from "../../db/client.js";
 
-export type DevFeedbackStatus = "queued" | "in_progress" | "blocked" | "ready_for_qa" | "accepted";
+export type DevFeedbackStatus =
+  | "queued"
+  | "in_progress"
+  | "blocked"
+  | "ready_for_qa"
+  | "accepted"
+  | "closed";
 
 export type DevFeedbackIdentity = Readonly<{
   installationId: string;
@@ -188,7 +194,12 @@ export class DevFeedbackRepository {
         WHERE id = ${itemId} AND installation_id = ${identity.installationId}
         FOR UPDATE
       `;
-      if (!item || item.status === "accepted" || item.status === "in_progress") {
+      if (
+        !item ||
+        item.status === "accepted" ||
+        item.status === "closed" ||
+        item.status === "in_progress"
+      ) {
         throw new DevFeedbackNotReadyError();
       }
       const revision = item.current_revision + 1;
@@ -270,6 +281,35 @@ export class DevFeedbackRepository {
         item: accepted ? mapItem(accepted) : null,
         items: await listOpen(transaction, identity.installationId),
       };
+    });
+  }
+
+  public async close(identity: DevFeedbackIdentity, itemId: string): Promise<DevFeedbackState> {
+    return this.database.begin(async (transaction) => {
+      await setIdentity(transaction, identity);
+      const [item] = await transaction<Readonly<{ status: DevFeedbackStatus }>[]>`
+        SELECT status
+        FROM dev_feedback_items
+        WHERE id = ${itemId} AND installation_id = ${identity.installationId}
+        FOR UPDATE
+      `;
+      if (!item) throw new DevFeedbackNotReadyError();
+      if (item.status !== "closed") {
+        if (item.status === "in_progress" || item.status === "accepted") {
+          throw new DevFeedbackNotReadyError();
+        }
+        await transaction`
+          UPDATE dev_feedback_items
+          SET status = 'closed'::dev_feedback_status,
+              note = 'Closed as unneeded by Andrew.',
+              lease_id = NULL,
+              lease_revision = NULL,
+              lease_expires_at = NULL,
+              updated_at = now()
+          WHERE id = ${itemId} AND installation_id = ${identity.installationId}
+        `;
+      }
+      return stateFor(transaction, identity.installationId, itemId);
     });
   }
 
@@ -433,7 +473,8 @@ async function listOpen(
   const rows = await database<ItemRow[]>`
     SELECT id, queue_position, current_revision, title, description, status, note, created_at, updated_at
     FROM dev_feedback_items
-    WHERE installation_id = ${installationId} AND status <> 'accepted'::dev_feedback_status
+    WHERE installation_id = ${installationId}
+      AND status NOT IN ('accepted'::dev_feedback_status, 'closed'::dev_feedback_status)
     ORDER BY queue_position
     LIMIT 200
   `;

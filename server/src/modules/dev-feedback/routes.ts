@@ -105,7 +105,7 @@ const itemResponse = z.object({
   revision: z.number().int().positive(),
   title: z.string(),
   description: z.string(),
-  status: z.enum(["queued", "in_progress", "blocked", "ready_for_qa", "accepted"]),
+  status: z.enum(["queued", "in_progress", "blocked", "ready_for_qa", "accepted", "closed"]),
   note: z.string(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -243,6 +243,28 @@ export async function registerDevelopmentModule(
       if (!identity) return reply.code(401).send({ error: "unauthorized" });
       try {
         return reply.send(await repository.accept(identity, request.params.itemId));
+      } catch (error) {
+        if (error instanceof DevFeedbackNotReadyError)
+          return reply.code(409).send({ error: "not_ready" });
+        throw error;
+      }
+    },
+  );
+
+  app.post<{ Params: { itemId: string } }>(
+    "/v1/dev-feedback/items/:itemId/close",
+    {
+      schema: {
+        params: z.object({ itemId: uuid }),
+        body: z.object({}).strict(),
+        response: { 200: stateResponse, 401: authorizationError, 409: authorizationError },
+      },
+    },
+    async (request, reply) => {
+      const identity = authenticatedIdentity(request.headers.authorization, config);
+      if (!identity) return reply.code(401).send({ error: "unauthorized" });
+      try {
+        return reply.send(await repository.close(identity, request.params.itemId));
       } catch (error) {
         if (error instanceof DevFeedbackNotReadyError)
           return reply.code(409).send({ error: "not_ready" });

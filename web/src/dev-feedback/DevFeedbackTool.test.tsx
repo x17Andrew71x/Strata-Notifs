@@ -30,6 +30,7 @@ function transport(items: DevFeedbackItem[] = []): DevFeedbackTransport {
     submit: vi.fn(async (draft) => item({ title: draft.title, description: draft.description })),
     amend: vi.fn(async (_id, draft) => item({ revision: 2, title: draft.title })),
     accept: vi.fn(async (id) => item({ id, status: "accepted" })),
+    close: vi.fn(async (id) => item({ id, status: "closed" })),
     refreshShell: vi.fn(async () => undefined),
   };
 }
@@ -186,6 +187,72 @@ describe("development feedback tool", () => {
     expect(await screen.findByText("Locked while working")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Revise queued item" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Add amendment" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Close work item" })).toBeNull();
+  });
+
+  it("requires explicit confirmation before closing an unneeded work item", async () => {
+    const api = transport([item()]);
+    render(
+      <DevFeedbackTool
+        route="today"
+        shellRevision={"c".repeat(64)}
+        appVersion="0.1.11-dev-debug"
+        canCloseItems
+        transport={api}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work items" }));
+    const closeButton = await screen.findByRole("button", { name: "Close work item" });
+    fireEvent.click(closeButton);
+    expect(api.close).not.toHaveBeenCalled();
+    expect(screen.getByRole("group", { name: "Confirm closing work item #1" })).toHaveTextContent(
+      "Its history will be retained",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Keep work item" }));
+    expect(api.close).not.toHaveBeenCalled();
+    expect(screen.queryByRole("group", { name: "Confirm closing work item #1" })).toBeNull();
+
+    fireEvent.click(closeButton);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm close" }));
+    await waitFor(() =>
+      expect(api.close).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111"),
+    );
+    expect(screen.queryByTestId("dev-feedback-item")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Closed and removed from the open list. Its history was retained.",
+    );
+  });
+
+  it("shows visible progress and completion when work items are checked manually", async () => {
+    const api = transport([item()]);
+    let resolveCheck: (items: DevFeedbackItem[]) => void = () => undefined;
+    const checking = new Promise<DevFeedbackItem[]>((resolve) => {
+      resolveCheck = resolve;
+    });
+    render(
+      <DevFeedbackTool
+        route="today"
+        shellRevision={"c".repeat(64)}
+        appVersion="0.1.11-dev-debug"
+        canCloseItems
+        transport={api}
+      />,
+    );
+    await waitFor(() => expect(api.listOpen).toHaveBeenCalledTimes(1));
+    vi.mocked(api.listOpen).mockReturnValueOnce(checking);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work items" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Check now" }));
+
+    expect(screen.getByRole("button", { name: "Checking…" })).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent("Checking work items…");
+    resolveCheck([item({ note: "Fresh status." })]);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Check now" })).toBeEnabled());
+    expect(screen.getByRole("status")).toHaveTextContent("Work items updated.");
   });
 
   it("offers an in-tool shell refresh without clearing application state", async () => {

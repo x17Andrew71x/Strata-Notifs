@@ -103,6 +103,18 @@ internal class DevFeedbackApi(
     )
   }
 
+  fun close(itemId: String, bearerToken: String): ApiResult<DevFeedbackState> {
+    if (!UUID.matches(itemId)) return ApiResult.failure(ApiFailure.MalformedResponse)
+    return execute(
+      "/v1/dev-feedback/items/$itemId/close",
+      "POST",
+      "{}",
+      bearerToken,
+      null,
+      intArrayOf(200),
+    )
+  }
+
   private fun execute(
     path: String,
     method: String,
@@ -182,7 +194,8 @@ internal class DevFeedbackApi(
     private val UUID =
       Regex("^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
     private val COMMIT = Regex("^[0-9a-f]{64}$")
-    private val STATUSES = setOf("queued", "in_progress", "blocked", "ready_for_qa", "accepted")
+    private val STATUSES =
+      setOf("queued", "in_progress", "blocked", "ready_for_qa", "accepted", "closed")
 
     fun draftFrom(payload: JSONObject): DevFeedbackDraft = DevFeedbackDraft(
       idempotencyKey = payload.getString("idempotencyKey"),

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."dev_feedback_status" ADD VALUE 'closed';

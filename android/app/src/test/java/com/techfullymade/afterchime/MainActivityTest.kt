@@ -233,6 +233,13 @@ class MainActivityTest {
         developmentFeedback = EnabledDevelopmentFeedbackRequestPolicy,
       )?.type,
     )
+    assertEquals(
+      "devFeedback.close",
+      parseBridgeRequest(
+        """{"version":2,"id":"feedback_close","type":"devFeedback.close","payload":{"itemId":"11111111-1111-4111-8111-111111111111"}}""",
+        developmentFeedback = EnabledDevelopmentFeedbackRequestPolicy,
+      )?.type,
+    )
   }
 
   @Test

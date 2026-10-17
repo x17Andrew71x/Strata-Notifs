@@ -15,9 +15,10 @@ A movable in-app development control lets Andrew:
 5. receive a concise progress or blocker note;
 6. amend an open item without losing its original evidence;
 7. refresh the remote shell without force-quitting the app; and
-8. accept a result only after it reaches **Ready for QA**.
+8. accept a result only after it reaches **Ready for QA**; and
+9. close an unneeded Queued, Blocked or Ready-for-QA item only after an explicit confirmation.
 
-Implementation completion is not user completion. An item becomes **Ready for QA** only after the exact target commit is the commit running in Railway development. Andrew's acceptance closes it; accepted items leave the active list but remain auditable.
+Implementation completion is not user completion. An item becomes **Ready for QA** only after the exact target commit is the commit running in Railway development. Andrew's acceptance completes it; accepted items leave the active list but remain auditable. Closing is a separate terminal outcome for unneeded work: it retains the item and every immutable revision while removing it from the open queue.
 
 ## Reusable boundaries
 
@@ -67,6 +68,7 @@ Rules:
 - The oldest blocked item prevents later work until resolved.
 - A Ready-for-QA item does not prevent the next queued item from being implemented.
 - A queued, blocked or Ready-for-QA amendment appends a new immutable revision, preserves the original queue position and returns the item to Queued. Active Working items are locked against amendment so a visible edit cannot revoke a live worker lease.
+- Closing is idempotent for an already Closed item, rejects Working and Accepted items, requires explicit client confirmation, and never deletes its evidence.
 - Every worker mutation is fenced by the current lease and item revision.
 - A stale worker cannot update status after an amendment or lease recovery.
 - Accept is idempotent and valid only from Ready for QA.

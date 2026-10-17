@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { NativeResponse } from "../bridge";
 import { DevFeedbackTool } from "./DevFeedbackTool";
+import { supportsDevFeedbackClose } from "./model";
 import { NativeDevFeedbackTransport } from "./NativeDevFeedbackTransport";
 
 export type DevFeedbackResponseSink = (response: NativeResponse) => void;
@@ -30,6 +31,7 @@ export default function DevelopmentFeedbackRuntime({
       route={route}
       shellRevision={shellRevision}
       appVersion={appVersion}
+      canCloseItems={supportsDevFeedbackClose(appVersion)}
       transport={transport}
     />
   );

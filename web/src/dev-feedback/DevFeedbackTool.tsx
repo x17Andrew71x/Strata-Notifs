@@ -23,6 +23,7 @@ type DevFeedbackToolProps = Readonly<{
   route: string;
   shellRevision: string;
   appVersion: string;
+  canCloseItems?: boolean;
   transport: DevFeedbackTransport;
 }>;
 
@@ -45,6 +46,7 @@ export function DevFeedbackTool({
   route,
   shellRevision,
   appVersion,
+  canCloseItems = false,
   transport,
 }: DevFeedbackToolProps) {
   const [view, setView] = useState<"menu" | "items" | "form" | null>(null);
@@ -52,11 +54,13 @@ export function DevFeedbackTool({
   const [selection, setSelection] = useState<DevFeedbackSelection | null>(null);
   const [items, setItems] = useState<DevFeedbackItem[]>([]);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [closingItemId, setClosingItemId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [idempotencyKey, setIdempotencyKey] = useState(() => newUuid());
   const [amending, setAmending] = useState<DevFeedbackItem | null>(null);
   const [pending, setPending] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [message, setMessage] = useState("");
   const [position, setPosition] = useState<Position | null>(() => readPosition());
@@ -68,8 +72,10 @@ export function DevFeedbackTool({
     try {
       const loaded = await transport.listOpen();
       setItems(sortItems(loaded));
+      return true;
     } catch {
       setMessage("Work-item status is temporarily unavailable.");
+      return false;
     }
   }, [transport]);
 
@@ -142,6 +148,7 @@ export function DevFeedbackTool({
     setIdempotencyKey(newUuid());
     setAmending(null);
     setExpandedItemId(null);
+    setClosingItemId(null);
     setMessage("");
   };
 
@@ -214,6 +221,30 @@ export function DevFeedbackTool({
     }
   };
 
+  const closeItem = async (id: string) => {
+    if (pending) return;
+    setPending(true);
+    try {
+      await transport.close(id);
+      setItems((current) => current.filter((entry) => entry.id !== id));
+      setClosingItemId(null);
+      setMessage("Closed and removed from the open list. Its history was retained.");
+    } catch {
+      setMessage("The work item could not be closed.");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const checkNow = async () => {
+    if (checking || pending) return;
+    setChecking(true);
+    setMessage("Checking work items…");
+    const refreshed = await loadItems();
+    if (refreshed) setMessage("Work items updated.");
+    setChecking(false);
+  };
+
   const refresh = async () => {
     if (pending) return;
     setMessage("Refreshing the verified development shell…");
@@ -227,7 +258,8 @@ export function DevFeedbackTool({
   };
 
   const beginAmendment = (entry: DevFeedbackItem) => {
-    if (entry.status === "in_progress" || entry.status === "accepted") return;
+    if (entry.status === "in_progress" || entry.status === "accepted" || entry.status === "closed")
+      return;
     setAmending(entry);
     setTitle(entry.title);
     setDescription(entry.description);
@@ -334,7 +366,9 @@ export function DevFeedbackTool({
               {!amending && (
                 <button type="button" aria-label="Work items" onClick={() => setView("items")}>
                   <strong>Work items</strong>
-                  <span>Review progress, amend a request, or accept a deployed result.</span>
+                  <span>
+                    Review progress, amend or close a request, or accept a deployed result.
+                  </span>
                 </button>
               )}
               <button
@@ -402,8 +436,13 @@ export function DevFeedbackTool({
             <div className="dev-feedback-items">
               <div className="dev-feedback-items-heading">
                 <h2>Work items</h2>
-                <button type="button" onClick={() => void loadItems()}>
-                  Check now
+                <button
+                  type="button"
+                  disabled={checking || pending}
+                  aria-busy={checking}
+                  onClick={() => void checkNow()}
+                >
+                  {checking ? "Checking…" : "Check now"}
                 </button>
               </div>
               {items.length === 0 ? (
@@ -411,7 +450,12 @@ export function DevFeedbackTool({
               ) : (
                 items.map((entry) => {
                   const expanded = expandedItemId === entry.id;
-                  const amendable = entry.status !== "in_progress" && entry.status !== "accepted";
+                  const amendable =
+                    entry.status !== "in_progress" &&
+                    entry.status !== "accepted" &&
+                    entry.status !== "closed";
+                  const closable = canCloseItems && amendable;
+                  const confirmingClose = closingItemId === entry.id;
                   return (
                     <article key={entry.id} data-testid="dev-feedback-item">
                       <button
@@ -453,7 +497,42 @@ export function DevFeedbackTool({
                             Accept result
                           </button>
                         )}
+                        {closable && (
+                          <button
+                            type="button"
+                            className="dev-feedback-close-button"
+                            disabled={pending}
+                            aria-expanded={confirmingClose}
+                            onClick={() => setClosingItemId(confirmingClose ? null : entry.id)}
+                          >
+                            Close work item
+                          </button>
+                        )}
                       </div>
+                      {confirmingClose && (
+                        <fieldset
+                          className="dev-feedback-close-confirmation"
+                          aria-label={`Confirm closing work item #${entry.queuePosition}`}
+                        >
+                          <p>Close this unneeded work item? Its history will be retained.</p>
+                          <div>
+                            <button
+                              type="button"
+                              disabled={pending}
+                              onClick={() => setClosingItemId(null)}
+                            >
+                              Keep work item
+                            </button>
+                            <button
+                              type="button"
+                              disabled={pending}
+                              onClick={() => void closeItem(entry.id)}
+                            >
+                              Confirm close
+                            </button>
+                          </div>
+                        </fieldset>
+                      )}
                     </article>
                   );
                 })
@@ -608,6 +687,8 @@ function statusLabel(status: DevFeedbackStatus): string {
       return "Ready for QA";
     case "accepted":
       return "Accepted";
+    case "closed":
+      return "Closed";
   }
 }
 

@@ -9,15 +9,22 @@ await cp(path.resolve("migrations"), runtimeMigrations, { recursive: true });
 
 if (!enabled) {
   await rm(path.resolve("dist/modules/dev-feedback"), { recursive: true, force: true });
-  await rm(path.join(runtimeMigrations, "0004_orange_human_fly.sql"), { force: true });
-  await rm(path.join(runtimeMigrations, "meta", "0004_snapshot.json"), { force: true });
+  const developmentMigrations = [
+    { tag: "0004_orange_human_fly", snapshot: "0004_snapshot.json" },
+    { tag: "0005_magical_donald_blake", snapshot: "0005_snapshot.json" },
+  ];
+  for (const migration of developmentMigrations) {
+    await rm(path.join(runtimeMigrations, `${migration.tag}.sql`), { force: true });
+    await rm(path.join(runtimeMigrations, "meta", migration.snapshot), { force: true });
+  }
   const journalPath = path.join(runtimeMigrations, "meta", "_journal.json");
   const journal = JSON.parse(await readFile(journalPath, "utf8"));
   const priorEntries = journal.entries;
   if (!Array.isArray(priorEntries)) throw new Error("migration journal entries are invalid");
-  journal.entries = priorEntries.filter((entry) => entry?.tag !== "0004_orange_human_fly");
-  if (journal.entries.length !== priorEntries.length - 1) {
-    throw new Error("development-feedback migration was not removed exactly once");
+  const developmentTags = new Set(developmentMigrations.map(({ tag }) => tag));
+  journal.entries = priorEntries.filter((entry) => !developmentTags.has(entry?.tag));
+  if (journal.entries.length !== priorEntries.length - developmentMigrations.length) {
+    throw new Error("development-feedback migrations were not removed exactly once");
   }
   await writeFile(journalPath, `${JSON.stringify(journal, null, 2)}\n`, "utf8");
 }

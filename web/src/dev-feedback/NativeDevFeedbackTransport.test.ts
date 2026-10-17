@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { NativeResponse } from "../bridge";
-import type { DevFeedbackDraft, DevFeedbackItem } from "./model";
+import { type DevFeedbackDraft, type DevFeedbackItem, supportsDevFeedbackClose } from "./model";
 import { NativeDevFeedbackTransport } from "./NativeDevFeedbackTransport";
 
 const draft: DevFeedbackDraft = {
@@ -37,6 +37,13 @@ const saved: DevFeedbackItem = {
 };
 
 describe("native development-feedback transport", () => {
+  it("shows closure only for native shells that implement it", () => {
+    expect(supportsDevFeedbackClose("0.1.10-dev-debug")).toBe(false);
+    expect(supportsDevFeedbackClose("0.1.11-dev-debug")).toBe(true);
+    expect(supportsDevFeedbackClose("0.2.0-dev")).toBe(true);
+    expect(supportsDevFeedbackClose("unknown")).toBe(false);
+  });
+
   it("correlates a submission response and returns the saved item", async () => {
     const send = vi.fn(() => "request_1");
     const transport = new NativeDevFeedbackTransport(send, 2_000);
@@ -87,11 +94,23 @@ describe("native development-feedback transport", () => {
     });
     await expect(refresh).resolves.toBeUndefined();
   });
+
+  it("sends a distinct close operation and returns the retained closed item", async () => {
+    const send = vi.fn(() => "request_1");
+    const transport = new NativeDevFeedbackTransport(send, 2_000);
+
+    const closing = transport.close(saved.id);
+    expect(send).toHaveBeenCalledWith("devFeedback.close", { itemId: saved.id });
+    const closed = { ...saved, status: "closed" as const };
+    transport.handleResponse(stateResponse("request_1", "close", closed, []));
+
+    await expect(closing).resolves.toEqual(closed);
+  });
 });
 
 function stateResponse(
   id: string,
-  operation: "list" | "submit" | "amend" | "accept",
+  operation: "list" | "submit" | "amend" | "accept" | "close",
   item: DevFeedbackItem | null,
   items: DevFeedbackItem[],
 ): Extract<NativeResponse, { type: "devFeedback.state" }> {

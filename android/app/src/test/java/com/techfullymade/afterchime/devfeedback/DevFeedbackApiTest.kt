@@ -46,7 +46,7 @@ class DevFeedbackApiTest {
   }
 
   @Test
-  fun `list amendment and acceptance use fixed scoped routes`() {
+  fun `list amendment acceptance and closure use fixed scoped routes`() {
     val connections = mutableListOf<FakeConnection>()
     val api = DevFeedbackApi(
       "https://example.test",
@@ -58,16 +58,18 @@ class DevFeedbackApiTest {
     assertNull(api.list("sample-token").failure)
     assertNull(api.amend(itemId, draft(), screenshot(), "sample-token").failure)
     assertNull(api.accept(itemId, "sample-token").failure)
+    assertNull(api.close(itemId, "sample-token").failure)
 
     assertEquals(
       listOf(
         "/v1/dev-feedback/items",
         "/v1/dev-feedback/items/$itemId/amendments",
         "/v1/dev-feedback/items/$itemId/accept",
+        "/v1/dev-feedback/items/$itemId/close",
       ),
       connections.map { it.url.path },
     )
-    assertEquals(listOf("GET", "POST", "POST"), connections.map(HttpURLConnection::getRequestMethod))
+    assertEquals(listOf("GET", "POST", "POST", "POST"), connections.map(HttpURLConnection::getRequestMethod))
   }
 
   @Test
@@ -94,6 +96,7 @@ class DevFeedbackApiTest {
 
     assertEquals(ApiFailure.MalformedResponse, api.list("bad token").failure)
     assertEquals(ApiFailure.MalformedResponse, api.accept("not-an-id", "sample-token").failure)
+    assertEquals(ApiFailure.MalformedResponse, api.close("not-an-id", "sample-token").failure)
     val oversized = draft().copy(description = "x".repeat(1_200_000))
     assertEquals(ApiFailure.MalformedResponse, api.submit(oversized, screenshot(), "sample-token").failure)
     assertEquals(0, opens)

@@ -219,6 +219,45 @@ describePostgres("development feedback API", () => {
     expect(responses.map((response) => response.json().item.revision)).toEqual([2, 2]);
   });
 
+  it("closes an unneeded open item idempotently while retaining its evidence", async () => {
+    const app = await appForDatabase();
+    const owner = await install(app, "127.0.3.4");
+    const other = await install(app, "127.0.3.5");
+    const created = await submit(app, owner.accessToken, randomUUID(), feedbackPayload("Close me"));
+    const itemId = created.json().item.id;
+
+    expect((await close(app, other.accessToken, itemId)).statusCode).toBe(409);
+    const closed = await close(app, owner.accessToken, itemId);
+    expect(closed.statusCode).toBe(200);
+    expect(closed.json().item).toMatchObject({
+      id: itemId,
+      status: "closed",
+      note: "Closed as unneeded by Andrew.",
+    });
+    expect(closed.json().items).toEqual([]);
+    expect((await close(app, owner.accessToken, itemId)).statusCode).toBe(200);
+
+    const [retained] = await adminDatabase<
+      Readonly<{ status: string; revisions: string | number }>[]
+    >`
+      SELECT item.status::text AS status, count(revision.id) AS revisions
+      FROM dev_feedback_items AS item
+      JOIN dev_feedback_revisions AS revision ON revision.item_id = item.id
+      WHERE item.id = ${itemId}
+      GROUP BY item.status
+    `;
+    expect(retained).toEqual({ status: "closed", revisions: "1" });
+
+    const active = await submit(
+      app,
+      owner.accessToken,
+      randomUUID(),
+      feedbackPayload("Working now"),
+    );
+    expect((await admin(app, "claim", null, {})).json().item.item.id).toBe(active.json().item.id);
+    expect((await close(app, owner.accessToken, active.json().item.id)).statusCode).toBe(409);
+  });
+
   it("allows acceptance only after exact development deployment proof", async () => {
     const app = await appForDatabase();
     const installation = await install(app, "127.0.4.1");
@@ -362,6 +401,15 @@ describePostgres("development feedback API", () => {
       method: "POST",
       payload: {},
       url: `/v1/dev-feedback/items/${itemId}/accept`,
+    });
+  }
+
+  function close(app: Awaited<ReturnType<typeof buildApp>>, token: string, itemId: string) {
+    return app.inject({
+      headers: { authorization: `Bearer ${token}` },
+      method: "POST",
+      payload: {},
+      url: `/v1/dev-feedback/items/${itemId}/close`,
     });
   }
 

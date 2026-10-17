@@ -18,6 +18,7 @@ private const val BRIDGE_VERSION = 2
 private val noPayloadActions = setOf("devFeedback.items", "devFeedback.refresh")
 private val payloadActions = setOf(
   "devFeedback.accept",
+  "devFeedback.close",
   "devFeedback.submit",
   "devFeedback.amend",
 )
@@ -27,7 +28,8 @@ internal object EnabledDevelopmentFeedbackRequestPolicy : DevelopmentFeedbackReq
   override fun acceptsNoPayload(type: String): Boolean = type in noPayloadActions
 
   override fun acceptsPayload(type: String, payload: JSONObject): Boolean = when (type) {
-    "devFeedback.accept" -> payload.length() == 1 && validUuid(payload.opt("itemId"))
+    "devFeedback.accept", "devFeedback.close" ->
+      payload.length() == 1 && validUuid(payload.opt("itemId"))
     "devFeedback.submit" -> validPayload(payload, amendment = false)
     "devFeedback.amend" -> validPayload(payload, amendment = true)
     else -> false
@@ -100,6 +102,10 @@ private class AndroidDevelopmentFeedback(
             request.payload?.getString("itemId") ?: "",
             token,
           )
+          "devFeedback.close" -> api.close(
+            request.payload?.getString("itemId") ?: "",
+            token,
+          )
           else -> malformed()
         }
       }
@@ -125,6 +131,7 @@ private class AndroidDevelopmentFeedback(
       "devFeedback.submit" -> "submit"
       "devFeedback.amend" -> "amend"
       "devFeedback.accept" -> "accept"
+      "devFeedback.close" -> "close"
       else -> "list"
     }
     proxy.postMessage(
