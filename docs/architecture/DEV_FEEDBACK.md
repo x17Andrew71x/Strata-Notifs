@@ -100,3 +100,5 @@ The development control's refresh action asks the native shell to reload the con
 ## Release boundary
 
 The first pilot requires a new development APK because it adds native screenshot, API and refresh capabilities. Later compatible visual/UI changes remain hosted-shell deployments. Production gates build each target independently and prove the development-feedback web chunk, compiled server module, Android action strings, routes, implementation classes and capability fields are absent.
+
+Every distributed development APK must also be inspected as the built artifact, not merely by searching its strings: `apkanalyzer dex code --class com.techfullymade.afterchime.BuildConfig` must show the exact Railway development origin for both `API_BASE_URL` and `SHELL_URL`, `DEV_FEEDBACK_ENABLED=true`, the `dev` flavour, and the intended version code/name. The inert local defaults are never valid for a distributed APK.
