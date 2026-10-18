@@ -227,7 +227,11 @@ function App() {
             if (active && ready) sendNativeRequest("catalog.update", relicVaultCatalogUpdate());
           });
         }
-      } else if (response.type === "action.result" && response.action !== "catalog.update") {
+      } else if (
+        response.type === "action.result" &&
+        response.action !== "catalog.update" &&
+        response.action !== "excavation.dig"
+      ) {
         setMessage(actionMessage(response.action, response.ok));
       }
     });
@@ -391,7 +395,7 @@ function App() {
                 type === "formation.reveal"
                   ? "Revealing…"
                   : type === "excavation.dig"
-                    ? "Brushing away earth…"
+                    ? undefined
                     : "Opening settings…",
               )
             }

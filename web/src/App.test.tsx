@@ -460,6 +460,28 @@ describe("full shell application", () => {
     });
   });
 
+  it("keeps excavation feedback in the excavation bed instead of the global toast", () => {
+    renderWithState(excavationState());
+
+    fireEvent.click(screen.getByRole("button", { name: "Excavate tile 1 for 3 energy" }));
+    expect(screen.queryByRole("status")).toBeNull();
+
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            version: 2,
+            id: "dig_result",
+            type: "action.result",
+            action: "excavation.dig",
+            ok: true,
+          }),
+        }),
+      );
+    });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("retries a failed first-load excavation image without showing a broken image", () => {
     vi.useFakeTimers();
     const { container } = renderWithState(excavationState());
