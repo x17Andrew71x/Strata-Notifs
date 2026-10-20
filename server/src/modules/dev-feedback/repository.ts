@@ -530,13 +530,13 @@ async function itemRows(
       item.current_revision,
       min(revision.title) FILTER (WHERE revision.revision = 1) AS title,
       CASE
-        WHEN count(revision.id) = 1 THEN min(revision.description)
+        WHEN count(revision.id) = 1 THEN btrim(regexp_replace(min(revision.description), '[[:space:]]+', ' ', 'g'))
         ELSE string_agg(
           CASE
             WHEN revision.revision = 1 THEN 'Original request:'
             ELSE 'Follow-up ' || (revision.revision - 1)::text || ':'
-          END || E'\n' || revision.description,
-          E'\n\n' ORDER BY revision.revision
+          END || ' ' || btrim(regexp_replace(revision.description, '[[:space:]]+', ' ', 'g')),
+          ' | ' ORDER BY revision.revision
         )
       END AS description,
       item.status,
@@ -564,13 +564,13 @@ async function listOpen(
       item.current_revision,
       min(revision.title) FILTER (WHERE revision.revision = 1) AS title,
       CASE
-        WHEN count(revision.id) = 1 THEN min(revision.description)
+        WHEN count(revision.id) = 1 THEN btrim(regexp_replace(min(revision.description), '[[:space:]]+', ' ', 'g'))
         ELSE string_agg(
           CASE
             WHEN revision.revision = 1 THEN 'Original request:'
             ELSE 'Follow-up ' || (revision.revision - 1)::text || ':'
-          END || E'\n' || revision.description,
-          E'\n\n' ORDER BY revision.revision
+          END || ' ' || btrim(regexp_replace(revision.description, '[[:space:]]+', ' ', 'g')),
+          ' | ' ORDER BY revision.revision
         )
       END AS description,
       item.status,
@@ -590,13 +590,17 @@ async function listOpen(
 }
 
 function formatFeedbackHistory(revisions: readonly RevisionDescriptionRow[]): string {
-  if (revisions.length === 1) return revisions[0]?.description ?? "";
+  if (revisions.length === 1) return normalizeFeedbackText(revisions[0]?.description ?? "");
   return revisions
     .map((entry) => {
       const label = entry.revision === 1 ? "Original request" : `Follow-up ${entry.revision - 1}`;
-      return `${label}:\n${entry.description}`;
+      return `${label}: ${normalizeFeedbackText(entry.description)}`;
     })
-    .join("\n\n");
+    .join(" | ");
+}
+
+function normalizeFeedbackText(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
 }
 
 function hasDatabaseCode(error: unknown, code: string): boolean {

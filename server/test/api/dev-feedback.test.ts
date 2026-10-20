@@ -312,7 +312,7 @@ describePostgres("development feedback API", () => {
     expect(firstFollowUp.json().item).toMatchObject({
       title: "Original title",
       description:
-        "Original request:\nOriginal request detail.\n\nFollow-up 1:\nFirst follow-up detail.",
+        "Original request: Original request detail. | Follow-up 1: First follow-up detail.",
       revision: 2,
       status: "queued",
     });
@@ -345,7 +345,7 @@ describePostgres("development feedback API", () => {
     expect(secondFollowUp.json().item).toMatchObject({
       title: "Original title",
       description:
-        "Original request:\nOriginal request detail.\n\nFollow-up 1:\nFirst follow-up detail.\n\nFollow-up 2:\nSecond follow-up detail.",
+        "Original request: Original request detail. | Follow-up 1: First follow-up detail. | Follow-up 2: Second follow-up detail.",
       revision: 3,
       status: "queued",
     });
@@ -368,7 +368,7 @@ describePostgres("development feedback API", () => {
       id: itemId,
       title: "Original title",
       description:
-        "Original request:\nOriginal request detail.\n\nFollow-up 1:\nFirst follow-up detail.\n\nFollow-up 2:\nSecond follow-up detail.",
+        "Original request: Original request detail. | Follow-up 1: First follow-up detail. | Follow-up 2: Second follow-up detail.",
       revision: 3,
     });
   });

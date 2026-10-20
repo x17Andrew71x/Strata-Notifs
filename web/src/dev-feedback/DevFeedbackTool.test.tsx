@@ -317,7 +317,7 @@ describe("development feedback tool", () => {
       revision: 2,
       status: "ready_for_qa",
       description:
-        "Original request:\nReduce the empty space above the fossil.\n\nFollow-up 1:\nKeep the fossil centred after the spacing change.",
+        "Original request: Reduce the empty space above the fossil. | Follow-up 1: Keep the fossil centred after the spacing change.",
     });
     const api = transport([original]);
     render(
@@ -350,7 +350,7 @@ describe("development feedback tool", () => {
     expect(panel).toContainElement(close);
     expect(body).not.toContainElement(close);
     fireEvent.change(screen.getByLabelText("New follow-up notes"), {
-      target: { value: "The deployed spacing is better; move the label slightly lower." },
+      target: { value: "The deployed spacing is better;\n\nmove the label slightly lower." },
     });
     fireEvent.click(screen.getByRole("button", { name: "Send follow-up" }));
 

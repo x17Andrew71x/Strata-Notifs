@@ -181,7 +181,7 @@ export function DevFeedbackTool({
     const draft: DevFeedbackDraft = {
       idempotencyKey,
       title: submittedTitle,
-      description: description.trim(),
+      description: normalizeFeedbackText(description),
       route,
       shellRevision,
       appVersion,
@@ -655,15 +655,15 @@ export function regionSelectionContext(rect: SelectionRect): DevFeedbackSelectio
 type FeedbackHistoryEntry = Readonly<{ label: string; text: string }>;
 
 function feedbackHistory(description: string): FeedbackHistoryEntry[] {
-  const originalPrefix = "Original request:\n";
+  const originalPrefix = "Original request: ";
   if (!description.startsWith(originalPrefix)) {
     return [{ label: "Original request", text: description }];
   }
-  const sections = description.split(/\n\n(?=Follow-up [1-9]\d*:\n)/);
+  const sections = description.split(/ \| (?=Follow-up [1-9]\d*: )/);
   const entries: FeedbackHistoryEntry[] = [];
   for (const [index, section] of sections.entries()) {
     const label = index === 0 ? "Original request" : `Follow-up ${index}`;
-    const prefix = `${label}:\n`;
+    const prefix = `${label}: `;
     if (!section.startsWith(prefix) || section.length === prefix.length) {
       return [{ label: "Original request", text: description }];
     }
@@ -673,13 +673,17 @@ function feedbackHistory(description: string): FeedbackHistoryEntry[] {
 }
 
 function serializeFeedbackHistory(entries: readonly FeedbackHistoryEntry[]): string {
-  return entries.map((entry) => `${entry.label}:\n${entry.text}`).join("\n\n");
+  return entries.map((entry) => `${entry.label}: ${entry.text}`).join(" | ");
 }
 
 function remainingFollowUpCharacters(item: DevFeedbackItem): number {
   const existing = serializeFeedbackHistory(feedbackHistory(item.description));
-  const separator = `\n\nFollow-up ${item.revision}:\n`;
+  const separator = ` | Follow-up ${item.revision}: `;
   return Math.max(0, 4_000 - existing.length - separator.length);
+}
+
+function normalizeFeedbackText(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
 }
 
 function SelectionHighlight({ selection }: Readonly<{ selection: DevFeedbackSelection }>) {
