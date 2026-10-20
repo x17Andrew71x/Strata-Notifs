@@ -158,7 +158,7 @@ describe("development feedback tool", () => {
 
     const rows = await screen.findAllByTestId("dev-feedback-item");
     expect(rows[0]).toHaveTextContent("First");
-    expect(rows[0]).toHaveTextContent("Your request");
+    expect(rows[0]).toHaveTextContent("Original request");
     expect(rows[1]).toHaveTextContent("Second");
     expect(rows[0]).toHaveTextContent("Reduce the empty space above the fossil.");
     expect(rows[0]).not.toHaveTextContent("Deployed to Railway development");
@@ -169,7 +169,7 @@ describe("development feedback tool", () => {
     );
     expect(screen.queryByText("Response")).toBeNull();
     expect(screen.getAllByRole("button", { name: "Accept result" })).toHaveLength(1);
-    expect(screen.getAllByRole("button", { name: "Revise queued item" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Add follow-up" })).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("button", { name: "Accept result" }));
     await waitFor(() =>
@@ -211,7 +211,7 @@ describe("development feedback tool", () => {
     expect(screen.getByRole("list")).not.toHaveTextContent("Internal process details");
   });
 
-  it("locks amendments while an item is actively running", async () => {
+  it("keeps follow-ups available while an item is actively running", async () => {
     const api = transport([item({ status: "in_progress" })]);
     render(
       <DevFeedbackTool
@@ -224,9 +224,8 @@ describe("development feedback tool", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
     fireEvent.click(screen.getByRole("button", { name: "Work items" }));
-    expect(await screen.findByText("Locked while working")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Revise queued item" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Add amendment" })).toBeNull();
+    expect(await screen.findByRole("button", { name: "Add follow-up" })).toBeTruthy();
+    expect(screen.queryByText("Locked while working")).toBeNull();
     expect(screen.queryByRole("button", { name: "Close work item" })).toBeNull();
   });
 
@@ -313,8 +312,13 @@ describe("development feedback tool", () => {
     expect(await screen.findByText("Refreshing the verified development shell…")).toBeTruthy();
   });
 
-  it("appends an amendment to the original ordered item with fresh selection context", async () => {
-    const original = item({ status: "ready_for_qa" });
+  it("shows immutable ordered history and submits one empty follow-up field", async () => {
+    const original = item({
+      revision: 2,
+      status: "ready_for_qa",
+      description:
+        "Original request:\nReduce the empty space above the fossil.\n\nFollow-up 1:\nKeep the fossil centred after the spacing change.",
+    });
     const api = transport([original]);
     render(
       <>
@@ -330,23 +334,70 @@ describe("development feedback tool", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
     fireEvent.click(screen.getByRole("button", { name: "Work items" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Add amendment" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add follow-up" }));
     fireEvent.click(screen.getByRole("button", { name: "Select an element" }));
     fireEvent.click(screen.getByText("Daily excavation"));
-    expect(screen.getByLabelText("Change title")).toHaveValue(original.title);
-    expect(screen.getByLabelText("Describe the change")).toHaveValue(original.description);
-    fireEvent.change(screen.getByLabelText("Describe the change"), {
+    expect(screen.queryByText("Tap the element to change.")).toBeNull();
+    expect(screen.queryByLabelText("Change title")).toBeNull();
+    expect(screen.queryByLabelText("Describe the change")).toBeNull();
+    expect(screen.getByRole("region", { name: "Prior request history" })).toHaveTextContent(
+      "Original requestReduce the empty space above the fossil.Follow-up 1Keep the fossil centred after the spacing change.",
+    );
+    expect(screen.getByLabelText("New follow-up notes")).toHaveValue("");
+    const panel = document.querySelector<HTMLElement>(".dev-feedback-panel");
+    const body = document.querySelector<HTMLElement>(".dev-feedback-panel-body");
+    const close = screen.getByRole("button", { name: "Close development feedback" });
+    expect(panel).toContainElement(close);
+    expect(body).not.toContainElement(close);
+    fireEvent.change(screen.getByLabelText("New follow-up notes"), {
       target: { value: "The deployed spacing is better; move the label slightly lower." },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Queue amendment" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send follow-up" }));
 
     await waitFor(() => expect(api.amend).toHaveBeenCalledTimes(1));
     expect(api.amend).toHaveBeenCalledWith(
       original.id,
       expect.objectContaining({
         title: original.title,
+        description: "The deployed spacing is better; move the label slightly lower.",
         selection: expect.objectContaining({ devId: "excavation-card" }),
       }),
+    );
+  });
+
+  it("keeps follow-up notes when the server rejects a changed item", async () => {
+    const original = item({ status: "ready_for_qa" });
+    const api = transport([original]);
+    vi.mocked(api.amend).mockRejectedValueOnce(new Error("conflict"));
+    render(
+      <>
+        <div data-dev-id="excavation-card">Daily excavation</div>
+        <DevFeedbackTool
+          route="today"
+          shellRevision={"d".repeat(64)}
+          appVersion="0.1.10-dev-debug"
+          transport={api}
+        />
+      </>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work items" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add follow-up" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select an element" }));
+    fireEvent.click(screen.getByText("Daily excavation"));
+    fireEvent.change(screen.getByLabelText("New follow-up notes"), {
+      target: { value: "Keep these notes after failure." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send follow-up" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "The follow-up could not be queued. Your notes were kept.",
+      ),
+    );
+    expect(screen.getByLabelText("New follow-up notes")).toHaveValue(
+      "Keep these notes after failure.",
     );
   });
 

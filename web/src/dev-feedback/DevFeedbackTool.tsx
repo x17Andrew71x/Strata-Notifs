@@ -105,6 +105,7 @@ export function DevFeedbackTool({
       setSelection(selected);
       setSelectionMode(null);
       setView("form");
+      setMessage("");
     };
     document.addEventListener("click", choose, true);
     return () => document.removeEventListener("click", choose, true);
@@ -168,7 +169,8 @@ export function DevFeedbackTool({
   };
 
   const submit = async () => {
-    if (!selection || !title.trim() || !description.trim() || pending) return;
+    const submittedTitle = amending?.title ?? title.trim();
+    if (!selection || !submittedTitle || !description.trim() || pending) return;
     setPending(true);
     flushSync(() => {
       setCapturing(true);
@@ -178,7 +180,7 @@ export function DevFeedbackTool({
     await nextPaint();
     const draft: DevFeedbackDraft = {
       idempotencyKey,
-      title: title.trim(),
+      title: submittedTitle,
       description: description.trim(),
       route,
       shellRevision,
@@ -200,7 +202,11 @@ export function DevFeedbackTool({
       setView("items");
       setMessage(saved.note || "Queued in submission order.");
     } catch {
-      setMessage("The work item could not be queued. Nothing was discarded.");
+      setMessage(
+        amending
+          ? "The follow-up could not be queued. Your notes were kept."
+          : "The work item could not be queued. Nothing was discarded.",
+      );
     } finally {
       setCapturing(false);
       setPending(false);
@@ -258,15 +264,14 @@ export function DevFeedbackTool({
   };
 
   const beginAmendment = (entry: DevFeedbackItem) => {
-    if (entry.status === "in_progress" || entry.status === "accepted" || entry.status === "closed")
-      return;
+    if (entry.status === "accepted" || entry.status === "closed") return;
     setAmending(entry);
     setTitle(entry.title);
-    setDescription(entry.description);
+    setDescription("");
     setSelection(null);
     setIdempotencyKey(newUuid());
     setView("menu");
-    setMessage("Revise the request, then select fresh supporting evidence.");
+    setMessage("Select fresh supporting evidence, then add one follow-up note.");
   };
 
   const triggerStyle = position ? { left: position.x, top: position.y } : undefined;
@@ -300,6 +305,7 @@ export function DevFeedbackTool({
             setAreaCurrent(null);
             setSelectionMode(null);
             setView("form");
+            setMessage("");
           }}
           data-dev-feedback-ui="true"
         />
@@ -338,218 +344,271 @@ export function DevFeedbackTool({
           <div className="dev-feedback-panel-header">
             <div>
               <span>Development tools</span>
-              <strong>{amending ? `Amend #${amending.queuePosition}` : "Targeted changes"}</strong>
+              <strong>
+                {amending ? `Follow up #${amending.queuePosition}` : "Targeted changes"}
+              </strong>
             </div>
             <button type="button" aria-label="Close development feedback" onClick={closePanel}>
               ×
             </button>
           </div>
 
-          {view === "menu" && (
-            <div className="dev-feedback-menu">
-              <button
-                type="button"
-                aria-label="Select an element"
-                onClick={() => startSelection("element")}
-              >
-                <strong>Select an element</strong>
-                <span>Attach the exact rendered control and its semantic path.</span>
-              </button>
-              <button
-                type="button"
-                aria-label="Select an area"
-                onClick={() => startSelection("region")}
-              >
-                <strong>Select an area</strong>
-                <span>Drag over spacing, artwork, or a group of controls.</span>
-              </button>
-              {!amending && (
-                <button type="button" aria-label="Work items" onClick={() => setView("items")}>
-                  <strong>Work items</strong>
-                  <span>
-                    Review progress, amend or close a request, or accept a deployed result.
-                  </span>
-                </button>
-              )}
-              <button
-                type="button"
-                aria-label="Refresh development app"
-                disabled={pending}
-                onClick={() => void refresh()}
-              >
-                <strong>Refresh development app</strong>
-                <span>
-                  Reload the verified Railway development shell without clearing local data.
-                </span>
-              </button>
-            </div>
-          )}
-
-          {view === "form" && selection && (
-            <form
-              className="dev-feedback-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void submit();
-              }}
-            >
-              <h2>Stage targeted change</h2>
-              <p>
-                {selection.kind === "element"
-                  ? selection.accessibleLabel ||
-                    selection.visibleLabel ||
-                    selection.devId ||
-                    selection.tag
-                  : `${Math.round(selection.rect.width)} × ${Math.round(selection.rect.height)} region`}
-              </p>
-              <label>
-                Change title
-                <input
-                  value={title}
-                  maxLength={120}
-                  required
-                  onChange={(event) => setTitle(event.target.value)}
-                />
-              </label>
-              <label>
-                Describe the change
-                <textarea
-                  value={description}
-                  maxLength={4_000}
-                  required
-                  rows={5}
-                  onChange={(event) => setDescription(event.target.value)}
-                />
-              </label>
-              <div className="dev-feedback-actions">
-                <button type="button" onClick={() => startSelection(selection.kind)}>
-                  Reselect
-                </button>
-                <button type="submit" disabled={pending || !title.trim() || !description.trim()}>
-                  {amending ? "Queue amendment" : "Queue work item"}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {view === "items" && (
-            <div className="dev-feedback-items">
-              <div className="dev-feedback-items-heading">
-                <h2>Work items</h2>
+          <div className="dev-feedback-panel-body">
+            {view === "menu" && (
+              <div className="dev-feedback-menu">
                 <button
                   type="button"
-                  disabled={checking || pending}
-                  aria-busy={checking}
-                  onClick={() => void checkNow()}
+                  aria-label="Select an element"
+                  onClick={() => startSelection("element")}
                 >
-                  {checking ? "Checking…" : "Check now"}
+                  <strong>Select an element</strong>
+                  <span>Attach the exact rendered control and its semantic path.</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Select an area"
+                  onClick={() => startSelection("region")}
+                >
+                  <strong>Select an area</strong>
+                  <span>Drag over spacing, artwork, or a group of controls.</span>
+                </button>
+                {!amending && (
+                  <button type="button" aria-label="Work items" onClick={() => setView("items")}>
+                    <strong>Work items</strong>
+                    <span>
+                      Review progress, add a follow-up, close a request, or accept a deployed
+                      result.
+                    </span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  aria-label="Refresh development app"
+                  disabled={pending}
+                  onClick={() => void refresh()}
+                >
+                  <strong>Refresh development app</strong>
+                  <span>
+                    Reload the verified Railway development shell without clearing local data.
+                  </span>
                 </button>
               </div>
-              {items.length === 0 ? (
-                <p className="dev-feedback-empty">No open work items.</p>
-              ) : (
-                items.map((entry) => {
-                  const expanded = expandedItemId === entry.id;
-                  const amendable =
-                    entry.status !== "in_progress" &&
-                    entry.status !== "accepted" &&
-                    entry.status !== "closed";
-                  const closable = canCloseItems && amendable;
-                  const confirmingClose = closingItemId === entry.id;
-                  const response = ownerResponse(entry);
-                  return (
-                    <article key={entry.id} data-testid="dev-feedback-item">
-                      <button
-                        type="button"
-                        className="dev-feedback-item-summary"
-                        aria-expanded={expanded}
-                        aria-label={`View work item #${entry.queuePosition}: ${entry.title}`}
-                        onClick={() => setExpandedItemId(expanded ? null : entry.id)}
-                      >
-                        <span className="dev-feedback-item-title">
-                          <span>#{entry.queuePosition}</span>
-                          <strong>{entry.title}</strong>
-                          <em className={`status-${entry.status}`}>{statusLabel(entry.status)}</em>
-                        </span>
-                        <span className="dev-feedback-item-request-label">Your request</span>
-                        <span className="dev-feedback-item-request-preview">
-                          {entry.description}
-                        </span>
-                      </button>
-                      {expanded && response && (
-                        <div className="dev-feedback-item-response">
-                          <strong>Response</strong>
-                          <ul>
-                            <li>{response}</li>
-                          </ul>
-                        </div>
-                      )}
-                      <div className="dev-feedback-item-actions">
-                        {amendable && (
-                          <button type="button" onClick={() => beginAmendment(entry)}>
-                            {entry.status === "queued" ? "Revise queued item" : "Add amendment"}
-                          </button>
-                        )}
-                        {entry.status === "in_progress" && (
-                          <span className="dev-feedback-item-locked">Locked while working</span>
-                        )}
-                        {entry.status === "ready_for_qa" && (
-                          <button
-                            type="button"
-                            disabled={pending}
-                            onClick={() => void accept(entry.id)}
-                          >
-                            Accept result
-                          </button>
-                        )}
-                        {closable && (
-                          <button
-                            type="button"
-                            className="dev-feedback-close-button"
-                            disabled={pending}
-                            aria-expanded={confirmingClose}
-                            onClick={() => setClosingItemId(confirmingClose ? null : entry.id)}
-                          >
-                            Close work item
-                          </button>
-                        )}
-                      </div>
-                      {confirmingClose && (
-                        <fieldset
-                          className="dev-feedback-close-confirmation"
-                          aria-label={`Confirm closing work item #${entry.queuePosition}`}
-                        >
-                          <p>Close this unneeded work item? Its history will be retained.</p>
-                          <div>
-                            <button
-                              type="button"
-                              disabled={pending}
-                              onClick={() => setClosingItemId(null)}
-                            >
-                              Keep work item
-                            </button>
-                            <button
-                              type="button"
-                              disabled={pending}
-                              onClick={() => void closeItem(entry.id)}
-                            >
-                              Confirm close
-                            </button>
-                          </div>
-                        </fieldset>
-                      )}
-                    </article>
-                  );
-                })
-              )}
-            </div>
-          )}
+            )}
 
-          {message && (
-            <p className="dev-feedback-message" role="status">
-              {message}
-            </p>
-          )}
+            {view === "form" && selection && (
+              <form
+                className="dev-feedback-form"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submit();
+                }}
+              >
+                <h2>{amending ? "Add follow-up" : "Stage targeted change"}</h2>
+                <p>
+                  {selection.kind === "element"
+                    ? selection.accessibleLabel ||
+                      selection.visibleLabel ||
+                      selection.devId ||
+                      selection.tag
+                    : `${Math.round(selection.rect.width)} × ${Math.round(selection.rect.height)} region`}
+                </p>
+                {amending ? (
+                  <>
+                    <section className="dev-feedback-history" aria-label="Prior request history">
+                      <h3>{amending.title}</h3>
+                      <ol>
+                        {feedbackHistory(amending.description).map((entry) => (
+                          <li key={entry.label}>
+                            <strong className="dev-feedback-history-label">{entry.label}</strong>
+                            <p className="dev-feedback-history-text">{entry.text}</p>
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
+                    <label>
+                      New follow-up notes
+                      <textarea
+                        value={description}
+                        maxLength={remainingFollowUpCharacters(amending)}
+                        required
+                        rows={6}
+                        onChange={(event) => setDescription(event.target.value)}
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <label>
+                      Change title
+                      <input
+                        value={title}
+                        maxLength={120}
+                        required
+                        onChange={(event) => setTitle(event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Describe the change
+                      <textarea
+                        value={description}
+                        maxLength={4_000}
+                        required
+                        rows={5}
+                        onChange={(event) => setDescription(event.target.value)}
+                      />
+                    </label>
+                  </>
+                )}
+                <div className="dev-feedback-actions">
+                  <button type="button" onClick={() => startSelection(selection.kind)}>
+                    Reselect
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={
+                      pending ||
+                      !description.trim() ||
+                      (!amending && !title.trim()) ||
+                      (amending !== null && remainingFollowUpCharacters(amending) < 1)
+                    }
+                  >
+                    {amending ? "Send follow-up" : "Queue work item"}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {view === "items" && (
+              <div className="dev-feedback-items">
+                <div className="dev-feedback-items-heading">
+                  <h2>Work items</h2>
+                  <button
+                    type="button"
+                    disabled={checking || pending}
+                    aria-busy={checking}
+                    onClick={() => void checkNow()}
+                  >
+                    {checking ? "Checking…" : "Check now"}
+                  </button>
+                </div>
+                {items.length === 0 ? (
+                  <p className="dev-feedback-empty">No open work items.</p>
+                ) : (
+                  items.map((entry) => {
+                    const expanded = expandedItemId === entry.id;
+                    const amendable = entry.status !== "accepted" && entry.status !== "closed";
+                    const closable = canCloseItems && amendable && entry.status !== "in_progress";
+                    const confirmingClose = closingItemId === entry.id;
+                    const response = ownerResponse(entry);
+                    const history = feedbackHistory(entry.description);
+                    return (
+                      <article key={entry.id} data-testid="dev-feedback-item">
+                        <button
+                          type="button"
+                          className="dev-feedback-item-summary"
+                          aria-expanded={expanded}
+                          aria-label={`View work item #${entry.queuePosition}: ${entry.title}`}
+                          onClick={() => setExpandedItemId(expanded ? null : entry.id)}
+                        >
+                          <span className="dev-feedback-item-title">
+                            <span>#{entry.queuePosition}</span>
+                            <strong>{entry.title}</strong>
+                            <em className={`status-${entry.status}`}>
+                              {statusLabel(entry.status)}
+                            </em>
+                          </span>
+                          <span className="dev-feedback-item-request-label">Original request</span>
+                          <span className="dev-feedback-item-request-preview">
+                            {history[0]?.text ?? entry.description}
+                          </span>
+                        </button>
+                        {expanded && history.length > 1 && (
+                          <div className="dev-feedback-item-history">
+                            <strong>Follow-ups</strong>
+                            <ol>
+                              {history.slice(1).map((historyEntry) => (
+                                <li key={historyEntry.label}>
+                                  <strong className="dev-feedback-history-label">
+                                    {historyEntry.label}
+                                  </strong>
+                                  <p className="dev-feedback-history-text">{historyEntry.text}</p>
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                        )}
+                        {expanded && response && (
+                          <div className="dev-feedback-item-response">
+                            <strong>Response</strong>
+                            <ul>
+                              <li>{response}</li>
+                            </ul>
+                          </div>
+                        )}
+                        <div className="dev-feedback-item-actions">
+                          {amendable && (
+                            <button type="button" onClick={() => beginAmendment(entry)}>
+                              Add follow-up
+                            </button>
+                          )}
+                          {entry.status === "ready_for_qa" && (
+                            <button
+                              type="button"
+                              disabled={pending}
+                              onClick={() => void accept(entry.id)}
+                            >
+                              Accept result
+                            </button>
+                          )}
+                          {closable && (
+                            <button
+                              type="button"
+                              className="dev-feedback-close-button"
+                              disabled={pending}
+                              aria-expanded={confirmingClose}
+                              onClick={() => setClosingItemId(confirmingClose ? null : entry.id)}
+                            >
+                              Close work item
+                            </button>
+                          )}
+                        </div>
+                        {confirmingClose && (
+                          <fieldset
+                            className="dev-feedback-close-confirmation"
+                            aria-label={`Confirm closing work item #${entry.queuePosition}`}
+                          >
+                            <p>Close this unneeded work item? Its history will be retained.</p>
+                            <div>
+                              <button
+                                type="button"
+                                disabled={pending}
+                                onClick={() => setClosingItemId(null)}
+                              >
+                                Keep work item
+                              </button>
+                              <button
+                                type="button"
+                                disabled={pending}
+                                onClick={() => void closeItem(entry.id)}
+                              >
+                                Confirm close
+                              </button>
+                            </div>
+                          </fieldset>
+                        )}
+                      </article>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            {message && (
+              <p className="dev-feedback-message" role="status">
+                {message}
+              </p>
+            )}
+          </div>
         </section>
       )}
 
@@ -591,6 +650,36 @@ export function regionSelectionContext(rect: SelectionRect): DevFeedbackSelectio
     visibleLabel: "",
     domPath: "",
   };
+}
+
+type FeedbackHistoryEntry = Readonly<{ label: string; text: string }>;
+
+function feedbackHistory(description: string): FeedbackHistoryEntry[] {
+  const originalPrefix = "Original request:\n";
+  if (!description.startsWith(originalPrefix)) {
+    return [{ label: "Original request", text: description }];
+  }
+  const sections = description.split(/\n\n(?=Follow-up [1-9]\d*:\n)/);
+  const entries: FeedbackHistoryEntry[] = [];
+  for (const [index, section] of sections.entries()) {
+    const label = index === 0 ? "Original request" : `Follow-up ${index}`;
+    const prefix = `${label}:\n`;
+    if (!section.startsWith(prefix) || section.length === prefix.length) {
+      return [{ label: "Original request", text: description }];
+    }
+    entries.push({ label, text: section.slice(prefix.length) });
+  }
+  return entries;
+}
+
+function serializeFeedbackHistory(entries: readonly FeedbackHistoryEntry[]): string {
+  return entries.map((entry) => `${entry.label}:\n${entry.text}`).join("\n\n");
+}
+
+function remainingFollowUpCharacters(item: DevFeedbackItem): number {
+  const existing = serializeFeedbackHistory(feedbackHistory(item.description));
+  const separator = `\n\nFollow-up ${item.revision}:\n`;
+  return Math.max(0, 4_000 - existing.length - separator.length);
 }
 
 function SelectionHighlight({ selection }: Readonly<{ selection: DevFeedbackSelection }>) {

@@ -90,6 +90,14 @@ type AdminRow = ItemRow &
     screenshot_height: number;
   }>;
 
+type RevisionDescriptionRow = Readonly<{
+  revision: number;
+  description: string;
+  title: string;
+}>;
+
+const MAX_COMPILED_DESCRIPTION_CHARS = 4_000;
+
 export class DevFeedbackConflictError extends Error {
   public constructor(message = "dev_feedback_conflict") {
     super(message);
@@ -208,16 +216,33 @@ export class DevFeedbackRepository {
           AND project_id = ${identity.projectId}
         FOR UPDATE
       `;
-      if (
-        !item ||
-        item.status === "accepted" ||
-        item.status === "closed" ||
-        item.status === "in_progress"
-      ) {
+      if (!item || item.status === "accepted" || item.status === "closed") {
         throw new DevFeedbackNotReadyError();
       }
       const revision = item.current_revision + 1;
       const revisionId = randomUUID();
+      const priorRevisions = await transaction<RevisionDescriptionRow[]>`
+        SELECT revision, description, title
+        FROM dev_feedback_revisions
+        WHERE item_id = ${itemId} AND installation_id = ${identity.installationId}
+        ORDER BY revision
+      `;
+      if (
+        priorRevisions.length !== item.current_revision ||
+        priorRevisions.some((entry, index) => entry.revision !== index + 1) ||
+        !priorRevisions[0]
+      ) {
+        throw new DevFeedbackConflictError("dev_feedback_history_invalid");
+      }
+      const originalTitle = priorRevisions[0].title;
+      const compiledDescription = formatFeedbackHistory([
+        ...priorRevisions,
+        { revision, description: input.description, title: originalTitle },
+      ]);
+      if (compiledDescription.length > MAX_COMPILED_DESCRIPTION_CHARS) {
+        throw new DevFeedbackConflictError("dev_feedback_history_too_long");
+      }
+      const amendmentInput = { ...input, title: originalTitle };
       const operation = `dev_feedback_amend:${itemId}`;
       const [receipt] = await transaction<Readonly<{ result_id: string }>[]>`
         INSERT INTO idempotency_records (
@@ -248,15 +273,15 @@ export class DevFeedbackRepository {
         itemId,
         revisionId,
         revision,
-        input,
+        amendmentInput,
       );
       await transaction`
         UPDATE dev_feedback_items
         SET current_revision = ${revision},
-            title = ${input.title},
-            description = ${input.description},
+            title = ${originalTitle},
+            description = ${compiledDescription},
             status = 'queued'::dev_feedback_status,
-            note = 'Amendment queued in original order.',
+            note = 'Follow-up queued in original order.',
             lease_id = NULL,
             lease_revision = NULL,
             lease_expires_at = NULL,
@@ -499,9 +524,31 @@ async function itemRows(
   itemId: string,
 ): Promise<ItemRow[]> {
   return database<ItemRow[]>`
-    SELECT id, queue_position, current_revision, title, description, status, note, created_at, updated_at
-    FROM dev_feedback_items
-    WHERE installation_id = ${installationId} AND project_id = ${projectId} AND id = ${itemId}
+    SELECT
+      item.id,
+      item.queue_position,
+      item.current_revision,
+      min(revision.title) FILTER (WHERE revision.revision = 1) AS title,
+      CASE
+        WHEN count(revision.id) = 1 THEN min(revision.description)
+        ELSE string_agg(
+          CASE
+            WHEN revision.revision = 1 THEN 'Original request:'
+            ELSE 'Follow-up ' || (revision.revision - 1)::text || ':'
+          END || E'\n' || revision.description,
+          E'\n\n' ORDER BY revision.revision
+        )
+      END AS description,
+      item.status,
+      item.note,
+      item.created_at,
+      item.updated_at
+    FROM dev_feedback_items AS item
+    JOIN dev_feedback_revisions AS revision ON revision.item_id = item.id
+    WHERE item.installation_id = ${installationId}
+      AND item.project_id = ${projectId}
+      AND item.id = ${itemId}
+    GROUP BY item.id
   `;
 }
 
@@ -511,15 +558,45 @@ async function listOpen(
   projectId: DevFeedbackProject,
 ): Promise<DevFeedbackItem[]> {
   const rows = await database<ItemRow[]>`
-    SELECT id, queue_position, current_revision, title, description, status, note, created_at, updated_at
-    FROM dev_feedback_items
-    WHERE installation_id = ${installationId}
-      AND project_id = ${projectId}
-      AND status NOT IN ('accepted'::dev_feedback_status, 'closed'::dev_feedback_status)
-    ORDER BY queue_position
+    SELECT
+      item.id,
+      item.queue_position,
+      item.current_revision,
+      min(revision.title) FILTER (WHERE revision.revision = 1) AS title,
+      CASE
+        WHEN count(revision.id) = 1 THEN min(revision.description)
+        ELSE string_agg(
+          CASE
+            WHEN revision.revision = 1 THEN 'Original request:'
+            ELSE 'Follow-up ' || (revision.revision - 1)::text || ':'
+          END || E'\n' || revision.description,
+          E'\n\n' ORDER BY revision.revision
+        )
+      END AS description,
+      item.status,
+      item.note,
+      item.created_at,
+      item.updated_at
+    FROM dev_feedback_items AS item
+    JOIN dev_feedback_revisions AS revision ON revision.item_id = item.id
+    WHERE item.installation_id = ${installationId}
+      AND item.project_id = ${projectId}
+      AND item.status NOT IN ('accepted'::dev_feedback_status, 'closed'::dev_feedback_status)
+    GROUP BY item.id
+    ORDER BY item.queue_position
     LIMIT 200
   `;
   return rows.map(mapItem);
+}
+
+function formatFeedbackHistory(revisions: readonly RevisionDescriptionRow[]): string {
+  if (revisions.length === 1) return revisions[0]?.description ?? "";
+  return revisions
+    .map((entry) => {
+      const label = entry.revision === 1 ? "Original request" : `Follow-up ${entry.revision - 1}`;
+      return `${label}:\n${entry.description}`;
+    })
+    .join("\n\n");
 }
 
 function hasDatabaseCode(error: unknown, code: string): boolean {

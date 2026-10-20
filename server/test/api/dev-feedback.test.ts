@@ -198,14 +198,6 @@ describePostgres("development feedback API", () => {
     expect(firstClaim.item.title).toBe("First item");
     expect((await admin(app, "claim", null, {})).json().item).toBeNull();
 
-    const inProgressAmendment = await app.inject({
-      headers: { authorization: `Bearer ${first.accessToken}`, "idempotency-key": randomUUID() },
-      method: "POST",
-      payload: feedbackPayload("Must wait for the active run"),
-      url: `/v1/dev-feedback/items/${firstClaim.item.id}/amendments`,
-    });
-    expect(inProgressAmendment.statusCode).toBe(409);
-
     const progressed = await admin(app, "progress", firstClaim.item.id, {
       leaseId: firstClaim.leaseId,
       revision: firstClaim.item.revision,
@@ -292,6 +284,93 @@ describePostgres("development feedback API", () => {
     expect(responses.map((response) => response.statusCode)).toEqual([201, 201]);
     expect(responses.map((response) => response.json().item.id)).toEqual([itemId, itemId]);
     expect(responses.map((response) => response.json().item.revision)).toEqual([2, 2]);
+  });
+
+  it("queues follow-ups during active work, preserves immutable history, and locks the title", async () => {
+    const app = await appForDatabase();
+    const installation = await install(app, "127.0.3.6");
+    const original = await submit(
+      app,
+      installation.accessToken,
+      randomUUID(),
+      feedbackPayload("Original title", "Original request detail."),
+    );
+    const itemId = original.json().item.id;
+    const active = (await admin(app, "claim", null, {})).json().item;
+
+    const firstFollowUp = await app.inject({
+      headers: {
+        authorization: `Bearer ${installation.accessToken}`,
+        "idempotency-key": randomUUID(),
+      },
+      method: "POST",
+      payload: feedbackPayload("Attempted rename", "First follow-up detail."),
+      url: `/v1/dev-feedback/items/${itemId}/amendments`,
+    });
+
+    expect(firstFollowUp.statusCode).toBe(201);
+    expect(firstFollowUp.json().item).toMatchObject({
+      title: "Original title",
+      description:
+        "Original request:\nOriginal request detail.\n\nFollow-up 1:\nFirst follow-up detail.",
+      revision: 2,
+      status: "queued",
+    });
+    expect(
+      (
+        await admin(app, "progress", itemId, {
+          leaseId: active.leaseId,
+          revision: active.item.revision,
+          note: "A stale worker must be fenced.",
+          targetCommit: null,
+        })
+      ).statusCode,
+    ).toBe(409);
+
+    await adminDatabase`
+      UPDATE dev_feedback_items
+      SET title = 'Legacy mutable title'
+      WHERE id = ${itemId}
+    `;
+    const secondFollowUp = await app.inject({
+      headers: {
+        authorization: `Bearer ${installation.accessToken}`,
+        "idempotency-key": randomUUID(),
+      },
+      method: "POST",
+      payload: feedbackPayload("Another attempted rename", "Second follow-up detail."),
+      url: `/v1/dev-feedback/items/${itemId}/amendments`,
+    });
+    expect(secondFollowUp.statusCode).toBe(201);
+    expect(secondFollowUp.json().item).toMatchObject({
+      title: "Original title",
+      description:
+        "Original request:\nOriginal request detail.\n\nFollow-up 1:\nFirst follow-up detail.\n\nFollow-up 2:\nSecond follow-up detail.",
+      revision: 3,
+      status: "queued",
+    });
+
+    const revisions = await adminDatabase<
+      Readonly<{ revision: number; title: string; description: string }>[]
+    >`
+      SELECT revision, title, description
+      FROM dev_feedback_revisions
+      WHERE item_id = ${itemId}
+      ORDER BY revision
+    `;
+    expect(revisions).toEqual([
+      { revision: 1, title: "Original title", description: "Original request detail." },
+      { revision: 2, title: "Original title", description: "First follow-up detail." },
+      { revision: 3, title: "Original title", description: "Second follow-up detail." },
+    ]);
+    const claimed = (await admin(app, "claim", null, {})).json().item;
+    expect(claimed.item).toMatchObject({
+      id: itemId,
+      title: "Original title",
+      description:
+        "Original request:\nOriginal request detail.\n\nFollow-up 1:\nFirst follow-up detail.\n\nFollow-up 2:\nSecond follow-up detail.",
+      revision: 3,
+    });
   });
 
   it("closes an unneeded open item idempotently while retaining its evidence", async () => {
@@ -416,11 +495,11 @@ describePostgres("development feedback API", () => {
     expect(reclaimed.targetCommit).toBe(targetCommit);
   });
 
-  function feedbackPayload(title: string) {
+  function feedbackPayload(title: string, description = "A bounded targeted development change.") {
     const screenshot = Buffer.from([1, 2, 3, 4]);
     return {
       title,
-      description: "A bounded targeted development change.",
+      description,
       context: {
         route: "today",
         shellRevision: "c".repeat(64),

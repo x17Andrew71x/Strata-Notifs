@@ -67,7 +67,7 @@ Rules:
 - Only one item may be actively worked for a project.
 - The oldest blocked item prevents later work until resolved.
 - A Ready-for-QA item does not prevent the next queued item from being implemented.
-- A queued, blocked or Ready-for-QA amendment appends a new immutable revision, preserves the original queue position and returns the item to Queued. Active Working items are locked against amendment so a visible edit cannot revoke a live worker lease.
+- A follow-up appends a new immutable revision, preserves the original title and queue position, carries the original request plus every earlier follow-up forward in order, and returns the item to Queued. If work is active, the new revision clears and fences the old lease so stale work cannot land.
 - Closing is idempotent for an already Closed item, rejects Working and Accepted items, requires explicit client confirmation, and never deletes its evidence.
 - Every worker mutation is fenced by the current lease and item revision.
 - A stale worker cannot update status after an amendment or lease recovery.
