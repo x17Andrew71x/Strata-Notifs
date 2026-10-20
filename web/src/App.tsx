@@ -1028,11 +1028,10 @@ function Community() {
   return (
     <section className="screen placeholder-screen" aria-labelledby="exhibits-title">
       <div className="screen-heading">
-        <p className="eyebrow">Optional and private</p>
+        <p className="eyebrow">Community features are optional</p>
         <h1 id="exhibits-title">Exhibits</h1>
-        <p>Nothing leaves this device unless you explicitly enable an online feature.</p>
+        <p>Shared exhibits will appear here when they are available.</p>
       </div>
-      <div className="coming-soon">Shared exhibits are not enabled yet.</div>
     </section>
   );
 }

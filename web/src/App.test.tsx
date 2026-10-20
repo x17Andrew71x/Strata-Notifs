@@ -279,6 +279,18 @@ describe("full shell application", () => {
     expectHeading("Settings");
   });
 
+  it("uses concise privacy-first copy for the unavailable Exhibits surface", () => {
+    renderWithState(baseState);
+
+    fireEvent.click(screen.getByRole("button", { name: "Exhibits" }));
+
+    expect(screen.getByText("Community features are optional")).toBeTruthy();
+    expect(
+      screen.getByText("Shared exhibits will appear here when they are available."),
+    ).toBeTruthy();
+    expect(screen.queryByText("Shared exhibits are not enabled yet.")).toBeNull();
+  });
+
   it("shows only active fossil rarities in the Collection filter", () => {
     renderWithState(baseState);
     fireEvent.click(screen.getByRole("button", { name: "Collection" }));
