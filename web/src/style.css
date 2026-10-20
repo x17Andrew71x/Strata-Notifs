@@ -478,6 +478,8 @@ p {
   flex: 1 1 auto;
   min-height: 0;
   aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 20px;
   isolation: isolate;
 }
 
