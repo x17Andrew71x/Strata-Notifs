@@ -955,8 +955,7 @@ p {
 }
 
 .specimen-visual.specimen-reveal {
-  margin-bottom: 38px;
-  overflow: visible;
+  overflow: hidden;
   animation: specimen-reveal 1.4s cubic-bezier(0.18, 0.82, 0.24, 1) both;
 }
 
@@ -1001,11 +1000,6 @@ p {
   text-align: center;
   text-transform: uppercase;
   backdrop-filter: blur(10px);
-}
-
-.specimen-visual.specimen-reveal figcaption {
-  top: calc(100% + 10px);
-  bottom: auto;
 }
 
 .specimen-visual.compact {
