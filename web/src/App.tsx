@@ -470,6 +470,28 @@ function Brand() {
   );
 }
 
+function PageHeading({
+  eyebrow,
+  title,
+  titleId,
+  description,
+  descriptionClassName,
+}: {
+  eyebrow?: string;
+  title: string;
+  titleId?: string;
+  description?: string | null;
+  descriptionClassName?: string;
+}) {
+  return (
+    <div className="screen-heading">
+      {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+      <h1 id={titleId}>{title}</h1>
+      {description && <p className={descriptionClassName}>{description}</p>}
+    </div>
+  );
+}
+
 function Onboarding({
   access,
   appDetailsAction,
@@ -544,11 +566,12 @@ function Today({
   const copy = todayCopy(state);
   return (
     <section className="screen today-screen" aria-labelledby="today-title">
-      <div className="screen-heading">
-        <p className="eyebrow">{formatDate(state.today.localDate)}</p>
-        <h1 id="today-title">{copy.title}</h1>
-        {copy.body && <p>{copy.body}</p>}
-      </div>
+      <PageHeading
+        eyebrow={formatDate(state.today.localDate)}
+        title={copy.title}
+        titleId="today-title"
+        description={copy.body}
+      />
       <div className="formation-stage">
         {specimen && specimen.revealedAtEpochMillis !== null ? (
           <SpecimenVisual specimen={specimen} world={state.worlds.selected} revealMotion />
@@ -877,10 +900,7 @@ function Museum({
   );
   return (
     <section className="screen museum-screen" aria-labelledby="museum-title">
-      <div className="screen-heading">
-        <p className="eyebrow">{world.eyebrow}</p>
-        <h1 id="museum-title">{world.collectionName}</h1>
-      </div>
+      <PageHeading eyebrow={world.eyebrow} title={world.collectionName} titleId="museum-title" />
 
       <fieldset className="filter-row" aria-label="Filter by rarity">
         {(["ALL", "COMMON", "UNCOMMON", "RARE"] as const).map((value) => (
@@ -948,16 +968,21 @@ function SpecimenDetail({
   if (!specimen || specimen.revealedAtEpochMillis === null) {
     return (
       <section className="screen detail-screen">
-        <h1>Specimen unavailable</h1>
-        <p>This specimen is no longer in the local collection.</p>
+        <PageHeading
+          title="Specimen unavailable"
+          description="This specimen is no longer in the local collection."
+        />
       </section>
     );
   }
   const artifact = artifactForSpecimen(world, specimen);
   return (
     <section className="screen detail-screen" aria-labelledby="detail-title">
-      <p className="eyebrow">{worldDefinition(world).name}</p>
-      <h1 id="detail-title">{artifact.name}</h1>
+      <PageHeading
+        eyebrow={worldDefinition(world).name}
+        title={artifact.name}
+        titleId="detail-title"
+      />
       <div className="detail-card">
         <SpecimenVisual
           specimen={specimen}
@@ -1027,11 +1052,12 @@ function ReferenceSeries({ artifactId, ownedCount }: { artifactId: string; owned
 function Community() {
   return (
     <section className="screen placeholder-screen" aria-labelledby="exhibits-title">
-      <div className="screen-heading">
-        <p className="eyebrow">Community features are optional</p>
-        <h1 id="exhibits-title">Exhibits</h1>
-        <p>Shared exhibits will appear here when they are available.</p>
-      </div>
+      <PageHeading
+        eyebrow="Community features are optional"
+        title="Exhibits"
+        titleId="exhibits-title"
+        description="Shared exhibits will appear here when they are available."
+      />
     </section>
   );
 }
@@ -1054,10 +1080,7 @@ function More({
   const preferences = state.preferences;
   return (
     <section className="screen more-screen" aria-labelledby="settings-title">
-      <div className="screen-heading">
-        <p className="eyebrow">Local controls</p>
-        <h1 id="settings-title">Settings</h1>
-      </div>
+      <PageHeading eyebrow="Local controls" title="Settings" titleId="settings-title" />
       <section className="settings-section" aria-labelledby="online-series-title">
         <h2 id="online-series-title" className="settings-section-title">
           Online & series
@@ -1174,9 +1197,13 @@ function Toggle({
 function Worlds({ state }: { state: ShellState }) {
   return (
     <section className="screen worlds-screen" aria-labelledby="worlds-title">
-      <p className="eyebrow">Two authored series</p>
-      <h1 id="worlds-title">Series</h1>
-      <p className="lead-small">Relic Vault is available now. Signal Ruins is under development.</p>
+      <PageHeading
+        eyebrow="Two authored series"
+        title="Series"
+        titleId="worlds-title"
+        description="Relic Vault is available now. Signal Ruins is under development."
+        descriptionClassName="lead-small"
+      />
       <div className="world-list">
         {WORLD_DEFINITIONS.map((world) => {
           const selected = state.worlds.selected === world.id;

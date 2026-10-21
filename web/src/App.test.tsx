@@ -277,6 +277,8 @@ describe("full shell application", () => {
     expectHeading("Exhibits");
     fireEvent.click(screen.getByRole("button", { name: "Settings" }));
     expectHeading("Settings");
+    fireEvent.click(screen.getByRole("button", { name: /^Series/ }));
+    expectHeading("Series");
   });
 
   it("uses concise privacy-first copy for the unavailable Exhibits surface", () => {
@@ -643,7 +645,8 @@ describe("full shell application", () => {
     expect(screen.getByRole("heading", { name: "Vault" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Ribbed Jurassic Ammonite/i }));
 
-    expect(screen.getByRole("heading", { name: "Ribbed Jurassic Ammonite" })).toBeTruthy();
+    const title = screen.getByRole("heading", { name: "Ribbed Jurassic Ammonite" });
+    expect(title.parentElement).toHaveClass("screen-heading");
     expect(screen.getAllByText("Ribbed Jurassic Ammonite", { exact: true })).toHaveLength(1);
     const detail = container.querySelector(".detail-card");
     expect(detail).toBeTruthy();

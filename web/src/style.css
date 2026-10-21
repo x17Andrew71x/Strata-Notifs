@@ -2009,8 +2009,7 @@ p {
     margin-bottom: 8px;
   }
 
-  .screen-heading h1,
-  .detail-screen > h1 {
+  .screen-heading h1 {
     margin-bottom: 7px;
     font-size: clamp(29px, 7.4vw, 36px);
   }
