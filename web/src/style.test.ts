@@ -20,6 +20,16 @@ function lastDeclarationBlock(selector: string): string {
 }
 
 describe("Museum rarity card styling", () => {
+  it("clips the image inside its frame while keeping the caption below it", () => {
+    const frame = declarationBlock(".specimen-frame");
+    const caption = declarationBlock(".specimen-visual figcaption");
+
+    expect(frame).toContain("overflow: hidden");
+    expect(frame).toContain("border-radius: 18px");
+    expect(caption).toContain("margin-top: 10px");
+    expect(caption).not.toContain("position: absolute");
+  });
+
   it("keeps the rarity glow compact while preserving its low-medium-high ladder", () => {
     expect(declarationBlock(".specimen-card.rarity-common")).toContain(
       "--rarity-glow-far-size: 15px",
@@ -33,7 +43,7 @@ describe("Museum rarity card styling", () => {
   });
 
   it("uses one neutral dark image frame for every Museum rarity", () => {
-    const frame = declarationBlock(".specimen-card .specimen-visual");
+    const frame = declarationBlock(".specimen-card .specimen-frame");
     expect(frame).toContain("border-color: #080808");
     expect(frame).toContain("box-shadow:");
   });
@@ -83,10 +93,10 @@ describe("excavation motion", () => {
   });
 
   it("lifts a dark cover through bronze light for the final specimen reveal", () => {
-    expect(declarationBlock(".specimen-visual.specimen-reveal")).toContain(
+    expect(declarationBlock(".specimen-visual.specimen-reveal .specimen-frame")).toContain(
       "animation: specimen-reveal 1.4s",
     );
-    expect(declarationBlock(".specimen-visual.specimen-reveal::before")).toContain(
+    expect(declarationBlock(".specimen-visual.specimen-reveal .specimen-frame::before")).toContain(
       "animation: specimen-bronze-light 1.4s",
     );
     expect(styles).toContain("animation: specimen-cover-lift 1.4s");
@@ -96,7 +106,9 @@ describe("excavation motion", () => {
     expect(styles).toContain(".reduce-motion *");
     expect(styles).toContain(".reduce-motion .excavation-tile.dug.is-clearing");
     expect(styles).toContain(".reduce-motion .excavation-hud strong.energy-gained");
-    expect(styles).toContain(".reduce-motion .specimen-visual.specimen-reveal::after");
+    expect(styles).toContain(
+      ".reduce-motion .specimen-visual.specimen-reveal .specimen-frame::after",
+    );
     expect(declarationBlock(".reduce-motion .excavation-tile")).toContain("transition: none");
   });
 });

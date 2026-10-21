@@ -1321,7 +1321,9 @@ function SpecimenVisual({
       className={`specimen-visual theme-${definition.theme} rarity-${visualTier.toLowerCase()}${compact ? " compact" : ""}${revealMotion ? " specimen-reveal" : ""}`}
       {...accessibility}
     >
-      <img src={artifact.museumImage} alt="" draggable="false" />
+      <div className="specimen-frame">
+        <img src={artifact.museumImage} alt="" draggable="false" />
+      </div>
       {!compact && showCaption && <figcaption>{artifact.name}</figcaption>}
     </figure>
   );

@@ -614,6 +614,9 @@ describe("full shell application", () => {
     expect(container.querySelector(".specimen-reveal figcaption")).toHaveTextContent(
       "Dinosaur Embryo in Egg",
     );
+    expect(
+      container.querySelector(".specimen-reveal figcaption")?.previousElementSibling,
+    ).toHaveClass("specimen-frame");
     expect(container.querySelector(".specimen-visual img")).toHaveAttribute(
       "src",
       "/worlds/relic-dinosaur-embryo-egg-museum-db0ceecfe047.webp",
