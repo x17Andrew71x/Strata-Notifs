@@ -281,15 +281,15 @@ describe("full shell application", () => {
     expectHeading("Series");
   });
 
-  it("uses concise privacy-first copy for the unavailable Exhibits surface", () => {
+  it("uses concise privacy-first copy with the optional-community note below the Exhibits description", () => {
     renderWithState(baseState);
 
     fireEvent.click(screen.getByRole("button", { name: "Exhibits" }));
 
-    expect(screen.getByText("Community features are optional")).toBeTruthy();
-    expect(
-      screen.getByText("Shared exhibits will appear here when they are available."),
-    ).toBeTruthy();
+    const heading = screen.getByRole("heading", { name: "Exhibits" }).parentElement;
+    expect(heading?.textContent).toBe(
+      "ExhibitsShared exhibits will appear here when they are available.Community features are optional",
+    );
     expect(screen.queryByText("Shared exhibits are not enabled yet.")).toBeNull();
   });
 

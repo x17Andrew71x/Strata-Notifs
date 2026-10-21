@@ -1296,6 +1296,10 @@ p {
   max-width: 480px;
 }
 
+.placeholder-screen .eyebrow-after-description {
+  margin: 13px 0 0;
+}
+
 .detail-screen .back-button,
 .worlds-screen .back-button {
   margin-bottom: 16px;

@@ -1052,12 +1052,11 @@ function ReferenceSeries({ artifactId, ownedCount }: { artifactId: string; owned
 function Community() {
   return (
     <section className="screen placeholder-screen" aria-labelledby="exhibits-title">
-      <PageHeading
-        eyebrow="Community features are optional"
-        title="Exhibits"
-        titleId="exhibits-title"
-        description="Shared exhibits will appear here when they are available."
-      />
+      <div className="screen-heading">
+        <h1 id="exhibits-title">Exhibits</h1>
+        <p>Shared exhibits will appear here when they are available.</p>
+        <p className="eyebrow eyebrow-after-description">Community features are optional</p>
+      </div>
     </section>
   );
 }
