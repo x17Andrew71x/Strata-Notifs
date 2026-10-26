@@ -142,7 +142,6 @@ export class ExhibitsRepository {
         FROM exhibit_contributions
         WHERE installation_id = ${input.installationId}
           AND idempotency_key = ${input.idempotencyKey}
-        FOR UPDATE
       `;
       if (existing) {
         const [sameExhibit] = await transaction<Readonly<{ slug: string }>[]>`
