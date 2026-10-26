@@ -65,7 +65,9 @@ async function createWorker(
     const url = new URL(responseUrl(input), origin);
     const response = await fetcher(input);
     if (url.pathname === "/afterchime-mark.webp") return imageResponse("brand", "image/webp");
-    const match = url.pathname.match(/^\/worlds\/[a-z0-9-]+-[a-f0-9]{12}\.(jpg|webp)$/);
+    const match = url.pathname.match(
+      /^\/(?:worlds|exhibits)\/[a-z0-9-]+-[a-f0-9]{12}\.(jpg|webp)$/,
+    );
     if (!match) return response;
     if (!response.ok && response.status !== 404) return response;
     return imageResponse("image", match[1] === "webp" ? "image/webp" : "image/jpeg");
@@ -187,7 +189,7 @@ describe("last-known-good web shell", () => {
     );
 
     await worker.activate();
-    const state = stores.get("afterchime-shell-v34")?.get(`${origin}/.afterchime/current`);
+    const state = stores.get("afterchime-shell-v35")?.get(`${origin}/.afterchime/current`);
     expect(await state?.clone().json()).toMatchObject({ catalogRevision: 2 });
     offline = true;
 
@@ -291,7 +293,7 @@ describe("last-known-good web shell", () => {
     );
   });
 
-  it("includes the exact authored world artwork in the verified offline shell", async () => {
+  it("includes the exact authored world and placeholder exhibit artwork in the verified offline shell", async () => {
     let offline = false;
     const worker = await createWorker(async (input) => {
       if (offline) throw new TypeError("offline");
@@ -310,11 +312,14 @@ describe("last-known-good web shell", () => {
       "/worlds/relic-dactylioceras-ammonite-museum-6a351e2bb9c1.webp",
     );
     const brand = await worker.asset("/afterchime-mark.webp");
+    const exhibit = await worker.asset("/exhibits/returning-light-placeholder-9b0223afcfc7.webp");
     expect(artwork.status).toBe(200);
     expect(artwork.headers.get("content-type")).toBe("image/webp");
     expect(brand.status).toBe(200);
+    expect(exhibit.status).toBe(200);
     expect(await brand.text()).toBe("brand");
     expect(await artwork.text()).toBe("image");
+    expect(await exhibit.text()).toBe("image");
   });
 
   it("keeps the prior entry after an incomplete update and fails closed without a valid entry", async () => {
@@ -360,10 +365,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v35";',
             'const CACHE_NAME = "afterchime-shell-v34";',
-            'const CACHE_NAME = "afterchime-shell-v33";',
           )
-          .replace('  "afterchime-shell-v33",\n', ""),
+          .replace('  "afterchime-shell-v34",\n', ""),
     });
     await prior.activate();
     offline = true;

@@ -1,101 +1,89 @@
-# 05 — Community Exhibitions Implementation Plan
+# 05 — Exhibits Community Implementation Plan
 
-> **For Hermes:** Donations are irreversible inventory mutations. Implement server transaction/reconciliation before presentation polish.
+> **Authority:** Andrew's approved Exhibits v3 direction supersedes the former specimen-donation and World Formation plan. Do not restore those retired mechanics from repository history.
 
-**Goal:** Deliver seasonal collaborative mosaics, fair global notification creations and permanent contributor awards.
+**Goal:** Deliver one calm, contribution-first Exhibits surface: a quarterly Featured Season, one optional Restoration Archive target, and a Past Exhibits list.
 
-**Architecture:** PostgreSQL owns campaign state, specimen donation and awards transactionally. Immutable deterministic manifests let Android render community art without uploaded user media or server-side raster storage.
-
-**Milestone:** `0.6.0`
+**Architecture:** PostgreSQL owns exhibit definitions, immutable contribution targets, idempotent contribution rows, shared-cap enforcement and personal eligibility. Android contributes only locally earned post-excavation surplus through the authenticated native boundary. The hosted shell renders a cached 960×960 image through a deterministic 320×320 WebGL2/Canvas reveal mask.
 
 ---
 
-## Task 1: Campaign schema and state machine
+## Locked product contract
+
+- Four Featured Seasons per year.
+- Contribution begins only after the user's daily excavation is complete.
+- **Contribute all** is deliberate; there is no automatic spend or repetitive per-unit tapping.
+- One private per-user daily cap applies across Featured Season and Restoration Archive.
+- Reward eligibility requires both the community target and the user's individual minimum.
+- Public progress is percentage-only with two decimal places; raw units, reveal cells and population remain private.
+- Seasonal images remain in Exhibits, separate from Museum specimens and every Series.
+- Personal showcases, browsing other users, feeds, following, comments, messages, ranks and leaderboards are out of scope.
+- Outbound Afterchime notifications require a separate later design pass.
+
+## Task 1 — Contribution scaling and schema
 
 **Files:**
-- Create: `server/src/db/schema/community.ts`
-- Create: next migration
-- Create: `server/src/modules/community/campaign-state.ts`
-- Create: `server/test/community/campaign-state.test.ts`
+- `server/src/db/schema/exhibits.ts`
+- next forward migration
+- migration/RLS tests
 
-Model draft, scheduled, open, completing, complete, expired and cancelled states with legal transitions only. Store blueprint version/hash, target, timing and environment. Test boundary timestamps, duplicate transitions and forbidden rollback.
+Store a fixed `target_units`, personal minimum and daily cap per exhibit. Keep the 102,400 visual cells independent: progress basis points are `floor(total_units × 10,000 ÷ target_units)`, and the client maps that percentage across the fixed reveal grid. This is the cold-start scaling mechanism. Fix values before opening and never move a live target.
 
-## Task 2: Deterministic blueprint and manifest contract
+Persist exhibit definitions, installation-scoped idempotent contributions and unlock records. Force RLS on installation-owned rows. Grant the runtime role only the required reads/inserts plus bounded aggregate-progress updates.
 
-**Files:**
-- Create: `contracts/community/v1/*.schema.json`
-- Create: `server/src/modules/community/blueprint.ts`
-- Create: `android/.../community/CommunityManifest.kt`
-- Create: shared fixtures/tests
-
-Specify grid/cell geometry, palette, layer, specimen-family influence and final hash. Test identical rendering inputs across Android parser and server validator; reject excessive dimensions, unknown renderer versions and mutable completed manifests.
-
-## Task 3: Transactional donation
+## Task 2 — Authenticated Exhibits API
 
 **Files:**
-- Create: `server/src/modules/community/routes.ts`
-- Create: `server/src/modules/community/donate.ts`
-- Create: `server/src/modules/community/repository.ts`
-- Create: API/database tests
+- `server/src/modules/exhibits/`
+- `server/test/api/exhibits.test.ts`
 
-**Required cases:** ordinary=1, Restored=3, Centre Piece=9; locked/not-owned/already-consumed rejection; closed campaign; duplicate idempotency key; concurrent final contributions; timeout replay; forged specimen; premium-world neutrality.
+Provide:
 
-One transaction must lock/consume the specimen, create inventory mutation, record contribution, update progress, fill deterministic cells and create completion/outbox facts when the target is reached.
+- `GET /v1/exhibits/current?local_date=YYYY-MM-DD`
+- `POST /v1/exhibits/{id}/contributions`
 
-## Task 4: Award outbox worker
+Return aggregate progress only as integer basis points, plus the requesting installation's private contribution/minimum. Enforce essential-online consent, build-channel isolation, one cap across both destinations, row-locked progress updates and exact idempotent replay. Do not return target units, total units or participant counts.
 
-**Files:**
-- Create: `server/src/jobs/community-awards.ts`
-- Create: `server/test/jobs/community-awards.test.ts`
-
-Issue one contributor edition per distinct contributor. Test worker crash before/after insert, duplicate queue rows, lease expiry, restart and acknowledgement. A failed award must remain visible and retryable.
-
-## Task 5: Android donation reconciliation
+## Task 3 — Android contribution and reconciliation boundary
 
 **Files:**
-- Create: `android/.../community/DonateSpecimenUseCase.kt`
-- Create: `android/.../data/local/PendingDonationEntity.kt`
-- Create: tests
+- `android/.../community/ExhibitsRepository.kt`
+- network models/client extensions
+- strict native bridge actions and tests
 
-Lock local specimen before request, preserve pending state on ambiguity, query/replay with same key, and consume only from definitive server result. Test process death at each boundary and prevent a second donation attempt while unresolved.
+Derive banked Exhibit energy from the completed daily excavation's surplus, minus the server-acknowledged amount already contributed that local day. Persist one non-secret pending attempt with its idempotency key. Preserve it across network ambiguity; clear it only after accepted/duplicate acknowledgement or a definitive rejection. Do not expose bearer credentials to the hosted shell.
 
-## Task 6: Community screens
-
-**Files:**
-- Create: `android/.../ui/community/CommunityScreen.kt`
-- Create: `.../CampaignDetailScreen.kt`
-- Create: `.../DonationConfirmation.kt`
-- Create: `.../CommunityArtworkRenderer.kt`
-- Create: interaction/golden tests
-
-Show one current exhibition and World Formation with restrained progress. Donation confirmation names exact specimen and units. Completed art appears in the museum and works offline after sync. No contributor ranking, public profile or free-form content.
-
-## Task 7: World Formation aggregates
+## Task 4 — Approved Exhibits v3 shell
 
 **Files:**
-- Create: server schema migration/module/job/tests
-- Extend Android aggregate fixtures
+- `web/src/App.tsx`
+- `web/src/ExhibitReveal.tsx`
+- `web/src/exhibits.ts`
+- `web/src/style.css`
+- content-addressed placeholder images and fallback-cache inventory
 
-Maintain true consented notification total separately from capped game pressure. Test per-installation daily cap, revisions, duplicate batches, withdrawn consent, milestone transitions and late corrections. Public API returns only global values after a privacy threshold and may round display totals without changing stored analytics.
+Match the approved lean hierarchy exactly:
 
-## Task 8: Seasonal administration
+1. Featured Season image and compact progress/action panel.
+2. One compact Restoration Archive row.
+3. Compact Past Exhibits cards; earned colour/viewable, missed grayscale/disabled.
 
-**Files:**
-- Create: `server/src/modules/admin/campaigns.ts`
-- Create: `server/test/admin/campaigns.test.ts`
-- Create: `docs/operations/CAMPAIGNS.md`
+Use a broad top-left to bottom-right reveal with a narrow rough pixel-scattered edge. Use WebGL2 first, retain a deterministic Canvas 2D/context-loss fallback, honour Reduce motion, and never render 102,400 DOM elements.
 
-Authenticated owner operations create/validate/schedule/open/close development campaigns. Require preview hash and explicit environment. Audit every change; forbid production actions in dev credentials and application configuration.
+## Task 5 — Later content operations and live updates
 
-## Task 9: Abuse and load tests
+The first pass uses deterministic content-addressed placeholder images. Before real seasonal artwork ships, add the separately reviewed Draft → Ready → Active → Closed administration flow, private draft previews, atomic publication and replacement-safe content caching.
 
-Test registration farms/rate limits, donation replay, concurrent target crossing, impossible contribution units, aggregate inflation, oversized manifests and award fan-out. Measure query plans and indexes with realistic synthetic volume; fix measured bottlenecks only.
+Native-authenticated refresh after app open/focus, contribution and visible-tab polling is the first-pass freshness path. A percentage-only server-sent event stream may later replace visible-tab polling after load and connection behaviour are measured; it must coalesce aggregate versions and never expose identities.
 
-## Phase exit
+## Acceptance
 
-- A development campaign proceeds draft → open → complete.
-- Ordinary/restored/centre donations survive duplicate and crash tests.
-- All contributors receive exactly one signed artwork.
-- True totals and capped game pressure reconcile separately.
-- Android renders in-progress and completed community states accessibly.
-- Full server/Android/contract gates pass.
+- Contribution cannot occur before the personal daily excavation completes.
+- Featured and Archive destinations share one enforced daily cap.
+- Exact retry returns duplicate without adding units twice.
+- Public state contains no raw global counters or population data.
+- 0.00%–100.00% maps deterministically across all 102,400 visual cells.
+- WebGL2 and forced Canvas fallback both render the same direction.
+- Active, complete/under-minimum, earned and missed states work at 320×568, 360×640, 412×915 and desktop widths without horizontal overflow.
+- Placeholder assets are content-addressed, hash-verified and present in both hosted and bundled fallback inventories.
+- Focused web/server/Android tests, migration/RLS proof, full repository checks and a verified development APK pass before the slice is called complete.

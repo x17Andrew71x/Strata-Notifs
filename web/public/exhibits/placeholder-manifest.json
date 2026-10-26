@@ -1,0 +1,40 @@
+{
+  "assets": {
+    "ember-flight": {
+      "height": 960,
+      "path": "/exhibits/ember-flight-placeholder-06a33afcd216.webp",
+      "placeholder": true,
+      "sha256": "06a33afcd216308d9f9aba1e0be1bd2e50040fb069f23a976651510ed2d43f76",
+      "width": 960
+    },
+    "long-night": {
+      "height": 960,
+      "path": "/exhibits/long-night-placeholder-65aa588c66bf.webp",
+      "placeholder": true,
+      "sha256": "65aa588c66bfe2c08c94a1a84ae1d513b675a1a78d449ac925a265a5f86629ef",
+      "width": 960
+    },
+    "monsoon-choir": {
+      "height": 960,
+      "path": "/exhibits/monsoon-choir-placeholder-c754a2db5e27.webp",
+      "placeholder": true,
+      "sha256": "c754a2db5e2765ede1a39bab1610f855dc2f692d78d0b69ebd392a6c2d7b070c",
+      "width": 960
+    },
+    "returning-light": {
+      "height": 960,
+      "path": "/exhibits/returning-light-placeholder-9b0223afcfc7.webp",
+      "placeholder": true,
+      "sha256": "9b0223afcfc7bf3ebfa58344bae1caa7f39bc71a489cf11ce2373e82777cda32",
+      "width": 960
+    },
+    "tideglass": {
+      "height": 960,
+      "path": "/exhibits/tideglass-placeholder-38d7b8496d0c.webp",
+      "placeholder": true,
+      "sha256": "38d7b8496d0cfeaf3a8db20d463f55b9fb7b2319fc3d7c7b372487edcaab6643",
+      "width": 960
+    }
+  },
+  "schemaVersion": 1
+}

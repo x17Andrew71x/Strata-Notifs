@@ -1,6 +1,7 @@
-const CACHE_NAME = "afterchime-shell-v34";
+const CACHE_NAME = "afterchime-shell-v35";
 const CATALOG_REVISION = 2;
 const LEGACY_CACHE_NAMES = [
+  "afterchime-shell-v34",
   "afterchime-shell-v33",
   "afterchime-shell-v32",
   "afterchime-shell-v31",
@@ -35,7 +36,7 @@ const LEGACY_CACHE_NAMES = [
 const ENTRY = "/";
 const STATE_KEY = "/.afterchime/current";
 const ASSET_PATTERN =
-  /^(?:\/afterchime-mark\.webp|\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)|\/worlds\/[a-z0-9-]{1,128}-[a-f0-9]{12}\.(?:jpg|webp))$/;
+  /^(?:\/afterchime-mark\.webp|\/assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)|\/(?:worlds|exhibits)\/[a-z0-9-]{1,128}-[a-f0-9]{12}\.(?:jpg|webp))$/;
 const BUILD_ASSET_REFERENCE_PATTERN =
   /["'`]((?:\/)?assets\/[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css))(?=["'`])/g;
 const BRAND_ASSETS = ["/afterchime-mark.webp"];
@@ -75,6 +76,13 @@ const WORLD_ASSETS = [
   "/worlds/relic-archaeopteryx-slab-museum-492a72012ed0.webp",
   "/worlds/relic-archaeopteryx-slab-excavation-30a8e4b75684.webp",
   "/worlds/signal-ruins-artifact-67f7d4054fb5.webp",
+];
+const EXHIBIT_ASSETS = [
+  "/exhibits/returning-light-placeholder-9b0223afcfc7.webp",
+  "/exhibits/long-night-placeholder-65aa588c66bf.webp",
+  "/exhibits/monsoon-choir-placeholder-c754a2db5e27.webp",
+  "/exhibits/ember-flight-placeholder-06a33afcd216.webp",
+  "/exhibits/tideglass-placeholder-38d7b8496d0c.webp",
 ];
 
 self.addEventListener("install", (event) => event.waitUntil(installWorker()));
@@ -149,7 +157,12 @@ async function promoteCompleteShell(response, cache) {
     ),
   ].map((match) => match[1]);
   if (entryReferences.length === 0 || entryReferences.length > 32) return false;
-  const references = new Set([...entryReferences, ...BRAND_ASSETS, ...WORLD_ASSETS]);
+  const references = new Set([
+    ...entryReferences,
+    ...BRAND_ASSETS,
+    ...WORLD_ASSETS,
+    ...EXHIBIT_ASSETS,
+  ]);
   const pending = [...references];
 
   const assets = [];

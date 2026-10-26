@@ -133,6 +133,22 @@ describe("analytics contract v1", () => {
     });
   });
 
+  it("publishes the strict Exhibits API without raw community counters", async () => {
+    const openapi = (await readJson(join(contractsRoot, "openapi", "afterchime-v1.yaml"))) as {
+      components?: { schemas?: Record<string, { properties?: Record<string, unknown> }> };
+      paths?: Record<string, unknown>;
+    };
+
+    expect(openapi.paths).toHaveProperty("/v1/exhibits/current.get");
+    expect(openapi.paths).toHaveProperty("/v1/exhibits/{exhibitId}/contributions.post");
+    const exhibitProperties = openapi.components?.schemas?.["ExhibitView"]?.properties ?? {};
+    expect(exhibitProperties).toHaveProperty("progressBasisPoints");
+    expect(exhibitProperties).toHaveProperty("personalContribution");
+    expect(exhibitProperties).not.toHaveProperty("targetUnits");
+    expect(exhibitProperties).not.toHaveProperty("totalUnits");
+    expect(exhibitProperties).not.toHaveProperty("participantCount");
+  });
+
   it("rejects unknown events, unknown properties, unsupported schema versions, and oversized values", async () => {
     const validate = await validator();
     const fixtures = await fixtureDocuments("invalid");

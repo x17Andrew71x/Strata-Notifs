@@ -70,6 +70,45 @@ data class DailyAggregateResult(
   val status: String,
 )
 
+data class ExhibitApiItem(
+  val id: String,
+  val title: String,
+  val seasonLabel: String,
+  val imagePath: String,
+  val progressBasisPoints: Int,
+  val personalContribution: Int,
+  val personalMinimum: Int,
+  val daysRemaining: Int?,
+  val communityComplete: Boolean,
+  val qualified: Boolean,
+  val unlocked: Boolean,
+  val closed: Boolean,
+)
+
+data class PastExhibitApiItem(
+  val id: String,
+  val title: String,
+  val seasonLabel: String,
+  val imagePath: String,
+  val unlocked: Boolean,
+  val lockedReason: String?,
+)
+
+data class ExhibitsStateResponse(
+  val status: String,
+  val featured: ExhibitApiItem?,
+  val archive: ExhibitApiItem?,
+  val past: List<PastExhibitApiItem>,
+  val todayContributedUnits: Int,
+  val dailyContributionCap: Int,
+  val version: Int,
+)
+
+data class ExhibitContributionResponse(
+  val status: String,
+  val state: ExhibitsStateResponse,
+)
+
 data class ErrorResponse(val error: String)
 
 object ApiModels {
@@ -81,6 +120,9 @@ object ApiModels {
   private val semanticVersionPattern =
     Regex("^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$")
   private val localePattern = Regex("^[a-z]{2,3}(?:-[A-Z]{2})?$")
+  private val exhibitIdPattern = Regex("^[a-z0-9-]{1,80}$")
+  private val exhibitImagePattern =
+    Regex("^/exhibits/[a-z0-9-]{1,128}-[a-f0-9]{12}\\.webp$")
   private val scopes = setOf("essential_online", "product_analytics", "notification_aggregates")
   private val categories =
     setOf(
@@ -241,6 +283,14 @@ object ApiModels {
     return DailyAggregateResult(localDate, revision, status)
   }
 
+  fun parseExhibitsState(text: String): ExhibitsStateResponse = parseExhibitsState(JSONObject(text))
+
+  fun parseExhibitContribution(text: String): ExhibitContributionResponse {
+    val root = JSONObject(text).strict("state", "status")
+    val status = root.string("status").also { require(it in setOf("accepted", "duplicate")) }
+    return ExhibitContributionResponse(status, parseExhibitsState(root.objectValue("state")))
+  }
+
   fun parseError(text: String, allowed: Set<String>): ErrorResponse {
     val root = JSONObject(text).strict("error")
     return ErrorResponse(root.string("error").also { require(it in allowed) })
@@ -275,6 +325,12 @@ object ApiModels {
       .put("scope", value.scope)
       .put("scopeVersion", value.scopeVersion)
       .toString()
+  }
+
+  fun encodeExhibitContribution(localDate: String, units: Int): String {
+    LocalDate.parse(localDate)
+    require(units in 1..100_000)
+    return JSONObject().put("local_date", localDate).put("units", units).toString()
   }
 
   fun validateAnalyticsEnvelope(text: String) {
@@ -346,6 +402,69 @@ object ApiModels {
       hourlyTotal += bucket.integer("count").also { require(it in 0..100_000) }
     }
     require(hourlyTotal == eligibleCount)
+  }
+
+  private fun parseExhibitsState(root: JSONObject): ExhibitsStateResponse {
+    root.strict(
+      "archive",
+      "dailyContributionCap",
+      "featured",
+      "past",
+      "status",
+      "todayContributedUnits",
+      "version",
+    )
+    val status = root.string("status").also { require(it == "ready") }
+    val featured = root.nullableObject("featured")?.let(::parseExhibit)
+    val archive = root.nullableObject("archive")?.let(::parseExhibit)
+    val past = root.getJSONArray("past").objects(::parsePastExhibit).also { require(it.size <= 20) }
+    val today = root.integer("todayContributedUnits").also { require(it >= 0) }
+    val cap = root.integer("dailyContributionCap").also { require(it in 0..100_000) }
+    val version = root.integer("version").also { require(it >= 0) }
+    return ExhibitsStateResponse(status, featured, archive, past, today, cap, version)
+  }
+
+  private fun parseExhibit(value: JSONObject): ExhibitApiItem {
+    value.strict(
+      "closed",
+      "communityComplete",
+      "daysRemaining",
+      "id",
+      "imagePath",
+      "personalContribution",
+      "personalMinimum",
+      "progressBasisPoints",
+      "qualified",
+      "seasonLabel",
+      "title",
+      "unlocked",
+    )
+    return ExhibitApiItem(
+      id = value.string("id").also { require(exhibitIdPattern.matches(it)) },
+      title = value.string("title").also { require(it.length in 1..80) },
+      seasonLabel = value.string("seasonLabel").also { require(it.length in 1..48) },
+      imagePath = value.string("imagePath").also { require(exhibitImagePattern.matches(it)) },
+      progressBasisPoints = value.integer("progressBasisPoints").also { require(it in 0..10_000) },
+      personalContribution = value.integer("personalContribution").also { require(it >= 0) },
+      personalMinimum = value.integer("personalMinimum").also { require(it > 0) },
+      daysRemaining = value.nullableInteger("daysRemaining")?.also { require(it in 0..3_650) },
+      communityComplete = value.boolean("communityComplete"),
+      qualified = value.boolean("qualified"),
+      unlocked = value.boolean("unlocked"),
+      closed = value.boolean("closed"),
+    )
+  }
+
+  private fun parsePastExhibit(value: JSONObject): PastExhibitApiItem {
+    value.strict("id", "imagePath", "lockedReason", "seasonLabel", "title", "unlocked")
+    return PastExhibitApiItem(
+      id = value.string("id").also { require(exhibitIdPattern.matches(it)) },
+      title = value.string("title").also { require(it.length in 1..80) },
+      seasonLabel = value.string("seasonLabel").also { require(it.length in 1..48) },
+      imagePath = value.string("imagePath").also { require(exhibitImagePattern.matches(it)) },
+      unlocked = value.boolean("unlocked"),
+      lockedReason = value.nullableString("lockedReason")?.also { require(it.length in 1..80) },
+    )
   }
 
   private fun validateEventProperties(eventName: String, properties: JSONObject) {
@@ -444,6 +563,15 @@ object ApiModels {
   }
 
   private fun JSONObject.optionalString(name: String): String? = if (has(name)) string(name) else null
+
+  private fun JSONObject.nullableString(name: String): String? =
+    if (isNull(name)) null else string(name)
+
+  private fun JSONObject.nullableInteger(name: String): Int? =
+    if (isNull(name)) null else integer(name)
+
+  private fun JSONObject.nullableObject(name: String): JSONObject? =
+    if (isNull(name)) null else objectValue(name)
 
   private fun JSONObject.boolean(name: String): Boolean {
     val value = get(name)

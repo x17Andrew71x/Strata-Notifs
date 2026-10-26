@@ -17,6 +17,7 @@ async function shellRoot(): Promise<string> {
   roots.push(root);
   await mkdir(path.join(root, "assets"));
   await mkdir(path.join(root, "worlds"));
+  await mkdir(path.join(root, "exhibits"));
   await writeFile(
     path.join(root, "index.html"),
     '<!doctype html><script src="/assets/main-AbCdEf123456.js"></script>',
@@ -29,6 +30,10 @@ async function shellRoot(): Promise<string> {
   await writeFile(path.join(root, "assets", "main-AbCdEf123456.js"), "safe asset");
   await writeFile(path.join(root, "worlds", "relic-fossil-aaaaaaaaaaaa.jpg"), "safe image");
   await writeFile(path.join(root, "worlds", "relic-fossil-bbbbbbbbbbbb.webp"), "safe webp");
+  await writeFile(
+    path.join(root, "exhibits", "returning-light-placeholder-cccccccccccc.webp"),
+    "safe exhibit",
+  );
   return root;
 }
 
@@ -114,6 +119,13 @@ describe("web shell routes", () => {
     expect(webp.statusCode).toBe(200);
     expect(webp.headers["content-type"]).toBe("image/webp");
     expect(webp.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
+    const exhibit = await app.inject({
+      method: "GET",
+      url: "/exhibits/returning-light-placeholder-cccccccccccc.webp",
+    });
+    expect(exhibit.statusCode).toBe(200);
+    expect(exhibit.headers["content-type"]).toBe("image/webp");
+    expect(exhibit.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
     const brand = await app.inject({ method: "GET", url: "/afterchime-mark.webp" });
     expect(brand.statusCode).toBe(200);
     expect(brand.headers["content-type"]).toBe("image/webp");

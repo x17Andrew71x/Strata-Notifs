@@ -147,6 +147,20 @@ class MainActivityTest {
         """{"version":2,"id":"req_bad_dig","type":"excavation.dig","payload":{"tileIndex":25}}""",
       ),
     )
+    assertEquals(
+      "exhibits.refresh",
+      parseBridgeRequest("""{"version":2,"id":"exhibits_refresh","type":"exhibits.refresh"}""")?.type,
+    )
+    val contribution = parseBridgeRequest(
+      """{"version":2,"id":"exhibits_contribute","type":"exhibits.contribute","payload":{"exhibitId":"returning-light-2027","localDate":"2026-10-26","units":18}}""",
+    )
+    assertEquals("exhibits.contribute", contribution?.type)
+    assertEquals(18, contribution?.payload?.getInt("units"))
+    assertNull(
+      parseBridgeRequest(
+        """{"version":2,"id":"bad_exhibits","type":"exhibits.contribute","payload":{"exhibitId":"returning-light-2027","localDate":"2026-10-26","units":0}}""",
+      ),
+    )
     val catalogPayload = FossilCatalogManifest(
       revision = FossilCatalog.BUNDLED_REVISION,
       items = FossilCatalog.items,

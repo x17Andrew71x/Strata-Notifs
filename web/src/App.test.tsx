@@ -281,16 +281,40 @@ describe("full shell application", () => {
     expectHeading("Series");
   });
 
-  it("uses concise privacy-first copy with the optional-community note below the Exhibits description", () => {
-    renderWithState(baseState);
+  it("renders the approved contribution-first Exhibits surface without exposing raw global counts", () => {
+    renderWithState({
+      ...baseState,
+      preferences: { ...baseState.preferences, onlineFeaturesEnabled: true },
+      exhibits: exhibitsState,
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Exhibits" }));
 
-    const heading = screen.getByRole("heading", { name: "Exhibits" }).parentElement;
-    expect(heading?.textContent).toBe(
-      "ExhibitsShared exhibits will appear here when they are available.Community features are optional",
-    );
-    expect(screen.queryByText("Shared exhibits are not enabled yet.")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Exhibits" })).toBeTruthy();
+    expect(
+      screen.getByRole("img", { name: /The Returning Light, 56\.46% restored/i }),
+    ).toBeTruthy();
+    expect(screen.getAllByText("56.46%")).toHaveLength(2);
+    expect(screen.getByText("560 / 900")).toBeTruthy();
+    expect(screen.getByText("18 ready")).toBeTruthy();
+    expect(screen.getByText("The Long Night")).toBeTruthy();
+    expect(screen.getByText("Monsoon Choir")).toBeTruthy();
+    expect(screen.queryByText(/102,400/)).toBeNull();
+    expect(screen.queryByText(/participant count/i)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Contribute all" }));
+    expect(lastRequest()).toMatchObject({
+      version: 2,
+      type: "exhibits.contribute",
+      payload: {
+        exhibitId: "returning-light-2027",
+        localDate: "2026-10-07",
+        units: 18,
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Monsoon Choir" }));
+    expect(screen.getByRole("dialog", { name: "Monsoon Choir" })).toBeTruthy();
   });
 
   it("shows only active fossil rarities in the Collection filter", () => {
@@ -1042,4 +1066,56 @@ const baseState: ShellState = {
     available: ["PRIMEVAL_STRATA", "DEEP_SPACE", "BOTANICAL_ARCHIVE", "THE_ABYSS"],
     developmentControlsEnabled: true,
   },
+};
+
+const exhibitsState: NonNullable<ShellState["exhibits"]> = {
+  status: "READY",
+  bankedEnergy: 18,
+  contributionInFlight: false,
+  featured: {
+    id: "returning-light-2027",
+    title: "The Returning Light",
+    seasonLabel: "Spring 2027",
+    imagePath: "/exhibits/returning-light-placeholder-9b0223afcfc7.webp",
+    progressBasisPoints: 5_646,
+    personalContribution: 560,
+    personalMinimum: 900,
+    daysRemaining: 47,
+    communityComplete: false,
+    qualified: false,
+    unlocked: false,
+    closed: false,
+  },
+  archive: {
+    id: "long-night-2026",
+    title: "The Long Night",
+    seasonLabel: "Winter 2026",
+    imagePath: "/exhibits/long-night-placeholder-65aa588c66bf.webp",
+    progressBasisPoints: 1_824,
+    personalContribution: 240,
+    personalMinimum: 1_500,
+    daysRemaining: null,
+    communityComplete: false,
+    qualified: false,
+    unlocked: false,
+    closed: false,
+  },
+  past: [
+    {
+      id: "monsoon-choir-2026",
+      title: "Monsoon Choir",
+      seasonLabel: "Summer 2026",
+      imagePath: "/exhibits/monsoon-choir-placeholder-c754a2db5e27.webp",
+      unlocked: true,
+      lockedReason: null,
+    },
+    {
+      id: "ember-flight-2026",
+      title: "Ember Flight",
+      seasonLabel: "Autumn 2026",
+      imagePath: "/exhibits/ember-flight-placeholder-06a33afcd216.webp",
+      unlocked: false,
+      lockedReason: "Minimum not met",
+    },
+  ],
 };

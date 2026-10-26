@@ -19,7 +19,7 @@ The product is intentionally restrained. The primary experience is a beautiful d
 
 The free product is complete. Revenue comes from optional one-time cosmetic world packs and a launch bundle. There are no forced adverts, no paid rarity boosts, no loot boxes, no consumable currency and no subscription until genuinely recurring content exists.
 
-A lightweight Railway backend and PostgreSQL database support pseudonymous installations, opt-in product analytics, community campaigns, aggregate notification milestones, purchase verification and reliable award delivery. Raw notification content and package identities never leave the device. Development and production are isolated Railway environments. Production remains inert until Andrew approves a beta promotion.
+A lightweight Railway backend and PostgreSQL database support pseudonymous installations, opt-in product analytics, server-authoritative Exhibits, purchase verification and durable contribution reconciliation. Raw notification content and package identities never leave the device. Development and production are isolated Railway environments. Production remains inert until Andrew approves a beta promotion.
 
 ---
 
@@ -47,7 +47,7 @@ Each qualifying notification earns one unit of dig energy. The user decides when
 6. **Offline first.** Daily collection remains functional without the backend.
 7. **Cooperation, not status anxiety.** Community work is shared; global rankings are excluded.
 8. **Deterministic outcomes.** The same source summary and rules version produce the same specimen.
-9. **Recoverable operations.** Sync, donations and awards are idempotent and retry safely.
+9. **Recoverable operations.** Sync and contributions are idempotent and retry safely.
 10. **Evidence over intuition.** Product decisions use consented analytics and declared success metrics.
 
 ---
@@ -217,8 +217,6 @@ The museum is the long-term home for:
 - daily specimens;
 - fossil reference-series notes;
 - weekly dioramas;
-- completed community artworks;
-- seasonal contributor editions;
 - achievement plaques;
 - purchased-world renderings.
 
@@ -258,64 +256,47 @@ Later candidates are Clockwork, Arcane Cabinet and Stained Glass. They are not l
 
 Community play gives opted-in surplus activity a satisfying shared destination without exposing social profiles or creating a popularity contest.
 
-### 8.2 Seasonal exhibitions
+### 8.2 Featured Seasons
 
-The service runs four principal seasonal exhibitions using globally neutral names and art direction:
-
-- **Bloom**
-- **Sunstone**
-- **Harvest**
-- **Frost**
-
-The app may describe them as spring, summer, autumn and winter according to a user-selected northern, southern or neutral season preference. No location permission is required.
-
-Each exhibition defines:
+Exhibits runs four substantial Featured Seasons per year. Each season is independent of the active Series and defines:
 
 - opening and closing timestamps;
-- a deterministic mosaic blueprint and palette;
-- accepted specimen families or any-specimen rules;
-- a contribution target;
-- progress milestones;
-- a completion-art manifest;
-- contributor award presentation.
+- one content-addressed 960×960 seasonal image;
+- a deterministic reveal-order version;
+- a private community contribution-unit target;
+- a private per-user minimum and one shared daily contribution cap;
+- placeholder/production artwork state; and
+- immutable completion and historical eligibility rules.
 
-### 8.3 Donating specimens
+The server fixes the target, minimum and cap before a season opens and never raises a live target. Public presentation shows only progress to two decimal places and time remaining—never raw units, reveal-cell count, contributor count or population size.
 
-- Any unlocked ordinary, Restored or Centre Piece specimen may be donated.
-- Ordinary contributes one unit, Restored three units and Centre Piece nine units.
-- The confirmation screen shows exactly what leaves the museum and what it contributes.
-- Donation uses a client-generated idempotency key and one server transaction.
-- A successful donation is final; transient uncertainty is reconciled before the app allows another attempt.
-- Premium visual worlds do not change contribution units.
-- No free-text, images or other user-generated content are accepted.
+### 8.3 Contributing surplus energy
 
-### 8.4 Completing the artwork
+- The personal daily excavation always comes first.
+- Only qualifying energy earned after that excavation completes can enter Exhibits.
+- The local day banks that surplus temporarily; the user deliberately chooses **Contribute all** on either the Featured Season or the one active Restoration Archive.
+- One per-user daily cap applies across both destinations. After the cap, further energy earns nothing and expires at the local day boundary.
+- Every contribution uses a client-generated idempotency key and one server transaction. Ambiguous network failure preserves the same pending attempt for replay; a second contribution cannot begin until the first is reconciled.
+- Specimens are never consumed, combined or donated for Exhibits. Contribution power cannot vary by rarity, Series ownership or purchase.
 
-Each contribution fills deterministic cells in the exhibition blueprint. The server stores the manifest and contribution ledger; the Android client renders the finished artwork from that signed manifest. This avoids a separate image-processing or object-storage service for the beta.
+### 8.4 Artwork reveal and cold-start scaling
 
-When the target is reached:
+The artwork uses a fixed **320×320 logical reveal map** over the 960×960 source image: 102,400 visual cells, each corresponding to a 3×3 source-art block. A WebGL2 mask renders the primary path with a deterministic Canvas 2D fallback. Reveal order moves from the top-left toward the bottom-right with a narrow rough pixel-scattered edge; large grouped holes and fully random noise are excluded.
 
-1. The campaign closes atomically.
-2. A final manifest hash is recorded.
-3. An outbox event schedules awards.
-4. Every distinct contributor receives one permanent completed artwork in the museum.
-5. Awards retry idempotently until acknowledged.
-6. A contributor frame may reflect contribution bands, but the underlying artwork is identical for everyone.
+Visual cells are deliberately decoupled from private contribution units. Each campaign stores a fixed `target_units`; the server computes integer progress basis points as `floor(total_units × 10,000 ÷ target_units)`, and the client maps that percentage across the 102,400-cell artwork. This is the scaling modifier: a small launch community can receive a lower target without changing the art resolution or public interface, while a larger later community can receive a higher target. The target is calibrated from recent active contributors and observed post-excavation surplus before launch, bounded conservatively for cold start, and never changed after opening.
 
-Non-contributors may see the public completed preview but do not receive the collectible contributor edition.
+Only the aggregate progress version/count and each user's own eligibility are synchronised. The artwork and reveal order are immutable cached assets; ordinary progress updates never replace or redownload the image.
 
-### 8.5 Global notification creations
+### 8.5 Eligibility, completion and Restoration Archive
 
-The app also builds a season-long **World Formation** from notifications observed across participating users.
+A seasonal image unlocks only when both gates are satisfied:
 
-Two metrics must remain separate:
+1. the community reaches the season target; and
+2. the user reaches that season's individual minimum.
 
-- **Analytics count:** the true aggregate number of eligible notifications reported by consenting installations.
-- **Game pressure:** a capped, deduplicated daily value per installation used to advance the World Formation fairly.
+If the community finishes early, the Featured Season remains open through its scheduled end so users can finish their minimum. At close, qualifying users keep the image in the dedicated Past Exhibits list; all other users retain a grayscale disabled historical entry with a plain reason.
 
-This prevents one malfunctioning or deliberately noisy device from controlling the game while retaining accurate aggregate analytics. Individual notification totals are never publicly ranked or exposed.
-
-Milestones change the shared formation: sediment, fractures, inclusions, a core and finally a monumental community specimen. Participants who contributed at least one eligible day during the season receive the completed World Formation artwork.
+No more than one former season may return as a Restoration Archive target at a time. A return restarts community progress at zero, has a substantially larger fixed target and no deadline, and preserves the same individual-minimum gate. After its shared target completes, it remains available to users still finishing their own minimum. Seasonal rewards remain in Exhibits and never enter a Series Museum.
 
 ### 8.6 No leaderboard
 
@@ -365,12 +346,12 @@ Track the consented funnel from theme impression to preview, checkout start, pur
 
 Four destinations are sufficient:
 
-1. **Today** — live formation, observation state and reveal.
-2. **Museum** — collection, restoration and displays.
-3. **Community** — current exhibition and World Formation.
-4. **More** — worlds, privacy, data controls, accessibility, account/installation and help.
+1. **Excavate** — live formation, daily excavation and reveal.
+2. **Collection** — private fossil collection and reference series.
+3. **Exhibits** — current shared restoration, one Restoration Archive target and Past Exhibits.
+4. **Settings** — Series, privacy, data controls, accessibility and notification access.
 
-The theme shop lives under More and contextual world selectors. It is not a permanent fifth advertising tab.
+Series selection and any later commerce live under Settings or contextual Series selectors. They are not a permanent fifth advertising tab.
 
 ### 10.2 Screen rules
 
@@ -434,7 +415,7 @@ Raw package identity is used only inside the reducer call stack: first to compar
 
 ### 11.2 Local-only mode
 
-The complete daily collection and museum work without an account, analytics consent or network. Local-only users cannot participate in community campaigns, restore purchases across devices or contribute aggregate community metrics.
+The complete daily collection and museum work without an account, analytics consent or network. Local-only users cannot participate in Exhibits or restore purchases across devices.
 
 ### 11.3 Consent scopes
 
@@ -576,14 +557,12 @@ The beta must define and test events for:
 - `history_rerender_started`
 - `history_rerender_completed`
 
-**Community**
-- `campaign_viewed`
-- `donation_started`
-- `donation_confirmed`
-- `donation_result`
-- `campaign_milestone_viewed`
-- `community_award_received`
-- `world_formation_viewed`
+**Exhibits**
+- `exhibit_viewed`
+- `exhibit_contribution_started`
+- `exhibit_contribution_result`
+- `exhibit_unlocked`
+- `restoration_archive_viewed`
 
 **Reliability and performance**
 - `sync_started`
@@ -606,10 +585,9 @@ Business-critical outcomes must not rely solely on analytics events. PostgreSQL 
 - daily notification aggregates;
 - specimen identity, generator version and server-known sync state;
 - inventory mutations;
-- campaigns and blueprints;
-- donations and contribution units;
-- campaign completion manifests;
-- contributor awards and acknowledgements;
+- exhibit definitions, immutable targets and artwork paths;
+- idempotent Exhibit energy contributions;
+- per-installation personal contribution totals and unlock eligibility;
 - product catalogue and entitlements;
 - purchase-verification attempts and outcomes;
 - outbox jobs and idempotency records.
@@ -643,8 +621,8 @@ These must support at least:
 - true global notifications per UTC day;
 - specimens generated, revealed and stacked, plus reference notes unlocked;
 - family/tier distribution by generator version;
-- campaign participation and completion velocity;
-- artwork award delivery success;
+- Exhibit participation and completion velocity;
+- successful seasonal unlock eligibility and viewing;
 - world preview-to-purchase conversion;
 - retention by installation cohort and release;
 - errors, sync failures and latency by app version.
@@ -679,7 +657,7 @@ Google sign-in through Android Credential Manager may later attach a recoverable
 - Refresh-token rotation and family revocation.
 - Hash refresh credentials at rest.
 - Short access-token lifetime.
-- Rate limits on registration, refresh, ingestion, donations and purchase verification.
+- Rate limits on registration, refresh, ingestion, Exhibit contributions and purchase verification.
 - No token in logs or analytics payloads.
 - Installation ownership checked on every user-scoped operation.
 - Play Integrity can be added as a risk signal; it must not become an undocumented universal lockout during beta.
@@ -733,11 +711,9 @@ The API and scheduled worker share domain packages but run as separate commands/
 - anonymous installation registration and token refresh;
 - consent-aware event ingestion;
 - daily notification aggregate ingestion;
-- specimen/inventory sync required for donations and awards;
-- transactional community donations;
-- campaign progress and signed completion manifests;
-- idempotent contributor awards;
-- global World Formation progress;
+- server-authoritative Exhibit definitions and progress;
+- transactional, idempotent surplus-energy contributions;
+- personal minimum and historical unlock eligibility;
 - purchase verification and entitlements;
 - aggregation jobs and data-quality checks;
 - health/readiness endpoints;
@@ -745,7 +721,7 @@ The API and scheduled worker share domain packages but run as separate commands/
 
 ### 14.5 Offline and sync model
 
-Local state is authoritative for private daily generation and viewing. Server-authoritative facts are limited to contributions, awards, entitlements, online identity and aggregate campaign progress.
+Local state is authoritative for private daily generation and viewing. Server-authoritative facts are limited to Exhibit contributions/eligibility, entitlements, online identity and aggregate Exhibit progress.
 
 All mutations use:
 
@@ -756,16 +732,15 @@ All mutations use:
 - retry with backoff;
 - reconciliation before another destructive mutation.
 
-A specimen being donated must be locked locally until success, definitive failure or reconciliation. A timeout is never treated as failure merely because the client did not see the response.
+Pending Exhibit energy is reserved locally until success, definitive failure or reconciliation. A timeout is never treated as failure merely because the client did not see the response; replay uses the same idempotency key and exact amount.
 
 ### 14.6 Community consistency
 
-- PostgreSQL transactions own contribution, inventory mutation and campaign progress.
-- Row locks or serializable checks prevent over-completion races.
-- Completion creates an immutable manifest hash.
-- Transactional outbox rows drive awards.
-- Workers claim with bounded leases and idempotent completion.
-- Replayed requests return the original result.
+- PostgreSQL transactions own contribution rows and aggregate Exhibit progress.
+- Row locks prevent target/cap races, while aggregate progress is clamped at the immutable target.
+- One shared daily cap is enforced across Featured Season and Restoration Archive destinations.
+- Replayed requests return the original result and cannot double-count.
+- Artwork and reveal-order assets remain immutable and content-addressed; progress updates contain state only.
 
 ### 14.7 Artwork rendering
 
@@ -801,8 +776,7 @@ Production is created but remains undeployed/inert until Andrew approves promoti
 A lightweight worker or Railway cron command performs:
 
 - analytics rollups;
-- campaign lifecycle transitions;
-- contributor-award delivery;
+- Exhibit lifecycle transitions;
 - stale idempotency cleanup;
 - retention/anonymisation;
 - data-quality reconciliation.
@@ -835,19 +809,14 @@ The precise schema is migration-owned, but it must preserve these boundaries.
 - `specimens`
 - `inventory_mutations`
 - `weekly_displays`
-- `community_art_unlocks`
 
-Private local specimens need not all be uploaded. A server specimen row is required before donation and contains only generator identity, family, tier, form and integrity proof—not the underlying notification events.
+Private fossils remain local and are not uploaded or consumed for Exhibits.
 
-### 16.3 Community domain
+### 16.3 Exhibits domain
 
-- `campaigns`
-- `campaign_blueprints`
-- `campaign_contributions`
-- `campaign_progress`
-- `campaign_manifests`
-- `campaign_awards`
-- `world_formation_daily`
+- `exhibits`
+- `exhibit_contributions`
+- `exhibit_unlocks`
 
 ### 16.4 Commerce domain
 
@@ -896,14 +865,11 @@ All routes are under `/v1` except health endpoints.
 
 - `POST /specimens:register`
 - `GET /sync`
-- `POST /awards/{id}:acknowledge`
 
-### 17.4 Community
+### 17.4 Exhibits
 
-- `GET /campaigns/current`
-- `GET /campaigns/{id}`
-- `POST /campaigns/{id}/contributions`
-- `GET /world-formation/current`
+- `GET /exhibits/current?local_date=YYYY-MM-DD`
+- `POST /exhibits/{id}/contributions`
 
 ### 17.5 Commerce
 
@@ -913,14 +879,15 @@ All routes are under `/v1` except health endpoints.
 
 ### 17.6 Owner operations
 
-Owner endpoints are read-only for the beta except deliberate campaign administration. They require separate credentials and complete audit records.
+Owner endpoints are read-only for the beta except deliberate Exhibit administration. They require separate credentials and complete audit records.
 
 - `GET /admin/metrics/summary`
 - `GET /admin/metrics/releases`
 - `GET /admin/data-quality`
-- `POST /admin/campaigns`
-- `POST /admin/campaigns/{id}/open`
-- `POST /admin/campaigns/{id}/close`
+- `POST /admin/exhibits`
+- `POST /admin/exhibits/{id}/ready`
+- `POST /admin/exhibits/{id}/open`
+- `POST /admin/exhibits/{id}/close`
 
 ---
 
@@ -944,7 +911,7 @@ Owner endpoints are read-only for the beta except deliberate campaign administra
 - Admin actions are authenticated, rate-limited and audited.
 - Backups and restoration are tested before production approval.
 
-Threat modelling must cover fake clients, event replay, donation replay, inventory forgery, campaign race conditions, token theft, overcollection, log leakage and malicious notification payloads.
+Threat modelling must cover fake clients, contribution replay, daily-cap bypass, Exhibit target races, token theft, overcollection, log leakage and malicious notification payloads.
 
 ---
 
@@ -1055,8 +1022,8 @@ The development beta is complete only when:
 - Development billing can exercise purchase/restore flows without production credentials.
 - Online mode can create a pseudonymous installation and rotate credentials.
 - Consented analytics and notification aggregates persist to development PostgreSQL and reconcile into daily tables.
-- Seasonal donation, campaign completion, manifest distribution and contributor awards pass duplicate/retry/restart tests.
-- World Formation progresses from capped game pressure while retaining separate true analytics totals.
+- Featured Season and Restoration Archive contributions pass cap, duplicate, retry and restart tests.
+- Percentage-only progress, personal-minimum eligibility, cached artwork and historical locked/unlocked states agree across server, Android and hosted shell.
 - Account/cloud deletion and consent withdrawal work.
 - Development Railway API, worker and PostgreSQL are healthy and isolated.
 - Production Railway environment exists but is inert.
@@ -1091,11 +1058,10 @@ The development beta does not authorise:
 | Primeval Strata is complete and free | Accepted |
 | Monetisation is cosmetic one-time world packs | Accepted |
 | Forced adverts and launch subscription are excluded | Accepted |
-| Duplicates and any tier may be donated to community art | Accepted |
-| Contributors receive completed community art in their museum | Accepted |
+| Exhibits consume only post-excavation surplus energy, never specimens | Accepted |
+| Seasonal images live in Exhibits rather than any Series Museum | Accepted |
 | Seasonal collaborative pieces are core scope | Accepted |
-| Global notification totals drive a separate community creation | Accepted |
-| Accurate analytics total and capped game pressure remain separate | Alfred decision |
+| Fixed private target units scale independently from the 102,400-cell artwork | Accepted |
 | Nearly all reasonable interactions are captured under explicit consent | Accepted with privacy boundary |
 | Railway/PostgreSQL host development analytics and community services | Accepted |
 | Development and production environments are separate | Accepted |

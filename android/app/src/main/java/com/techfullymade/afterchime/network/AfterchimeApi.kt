@@ -109,6 +109,44 @@ class AfterchimeApi(
       ApiResult.failure(ApiFailure.MalformedResponse)
     }
 
+  fun getExhibits(localDate: String, bearerToken: String): ApiResult<ExhibitsStateResponse> =
+    try {
+      val encodedDate = java.time.LocalDate.parse(localDate).toString()
+      execute(
+        path = "/v1/exhibits/current?local_date=$encodedDate",
+        method = "GET",
+        body = null,
+        token = bearerToken,
+        headers = emptyMap(),
+        successCodes = intArrayOf(200),
+        parser = ApiModels::parseExhibitsState,
+      )
+    } catch (_: Exception) {
+      ApiResult.failure(ApiFailure.MalformedResponse)
+    }
+
+  fun contributeExhibit(
+    exhibitId: String,
+    localDate: String,
+    units: Int,
+    bearerToken: String,
+    idempotencyKey: String,
+  ): ApiResult<ExhibitContributionResponse> =
+    try {
+      require(exhibitId.matches(Regex("^[a-z0-9-]{1,80}$")))
+      execute(
+        path = "/v1/exhibits/$exhibitId/contributions",
+        method = "POST",
+        body = ApiModels.encodeExhibitContribution(localDate, units),
+        token = bearerToken,
+        headers = mapOf("Idempotency-Key" to idempotencyKey),
+        successCodes = intArrayOf(200, 201),
+        parser = ApiModels::parseExhibitContribution,
+      )
+    } catch (_: Exception) {
+      ApiResult.failure(ApiFailure.MalformedResponse)
+    }
+
   private fun validateBatch(text: String) {
     require(text.toByteArray(Charsets.UTF_8).size <= MAX_BODY_BYTES)
     val root = JSONObject(text)

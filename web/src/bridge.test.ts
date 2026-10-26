@@ -41,6 +41,18 @@ describe("versioned native bridge requests", () => {
     expect(
       parseNativeRequest({
         version: 2,
+        id: "req_exhibit_contribution",
+        type: "exhibits.contribute",
+        payload: {
+          exhibitId: "returning-light-2027",
+          localDate: "2026-10-26",
+          units: 18,
+        },
+      }),
+    ).not.toBeNull();
+    expect(
+      parseNativeRequest({
+        version: 2,
         id: "req_catalog",
         type: "catalog.update",
         payload: relicVaultCatalogUpdate(),

@@ -10,6 +10,7 @@ const CORE_NO_PAYLOAD_ACTIONS = [
   "notificationAccess.openAppDetails",
   "onboarding.complete",
   "formation.reveal",
+  "exhibits.refresh",
   "worlds.reset",
 ] as const;
 const DEV_NO_PAYLOAD_ACTIONS = ["devFeedback.items", "devFeedback.refresh"] as const;
@@ -20,6 +21,7 @@ const CORE_PAYLOAD_ACTIONS = [
   "museum.share",
   "museum.combine",
   "excavation.dig",
+  "exhibits.contribute",
   "worlds.select",
   "worlds.own",
 ] as const;
@@ -115,6 +117,39 @@ export type ShellSpecimen = {
   };
 };
 
+export type ShellExhibit = {
+  id: string;
+  title: string;
+  seasonLabel: string;
+  imagePath: string;
+  progressBasisPoints: number;
+  personalContribution: number;
+  personalMinimum: number;
+  daysRemaining: number | null;
+  communityComplete: boolean;
+  qualified: boolean;
+  unlocked: boolean;
+  closed: boolean;
+};
+
+export type ShellPastExhibit = {
+  id: string;
+  title: string;
+  seasonLabel: string;
+  imagePath: string;
+  unlocked: boolean;
+  lockedReason: string | null;
+};
+
+export type ShellExhibits = {
+  status: "DISABLED" | "LOADING" | "READY" | "OFFLINE";
+  bankedEnergy: number;
+  contributionInFlight: boolean;
+  featured: ShellExhibit | null;
+  archive: ShellExhibit | null;
+  past: ShellPastExhibit[];
+};
+
 export type ShellState = {
   version: 2;
   id: string;
@@ -151,6 +186,7 @@ export type ShellState = {
     primaryAction: "ENABLE_ACCESS" | "REVEAL" | "NONE";
   };
   museum: { specimens: ShellSpecimen[] };
+  exhibits?: ShellExhibits;
   worlds: {
     selected: World;
     owned: World[];
@@ -303,18 +339,20 @@ function isDevFeedbackCapabilities(
 }
 
 function isShellState(value: Record<string, unknown>): value is ShellState {
+  const baseKeys = [
+    "version",
+    "id",
+    "type",
+    "notificationAccess",
+    "preferences",
+    "today",
+    "museum",
+    "worlds",
+  ];
+  const exhibitKeys = [...baseKeys, "exhibits"];
   if (
     value.type !== "shell.state" ||
-    !hasExactKeys(value, [
-      "version",
-      "id",
-      "type",
-      "notificationAccess",
-      "preferences",
-      "today",
-      "museum",
-      "worlds",
-    ]) ||
+    (!hasExactKeys(value, baseKeys) && !hasExactKeys(value, exhibitKeys)) ||
     typeof value.notificationAccess !== "boolean" ||
     !isPreferences(value.preferences) ||
     !isToday(value.today) ||
@@ -322,11 +360,80 @@ function isShellState(value: Record<string, unknown>): value is ShellState {
     !hasExactKeys(value.museum, ["specimens"]) ||
     !Array.isArray(value.museum.specimens) ||
     !value.museum.specimens.every(isSpecimen) ||
+    (value.exhibits !== undefined && !isExhibits(value.exhibits)) ||
     !isWorldState(value.worlds)
   ) {
     return false;
   }
   return true;
+}
+
+function isExhibits(value: unknown): value is ShellExhibits {
+  return (
+    isRecord(value) &&
+    hasExactKeys(value, [
+      "status",
+      "bankedEnergy",
+      "contributionInFlight",
+      "featured",
+      "archive",
+      "past",
+    ]) &&
+    typeof value.status === "string" &&
+    ["DISABLED", "LOADING", "READY", "OFFLINE"].includes(value.status) &&
+    isInteger(value.bankedEnergy, 0, 100_000) &&
+    typeof value.contributionInFlight === "boolean" &&
+    (value.featured === null || isExhibit(value.featured)) &&
+    (value.archive === null || isExhibit(value.archive)) &&
+    Array.isArray(value.past) &&
+    value.past.length <= 100 &&
+    value.past.every(isPastExhibit)
+  );
+}
+
+function isExhibit(value: unknown): value is ShellExhibit {
+  return (
+    isRecord(value) &&
+    hasExactKeys(value, [
+      "id",
+      "title",
+      "seasonLabel",
+      "imagePath",
+      "progressBasisPoints",
+      "personalContribution",
+      "personalMinimum",
+      "daysRemaining",
+      "communityComplete",
+      "qualified",
+      "unlocked",
+      "closed",
+    ]) &&
+    validExhibitId(value.id) &&
+    validBoundedText(value.title, 1, 80) &&
+    validBoundedText(value.seasonLabel, 1, 48) &&
+    validExhibitImagePath(value.imagePath) &&
+    isInteger(value.progressBasisPoints, 0, 10_000) &&
+    isInteger(value.personalContribution, 0, 10_000_000) &&
+    isInteger(value.personalMinimum, 1, 10_000_000) &&
+    (value.daysRemaining === null || isInteger(value.daysRemaining, 0, 3_650)) &&
+    typeof value.communityComplete === "boolean" &&
+    typeof value.qualified === "boolean" &&
+    typeof value.unlocked === "boolean" &&
+    typeof value.closed === "boolean"
+  );
+}
+
+function isPastExhibit(value: unknown): value is ShellPastExhibit {
+  return (
+    isRecord(value) &&
+    hasExactKeys(value, ["id", "title", "seasonLabel", "imagePath", "unlocked", "lockedReason"]) &&
+    validExhibitId(value.id) &&
+    validBoundedText(value.title, 1, 80) &&
+    validBoundedText(value.seasonLabel, 1, 48) &&
+    validExhibitImagePath(value.imagePath) &&
+    typeof value.unlocked === "boolean" &&
+    (value.lockedReason === null || validBoundedText(value.lockedReason, 1, 80))
+  );
 }
 
 function isPreferences(value: unknown): value is ShellPreferences {
@@ -602,6 +709,15 @@ function validPayload(type: string, payload: Record<string, unknown>): boolean {
   if (type === "excavation.dig") {
     return hasExactKeys(payload, ["tileIndex"]) && isInteger(payload.tileIndex, 0, 99);
   }
+  if (type === "exhibits.contribute") {
+    return (
+      hasExactKeys(payload, ["exhibitId", "localDate", "units"]) &&
+      validExhibitId(payload.exhibitId) &&
+      typeof payload.localDate === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(payload.localDate) &&
+      isInteger(payload.units, 1, 100_000)
+    );
+  }
   if (type === "worlds.select" || type === "worlds.own") {
     return hasExactKeys(payload, ["world"]) && isWorld(payload.world);
   }
@@ -736,6 +852,16 @@ function isNativeAction(value: string): value is NativeAction {
 
 function validSpecimenId(value: unknown): value is string {
   return typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
+}
+
+function validExhibitId(value: unknown): value is string {
+  return typeof value === "string" && /^[a-z0-9-]{1,80}$/.test(value);
+}
+
+function validExhibitImagePath(value: unknown): value is string {
+  return (
+    typeof value === "string" && /^\/exhibits\/[a-z0-9-]{1,128}-[a-f0-9]{12}\.webp$/.test(value)
+  );
 }
 
 function isWorld(value: unknown): value is World {

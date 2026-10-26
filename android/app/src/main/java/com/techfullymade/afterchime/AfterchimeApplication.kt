@@ -17,6 +17,10 @@ import com.techfullymade.afterchime.capture.NotificationCaptureRuntimeRegistry
 import com.techfullymade.afterchime.capture.NotificationReducer
 import com.techfullymade.afterchime.capture.ObservationRepository
 import com.techfullymade.afterchime.capture.ObservationRuntimeRegistry
+import com.techfullymade.afterchime.community.CommunityTokenProvider
+import com.techfullymade.afterchime.community.ExhibitsRepository
+import com.techfullymade.afterchime.community.NetworkExhibitsApi
+import com.techfullymade.afterchime.community.SharedPreferencesExhibitContributionAttemptStore
 import com.techfullymade.afterchime.data.local.AfterchimeDatabase
 import com.techfullymade.afterchime.domain.FormationRepository
 import com.techfullymade.afterchime.domain.LocalFormationRepository
@@ -48,6 +52,7 @@ import com.techfullymade.afterchime.sync.AfterchimeOnlineSyncApi
 import com.techfullymade.afterchime.sync.AnalyticsOutboxUploader
 import com.techfullymade.afterchime.sync.AuthenticatorOnlineTokenClient
 import com.techfullymade.afterchime.sync.OnlineSyncCoordinator
+import com.techfullymade.afterchime.sync.OnlineSyncOutcome
 import com.techfullymade.afterchime.sync.OnlineSyncRunner
 import com.techfullymade.afterchime.sync.OnlineSyncRuntimeRegistry
 import com.techfullymade.afterchime.sync.OnlineSyncScheduler
@@ -172,6 +177,13 @@ class AfterchimeApplication : Application() {
       catalogItemForSpecimenId = fossilCatalog::itemForSpecimenId,
     )
   }
+  internal val exhibitsRepository: ExhibitsRepository by lazy {
+    ExhibitsRepository(
+      api = NetworkExhibitsApi(onlineApi),
+      tokenProvider = CommunityTokenProvider { communityAccessToken() },
+      attempts = SharedPreferencesExhibitContributionAttemptStore(this),
+    )
+  }
 
   internal fun updateFossilCatalog(payload: JSONObject): Boolean = fossilCatalog.apply(payload)
 
@@ -208,6 +220,17 @@ class AfterchimeApplication : Application() {
       (onlineTokenAuthenticator.accessToken() as? com.techfullymade.afterchime.identity.TokenResult.Available)
         ?.accessToken
     }
+  }
+
+  private suspend fun communityAccessToken(): String? = withContext(Dispatchers.IO) {
+    if (!userPreferences.values.first().onlineFeaturesEnabled) return@withContext null
+    val existing = onlineTokenAuthenticator.accessToken()
+    if (existing is com.techfullymade.afterchime.identity.TokenResult.Available) {
+      return@withContext existing.accessToken
+    }
+    if (onlineSyncCoordinator.sync() != OnlineSyncOutcome.SUCCESS) return@withContext null
+    (onlineTokenAuthenticator.accessToken() as? com.techfullymade.afterchime.identity.TokenResult.Available)
+      ?.accessToken
   }
 
   internal suspend fun recordProductUse(

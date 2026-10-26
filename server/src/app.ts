@@ -20,6 +20,7 @@ import { attestRuntimeRole, type RuntimeDatabaseAttestation } from "./db/runtime
 import { registerAccountRoutes } from "./modules/account/routes.js";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
 import { registerConsentRoutes } from "./modules/consent/routes.js";
+import { registerExhibitsRoutes } from "./modules/exhibits/routes.js";
 
 import { registerIdentityRoutes } from "./modules/identity/routes.js";
 import { registerNotificationAggregateRoutes } from "./modules/notifications/routes.js";
@@ -95,6 +96,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     await registerIdentityRoutes(app, options.config, options.database);
     await registerAccountRoutes(app, options.config, options.database);
     await registerConsentRoutes(app, options.config, options.database);
+    await registerExhibitsRoutes(app, options.config, options.database);
     await registerAnalyticsRoutes(app, options.config, options.database);
     await registerNotificationAggregateRoutes(app, options.config, options.database);
     if (options.config.developmentModuleEnabled && options.config.buildChannel === "dev") {
@@ -196,6 +198,21 @@ async function registerShellRoutes(app: FastifyInstance, webRoot: string): Promi
       const contentType = filename.endsWith(".webp") ? "image/webp" : "image/jpeg";
       setShellHeaders(reply, "public, max-age=31536000, immutable");
       return reply.type(contentType).send(data);
+    } catch {
+      setShellHeaders(reply, "no-store");
+      return reply.code(404).send({ error: "not_found" });
+    }
+  });
+  app.get<{ Params: { asset: string } }>("/exhibits/:asset", async (request, reply) => {
+    const filename = request.params.asset;
+    if (!/^[a-z0-9-]{1,128}-[a-f0-9]{12}\.webp$/.test(filename)) {
+      setShellHeaders(reply, "no-store");
+      return reply.code(404).send({ error: "not_found" });
+    }
+    try {
+      const data = await readFile(path.join(webRoot, "exhibits", filename));
+      setShellHeaders(reply, "public, max-age=31536000, immutable");
+      return reply.type("image/webp").send(data);
     } catch {
       setShellHeaders(reply, "no-store");
       return reply.code(404).send({ error: "not_found" });

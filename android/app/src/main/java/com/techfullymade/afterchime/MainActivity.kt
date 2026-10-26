@@ -32,6 +32,9 @@ import com.techfullymade.afterchime.analytics.LaunchType
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
 import com.techfullymade.afterchime.catalog.DevelopmentWorldState
 import com.techfullymade.afterchime.catalog.WorldSelectionResult
+import com.techfullymade.afterchime.community.ExhibitSnapshot
+import com.techfullymade.afterchime.community.ExhibitsSnapshot
+import com.techfullymade.afterchime.community.PastExhibitSnapshot
 import com.techfullymade.afterchime.data.catalog.DataStoreWorldCatalog
 import com.techfullymade.afterchime.domain.CombineRequest
 import com.techfullymade.afterchime.domain.CombineResult
@@ -47,6 +50,7 @@ import com.techfullymade.afterchime.ui.today.TodayViewModel
 import java.io.ByteArrayInputStream
 import java.util.UUID
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONException
@@ -103,6 +107,7 @@ internal fun parseBridgeRequest(
     "notificationAccess.openAppDetails",
     "onboarding.complete",
     "formation.reveal",
+    "exhibits.refresh",
     "worlds.reset",
   )
   if (type in noPayloadActions || developmentFeedback.acceptsNoPayload(type)) {
@@ -128,6 +133,14 @@ internal fun parseBridgeRequest(
       payload.length() == 1 &&
         payload.opt("tileIndex") is Int &&
         payload.getInt("tileIndex") in 0 until GameBalance.EXCAVATION_TILE_COUNT
+    "exhibits.contribute" ->
+      payload.length() == 3 &&
+        payload.opt("exhibitId") is String &&
+        payload.getString("exhibitId").matches(Regex("^[a-z0-9-]{1,80}$")) &&
+        payload.opt("localDate") is String &&
+        runCatching { java.time.LocalDate.parse(payload.getString("localDate")) }.isSuccess &&
+        payload.opt("units") is Int &&
+        payload.getInt("units") in 1..100_000
     "worlds.select", "worlds.own" ->
       payload.length() == 1 &&
         payload.opt("world") is String &&
@@ -209,6 +222,7 @@ class MainActivity : ComponentActivity() {
     assetLoader = WebViewAssetLoader.Builder()
       .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
       .addPathHandler("/worlds/", WebViewAssetLoader.AssetsPathHandler(this))
+      .addPathHandler("/exhibits/", WebViewAssetLoader.AssetsPathHandler(this))
       .build()
     shell = WebView(this).apply {
       layoutParams = ViewGroup.LayoutParams(
@@ -232,6 +246,7 @@ class MainActivity : ComponentActivity() {
     todayViewModel.refreshDate()
     sendCapabilityState("resume")
     sendShellState("resume_state")
+    lifecycleScope.launch { refreshExhibits() }
   }
 
   override fun onDestroy() {
@@ -280,9 +295,10 @@ class MainActivity : ComponentActivity() {
           worldCatalog.state,
           todayViewModel.uiState,
           applicationState.museumRepository.specimens,
-        ) { preferences, worldState, todayState, specimens ->
+          applicationState.exhibitsRepository.state,
+        ) { preferences, worldState, todayState, specimens, exhibits ->
           latestSpecimens = specimens
-          buildShellState(preferences, worldState, todayState, specimens)
+          buildShellState(preferences, worldState, todayState, specimens, exhibits)
         }.collect { state ->
           latestShellState = state
           sendShellState("state")
@@ -428,6 +444,10 @@ class MainActivity : ComponentActivity() {
         val accepted = todayViewModel.dig(request.payload?.getInt("tileIndex") ?: -1)
         postActionResult(request, accepted, proxy)
       }
+      "exhibits.refresh" -> lifecycleScope.launch {
+        postActionResult(request, refreshExhibits(), proxy)
+      }
+      "exhibits.contribute" -> contributeToExhibit(request, proxy)
       "museum.lock" -> updateSpecimenLock(request, proxy)
       "museum.share" -> shareSpecimen(request, proxy)
       "museum.combine" -> combineSpecimens(request, proxy)
@@ -437,6 +457,42 @@ class MainActivity : ComponentActivity() {
       else -> if (!developmentFeedback.handle(request, proxy)) return false
     }
     return true
+  }
+
+  private suspend fun refreshExhibits(): Boolean {
+    val preferences = userPreferences.values.first()
+    val today = todayViewModel.uiState.value
+    return applicationState.exhibitsRepository.refresh(
+      localDate = today.snapshot.localDate.toString(),
+      surplusEnergy = today.exhibitSurplusEnergy(),
+      onlineEnabled = preferences.onlineFeaturesEnabled,
+    )
+  }
+
+  private fun contributeToExhibit(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
+    val payload = request.payload ?: return
+    val today = todayViewModel.uiState.value
+    val localDate = today.snapshot.localDate.toString()
+    val snapshot = applicationState.exhibitsRepository.state.value
+    val accepted =
+      payload.getString("localDate") == localDate &&
+        payload.getInt("units") == snapshot.bankedEnergy &&
+        snapshot.bankedEnergy > 0
+    if (!accepted) {
+      postActionResult(request, false, proxy)
+      return
+    }
+    lifecycleScope.launch {
+      postActionResult(
+        request,
+        applicationState.exhibitsRepository.contribute(
+          exhibitId = payload.getString("exhibitId"),
+          localDate = localDate,
+          surplusEnergy = today.exhibitSurplusEnergy(),
+        ),
+        proxy,
+      )
+    }
   }
 
   private fun updatePreference(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
@@ -596,10 +652,12 @@ class MainActivity : ComponentActivity() {
     worldState: DevelopmentWorldState,
     todayState: TodayUiState,
     specimens: List<MuseumSpecimen>,
+    exhibits: ExhibitsSnapshot,
   ): JSONObject = JSONObject()
     .put("preferences", preferences.toJson())
     .put("today", todayState.toJson())
     .put("museum", JSONObject().put("specimens", JSONArray(specimens.map(MuseumSpecimen::toJson))))
+    .put("exhibits", exhibits.toJson())
     .put(
       "worlds",
       JSONObject()
@@ -686,6 +744,39 @@ private fun UserPreferences.toJson(): JSONObject = JSONObject()
   .put("reduceMotionEnabled", reduceMotionEnabled)
   .put("highContrastEnabled", highContrastEnabled)
   .put("hapticsEnabled", hapticsEnabled)
+
+private fun ExhibitsSnapshot.toJson(): JSONObject = JSONObject()
+  .put("status", status.name)
+  .put("bankedEnergy", bankedEnergy)
+  .put("contributionInFlight", contributionInFlight)
+  .put("featured", featured?.toJson() ?: JSONObject.NULL)
+  .put("archive", archive?.toJson() ?: JSONObject.NULL)
+  .put("past", JSONArray(past.map(PastExhibitSnapshot::toJson)))
+
+private fun ExhibitSnapshot.toJson(): JSONObject = JSONObject()
+  .put("id", id)
+  .put("title", title)
+  .put("seasonLabel", seasonLabel)
+  .put("imagePath", imagePath)
+  .put("progressBasisPoints", progressBasisPoints)
+  .put("personalContribution", personalContribution)
+  .put("personalMinimum", personalMinimum)
+  .put("daysRemaining", daysRemaining ?: JSONObject.NULL)
+  .put("communityComplete", communityComplete)
+  .put("qualified", qualified)
+  .put("unlocked", unlocked)
+  .put("closed", closed)
+
+private fun PastExhibitSnapshot.toJson(): JSONObject = JSONObject()
+  .put("id", id)
+  .put("title", title)
+  .put("seasonLabel", seasonLabel)
+  .put("imagePath", imagePath)
+  .put("unlocked", unlocked)
+  .put("lockedReason", lockedReason ?: JSONObject.NULL)
+
+private fun TodayUiState.exhibitSurplusEnergy(): Int =
+  snapshot.excavation?.takeIf { it.completed }?.energyAvailable?.coerceAtLeast(0) ?: 0
 
 private fun TodayUiState.toJson(): JSONObject = JSONObject()
   .put("localDate", snapshot.localDate.toString())

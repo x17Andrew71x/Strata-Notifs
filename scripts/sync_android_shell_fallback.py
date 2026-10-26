@@ -25,11 +25,13 @@ def main() -> None:
     index_path = DIST / "index.html"
     assets_path = DIST / "assets"
     worlds_path = DIST / "worlds"
+    exhibits_path = DIST / "exhibits"
     brand_path = DIST / BRAND_ASSET_NAME
     if (
         not index_path.is_file()
         or not assets_path.is_dir()
         or not worlds_path.is_dir()
+        or not exhibits_path.is_dir()
         or not brand_path.is_file()
     ):
         raise SystemExit("web/dist is missing; run pnpm web:build first")
@@ -40,6 +42,9 @@ def main() -> None:
     world_assets = sorted(path for path in worlds_path.iterdir() if path.is_file())
     if not world_assets or any(not WORLD_ASSET_PATTERN.fullmatch(path.name) for path in world_assets):
         raise SystemExit("web/dist/worlds contains missing or non-content-addressed files")
+    exhibit_assets = sorted(exhibits_path.glob("*.webp"))
+    if not exhibit_assets or any(not WORLD_ASSET_PATTERN.fullmatch(path.name) for path in exhibit_assets):
+        raise SystemExit("web/dist/exhibits contains missing or non-content-addressed images")
 
     html = index_path.read_text(encoding="utf-8")
     html = html.replace('src="/assets/', 'src="/assets/web/assets/')
@@ -63,6 +68,8 @@ def main() -> None:
             stale_world_asset.unlink()
     for world_asset in world_assets:
         shutil.copyfile(world_asset, ANDROID_ASSETS / world_asset.name)
+    for exhibit_asset in exhibit_assets:
+        shutil.copyfile(exhibit_asset, ANDROID_ASSETS / exhibit_asset.name)
     shutil.copyfile(brand_path, ANDROID_ASSETS / BRAND_ASSET_NAME)
     DEST.mkdir(parents=True, exist_ok=True)
     (DEST / "index.html").write_text(html, encoding="utf-8")
@@ -73,6 +80,7 @@ def main() -> None:
         raise SystemExit(f"fallback reference mismatch: referenced={sorted(referenced)} copied={sorted(copied)}")
     print(
         f"synced {len(copied)} shell assets, {len(world_assets)} content-addressed world images, "
+        f"{len(exhibit_assets)} content-addressed exhibit images, "
         "and the selected brand mark"
     )
 

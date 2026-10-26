@@ -196,6 +196,53 @@
           }
         }
       }
+    },
+    "/v1/exhibits/current": {
+      "get": {
+        "summary": "Read current Exhibits progress and private eligibility",
+        "parameters": [
+          { "in": "query", "name": "local_date", "required": true, "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": {
+          "200": { "description": "Current Featured Season, Restoration Archive, and past eligibility.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExhibitsState" } } } },
+          "400": { "description": "The local date is outside the accepted device-day window." },
+          "401": { "description": "Installation authentication failed." },
+          "403": { "description": "Essential online consent is not active." }
+        }
+      }
+    },
+    "/v1/exhibits/{exhibitId}/contributions": {
+      "post": {
+        "summary": "Idempotently contribute post-excavation surplus energy",
+        "parameters": [
+          { "in": "path", "name": "exhibitId", "required": true, "schema": { "type": "string", "pattern": "^[a-z0-9-]{1,80}$" } },
+          { "in": "header", "name": "idempotency-key", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["local_date", "units"],
+                "properties": {
+                  "local_date": { "type": "string", "format": "date" },
+                  "units": { "type": "integer", "minimum": 1, "maximum": 100000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Exact idempotent replay.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExhibitContributionResult" } } } },
+          "201": { "description": "Contribution accepted.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ExhibitContributionResult" } } } },
+          "400": { "description": "The request or local date is invalid." },
+          "401": { "description": "Installation authentication failed." },
+          "403": { "description": "Essential online consent is not active." },
+          "409": { "description": "The shared cap was exceeded or the exhibit is not contributable." }
+        }
+      }
     }
   },
   "components": {
@@ -217,6 +264,61 @@
         "additionalProperties": false,
         "required": ["error"],
         "properties": { "error": { "type": "string", "enum": ["idempotency_conflict", "invalid_refresh_token"] } }
+      },
+      "ExhibitView": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["closed", "communityComplete", "daysRemaining", "id", "imagePath", "personalContribution", "personalMinimum", "progressBasisPoints", "qualified", "seasonLabel", "title", "unlocked"],
+        "properties": {
+          "closed": { "type": "boolean" },
+          "communityComplete": { "type": "boolean" },
+          "daysRemaining": { "type": ["integer", "null"], "minimum": 0, "maximum": 3650 },
+          "id": { "type": "string", "pattern": "^[a-z0-9-]{1,80}$" },
+          "imagePath": { "type": "string", "pattern": "^/exhibits/[a-z0-9-]{1,128}-[a-f0-9]{12}\\.webp$" },
+          "personalContribution": { "type": "integer", "minimum": 0 },
+          "personalMinimum": { "type": "integer", "minimum": 1 },
+          "progressBasisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+          "qualified": { "type": "boolean" },
+          "seasonLabel": { "type": "string", "minLength": 1, "maxLength": 48 },
+          "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "unlocked": { "type": "boolean" }
+        }
+      },
+      "PastExhibitView": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "imagePath", "lockedReason", "seasonLabel", "title", "unlocked"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]{1,80}$" },
+          "imagePath": { "type": "string", "pattern": "^/exhibits/[a-z0-9-]{1,128}-[a-f0-9]{12}\\.webp$" },
+          "lockedReason": { "type": ["string", "null"], "maxLength": 80 },
+          "seasonLabel": { "type": "string", "minLength": 1, "maxLength": 48 },
+          "title": { "type": "string", "minLength": 1, "maxLength": 80 },
+          "unlocked": { "type": "boolean" }
+        }
+      },
+      "ExhibitsState": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["archive", "dailyContributionCap", "featured", "past", "status", "todayContributedUnits", "version"],
+        "properties": {
+          "archive": { "oneOf": [{ "$ref": "#/components/schemas/ExhibitView" }, { "type": "null" }] },
+          "dailyContributionCap": { "type": "integer", "minimum": 0 },
+          "featured": { "oneOf": [{ "$ref": "#/components/schemas/ExhibitView" }, { "type": "null" }] },
+          "past": { "type": "array", "maxItems": 20, "items": { "$ref": "#/components/schemas/PastExhibitView" } },
+          "status": { "type": "string", "const": "ready" },
+          "todayContributedUnits": { "type": "integer", "minimum": 0 },
+          "version": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "ExhibitContributionResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["state", "status"],
+        "properties": {
+          "state": { "$ref": "#/components/schemas/ExhibitsState" },
+          "status": { "type": "string", "enum": ["accepted", "duplicate"] }
+        }
       }
     },
     "requestBodies": {

@@ -17,6 +17,9 @@ const requiredTables = [
   "auth_refresh_tokens",
   "consent_records",
   "daily_notification_aggregates",
+  "exhibit_contributions",
+  "exhibit_unlocks",
+  "exhibits",
   "idempotency_records",
   "installations",
   "job_runs",
@@ -31,6 +34,8 @@ const userOwnedTables = [
   "auth_refresh_tokens",
   "consent_records",
   "daily_notification_aggregates",
+  "exhibit_contributions",
+  "exhibit_unlocks",
   "idempotency_records",
   "installations",
   "users",
@@ -180,6 +185,31 @@ describePostgres("initial PostgreSQL schema migration", () => {
         "is_synthetic",
       ]),
     );
+    expect(columnNames(columns.get("exhibits"))).toEqual(
+      expect.arrayContaining([
+        "id",
+        "slug",
+        "kind",
+        "status",
+        "target_units",
+        "personal_minimum_units",
+        "daily_contribution_cap",
+        "total_units",
+        "image_path",
+        "starts_at",
+        "ends_at",
+      ]),
+    );
+    expect(columnNames(columns.get("exhibit_contributions"))).toEqual(
+      expect.arrayContaining([
+        "id",
+        "exhibit_id",
+        "installation_id",
+        "idempotency_key",
+        "local_date",
+        "units",
+      ]),
+    );
     expect(columnNames(columns.get("analytics_daily_installation"))).toEqual(
       expect.arrayContaining([
         "installation_id",
@@ -323,6 +353,10 @@ describePostgres("initial PostgreSQL schema migration", () => {
     expect(signatures).toContain("analytics_events:FOREIGN KEY:installation_id");
     expect(signatures).toContain("daily_notification_aggregates:FOREIGN KEY:installation_id");
     expect(signatures).toContain("idempotency_records:FOREIGN KEY:installation_id");
+    expect(signatures).toContain("exhibit_contributions:FOREIGN KEY:installation_id");
+    expect(signatures).toContain("exhibit_contributions:FOREIGN KEY:exhibit_id");
+    expect(signatures).toContain("exhibit_unlocks:FOREIGN KEY:installation_id");
+    expect(signatures).toContain("exhibit_unlocks:FOREIGN KEY:exhibit_id");
     expect(signatures).toContain("analytics_events:UNIQUE:event_id");
     expect(signatures).toContain("daily_notification_aggregates:UNIQUE:installation_id");
     expect(signatures).toContain("daily_notification_aggregates:UNIQUE:local_date");
@@ -354,6 +388,8 @@ describePostgres("initial PostgreSQL schema migration", () => {
           constraint_name: "daily_notification_aggregates_eligible_count_check",
         }),
         expect.objectContaining({ constraint_name: "outbox_jobs_attempt_count_check" }),
+        expect.objectContaining({ constraint_name: "exhibits_target_units_check" }),
+        expect.objectContaining({ constraint_name: "exhibits_total_units_check" }),
       ]),
     );
 
@@ -381,6 +417,11 @@ describePostgres("initial PostgreSQL schema migration", () => {
     );
     expect(indexNames).toContain("outbox_jobs:outbox_jobs_claim_idx");
     expect(indexNames).toContain("job_runs:job_runs_job_name_started_idx");
+    expect(indexNames).toContain("exhibits:exhibits_current_idx");
+    expect(indexNames).toContain("exhibits:exhibits_one_open_per_kind_idx");
+    expect(indexNames).toContain(
+      "exhibit_contributions:exhibit_contributions_installation_date_idx",
+    );
   });
 
   it("enables and forces row-level security, grants only the runtime role, and rejects cross-installation reads and writes", async () => {
@@ -514,7 +555,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "9", hash: expect.any(String) });
+    expect(before).toEqual({ count: "10", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });
