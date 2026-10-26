@@ -57,6 +57,13 @@
       "when": 1793026525677,
       "tag": "0007_little_zodiak",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793029032633,
+      "tag": "0008_classify_legacy_feedback_failure",
+      "breakpoints": true
     }
   ]
 }
