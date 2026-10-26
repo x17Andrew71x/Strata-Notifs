@@ -1220,11 +1220,8 @@ p {
 }
 
 .specimen-card .specimen-frame {
-  border-color: #080808;
-  border-width: 2px;
-  box-shadow:
-    0 12px 28px #000a,
-    inset 0 0 0 1px #000d;
+  border: 0;
+  box-shadow: none;
 }
 
 .specimen-card strong,

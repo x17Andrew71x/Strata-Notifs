@@ -42,10 +42,10 @@ describe("Museum rarity card styling", () => {
     );
   });
 
-  it("uses one neutral dark image frame for every Museum rarity", () => {
+  it("keeps the existing card treatment without adding a second image border", () => {
     const frame = declarationBlock(".specimen-card .specimen-frame");
-    expect(frame).toContain("border-color: #080808");
-    expect(frame).toContain("box-shadow:");
+    expect(frame).toContain("border: 0");
+    expect(frame).toContain("box-shadow: none");
   });
 });
 
