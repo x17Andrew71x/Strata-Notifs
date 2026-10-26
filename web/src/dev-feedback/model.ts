@@ -2,6 +2,7 @@ export type DevFeedbackStatus =
   | "queued"
   | "in_progress"
   | "blocked"
+  | "failed"
   | "ready_for_qa"
   | "accepted"
   | "closed";

@@ -20,6 +20,7 @@ export const devFeedbackStatus = pgEnum("dev_feedback_status", [
   "queued",
   "in_progress",
   "blocked",
+  "failed",
   "ready_for_qa",
   "accepted",
   "closed",

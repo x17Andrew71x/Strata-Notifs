@@ -7,6 +7,7 @@ export type DevFeedbackStatus =
   | "queued"
   | "in_progress"
   | "blocked"
+  | "failed"
   | "ready_for_qa"
   | "accepted"
   | "closed";
@@ -216,7 +217,12 @@ export class DevFeedbackRepository {
           AND project_id = ${identity.projectId}
         FOR UPDATE
       `;
-      if (!item || item.status === "accepted" || item.status === "closed") {
+      if (
+        !item ||
+        item.status === "failed" ||
+        item.status === "accepted" ||
+        item.status === "closed"
+      ) {
         throw new DevFeedbackNotReadyError();
       }
       const revision = item.current_revision + 1;
@@ -423,6 +429,20 @@ export class DevFeedbackRepository {
   ): Promise<DevFeedbackAdminItem> {
     const [row] = await this.database<AdminRow[]>`
       SELECT * FROM public.afterchime_block_dev_feedback(${projectId}, ${itemId}, ${leaseId}, ${revision}, ${note})
+    `;
+    if (!row) throw new DevFeedbackConflictError("stale_dev_feedback_lease");
+    return mapAdminItem(row);
+  }
+
+  public async fail(
+    projectId: DevFeedbackProject,
+    itemId: string,
+    leaseId: string,
+    revision: number,
+    note: string,
+  ): Promise<DevFeedbackAdminItem> {
+    const [row] = await this.database<AdminRow[]>`
+      SELECT * FROM public.afterchime_fail_dev_feedback(${projectId}, ${itemId}, ${leaseId}, ${revision}, ${note})
     `;
     if (!row) throw new DevFeedbackConflictError("stale_dev_feedback_lease");
     return mapAdminItem(row);

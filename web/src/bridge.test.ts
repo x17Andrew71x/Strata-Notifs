@@ -230,6 +230,46 @@ describe("versioned native bridge requests", () => {
     expect(responses[1]).toMatchObject({ devFeedback: true, appVersion: "0.1.10-dev-debug" });
   });
 
+  it("accepts failed development-feedback items while rejecting unknown statuses", () => {
+    const responses: unknown[] = [];
+    const stop = installResponseListener((response) => responses.push(response));
+    const feedback = {
+      version: 2,
+      id: "feedback_failed",
+      type: "devFeedback.state",
+      operation: "list",
+      ok: true,
+      error: null,
+      item: null,
+      items: [
+        {
+          id: "11111111-1111-4111-8111-111111111111",
+          queuePosition: 1,
+          revision: 1,
+          title: "Tighten the action",
+          description: "Reduce the empty space above it.",
+          status: "failed",
+          note: "Provider retries were exhausted.",
+          createdAt: "2026-10-16T00:00:00.000Z",
+          updatedAt: "2026-10-16T00:00:00.000Z",
+        },
+      ],
+    };
+    window.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(feedback) }));
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: JSON.stringify({
+          ...feedback,
+          id: "feedback_unknown",
+          items: [{ ...feedback.items[0], status: "automation_failed" }],
+        }),
+      }),
+    );
+    stop();
+
+    expect(responses).toEqual([feedback]);
+  });
+
   it.each([
     null,
     [],

@@ -4,7 +4,6 @@ import type {
   DevFeedbackDraft,
   DevFeedbackItem,
   DevFeedbackSelection,
-  DevFeedbackStatus,
   DevFeedbackTransport,
   SelectionRect,
 } from "./model";
@@ -41,6 +40,7 @@ const POSITION_KEY = "afterchime.dev-feedback.position.v1";
 const POLL_INTERVAL_MS = 15_000;
 const PANEL_Z_INDEX = 223;
 const HIGHLIGHT_Z_INDEX = 221;
+const RETRY_PROGRESS_NOTE = /^Attempt ([123])\/3: [^\r\n]+$/;
 
 export function DevFeedbackTool({
   route,
@@ -264,7 +264,8 @@ export function DevFeedbackTool({
   };
 
   const beginAmendment = (entry: DevFeedbackItem) => {
-    if (entry.status === "accepted" || entry.status === "closed") return;
+    if (entry.status === "failed" || entry.status === "accepted" || entry.status === "closed")
+      return;
     setAmending(entry);
     setTitle(entry.title);
     setDescription("");
@@ -496,10 +497,18 @@ export function DevFeedbackTool({
                 ) : (
                   items.map((entry) => {
                     const expanded = expandedItemId === entry.id;
-                    const amendable = entry.status !== "accepted" && entry.status !== "closed";
-                    const closable = canCloseItems && amendable && entry.status !== "in_progress";
+                    const amendable =
+                      entry.status !== "failed" &&
+                      entry.status !== "accepted" &&
+                      entry.status !== "closed";
+                    const closable =
+                      canCloseItems &&
+                      entry.status !== "in_progress" &&
+                      entry.status !== "accepted" &&
+                      entry.status !== "closed";
                     const confirmingClose = closingItemId === entry.id;
                     const response = ownerResponse(entry);
+                    const error = failureError(entry);
                     const history = feedbackHistory(entry.description);
                     return (
                       <article key={entry.id} data-testid="dev-feedback-item">
@@ -513,9 +522,7 @@ export function DevFeedbackTool({
                           <span className="dev-feedback-item-title">
                             <span>#{entry.queuePosition}</span>
                             <strong>{entry.title}</strong>
-                            <em className={`status-${entry.status}`}>
-                              {statusLabel(entry.status)}
-                            </em>
+                            <em className={`status-${entry.status}`}>{statusLabel(entry)}</em>
                           </span>
                           <span className="dev-feedback-item-request-label">Original request</span>
                           <span className="dev-feedback-item-request-preview">
@@ -543,6 +550,12 @@ export function DevFeedbackTool({
                             <ul>
                               <li>{response}</li>
                             </ul>
+                          </div>
+                        )}
+                        {expanded && error && (
+                          <div className="dev-feedback-item-response">
+                            <strong>Error</strong>
+                            <p>{error}</p>
                           </div>
                         )}
                         <div className="dev-feedback-item-actions">
@@ -773,14 +786,16 @@ function sortItems(items: DevFeedbackItem[]): DevFeedbackItem[] {
   return [...items].sort((first, second) => first.queuePosition - second.queuePosition);
 }
 
-function statusLabel(status: DevFeedbackStatus): string {
-  switch (status) {
+function statusLabel(entry: DevFeedbackItem): string {
+  switch (entry.status) {
     case "queued":
       return "Queued";
     case "in_progress":
-      return "Working";
+      return retryLabel(entry.note);
     case "blocked":
       return "Needs input";
+    case "failed":
+      return "Failed";
     case "ready_for_qa":
       return "Ready for QA";
     case "accepted":
@@ -790,9 +805,24 @@ function statusLabel(status: DevFeedbackStatus): string {
   }
 }
 
+function retryLabel(note: string): string {
+  if (note.length > 600 || note !== note.trim()) return "Working";
+  const match = RETRY_PROGRESS_NOTE.exec(note);
+  return match?.[1] === "2" || match?.[1] === "3" ? `Retrying ${match[1]}/3` : "Working";
+}
+
 function ownerResponse(entry: DevFeedbackItem): string | null {
   if (entry.status !== "blocked") return null;
-  const note = entry.note.replace(/\s+/g, " ").trim();
+  return firstBoundedSentence(entry.note);
+}
+
+function failureError(entry: DevFeedbackItem): string | null {
+  if (entry.status !== "failed") return null;
+  return firstBoundedSentence(entry.note);
+}
+
+function firstBoundedSentence(value: string): string | null {
+  const note = value.replace(/\s+/g, " ").trim();
   if (!note) return null;
   const sentence = note.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() ?? note;
   return sentence.slice(0, 240);

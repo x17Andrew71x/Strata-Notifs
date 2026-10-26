@@ -260,6 +260,84 @@ describePostgres("development feedback API", () => {
     expect(stale.statusCode).toBe(409);
   });
 
+  it("lease-fences terminal failures without blocking later queued work", async () => {
+    const app = await appForDatabase();
+    const owner = await install(app, "127.0.3.7");
+    const failedItem = await submit(
+      app,
+      owner.accessToken,
+      randomUUID(),
+      feedbackPayload("Automation will fail"),
+    );
+    const laterItem = await submit(
+      app,
+      owner.accessToken,
+      randomUUID(),
+      feedbackPayload("Continue after failure"),
+    );
+    const claimed = (await admin(app, "claim", null, {})).json().item;
+    expect(claimed.item.id).toBe(failedItem.json().item.id);
+
+    const staleLease = await admin(app, "fail", claimed.item.id, {
+      leaseId: randomUUID(),
+      revision: claimed.item.revision,
+      note: "A stale lease must not fail this item.",
+    });
+    expect(staleLease.statusCode).toBe(409);
+    const staleRevision = await admin(app, "fail", claimed.item.id, {
+      leaseId: claimed.leaseId,
+      revision: claimed.item.revision + 1,
+      note: "A stale revision must not fail this item.",
+    });
+    expect(staleRevision.statusCode).toBe(409);
+    const unboundedNote = await admin(app, "fail", claimed.item.id, {
+      leaseId: claimed.leaseId,
+      revision: claimed.item.revision,
+      note: "x".repeat(601),
+    });
+    expect(unboundedNote.statusCode).toBe(400);
+
+    const failed = await admin(app, "fail", claimed.item.id, {
+      leaseId: claimed.leaseId,
+      revision: claimed.item.revision,
+      note: "Provider retries were exhausted.",
+    });
+    expect(failed.statusCode).toBe(200);
+    expect(failed.json().item).toMatchObject({
+      item: {
+        id: claimed.item.id,
+        status: "failed",
+        note: "Provider retries were exhausted.",
+      },
+      leaseId: null,
+      leaseExpiresAt: null,
+    });
+
+    const visible = await list(app, owner.accessToken);
+    expect(visible.json().items).toEqual([
+      expect.objectContaining({ id: claimed.item.id, status: "failed" }),
+      expect.objectContaining({ id: laterItem.json().item.id, status: "queued" }),
+    ]);
+    const amendment = await app.inject({
+      headers: {
+        authorization: `Bearer ${owner.accessToken}`,
+        "idempotency-key": randomUUID(),
+      },
+      method: "POST",
+      payload: feedbackPayload("Failed item amendment"),
+      url: `/v1/dev-feedback/items/${claimed.item.id}/amendments`,
+    });
+    expect(amendment.statusCode).toBe(409);
+    expect((await accept(app, owner.accessToken, claimed.item.id)).statusCode).toBe(409);
+
+    const continued = (await admin(app, "claim", null, {})).json().item;
+    expect(continued.item.id).toBe(laterItem.json().item.id);
+    const closed = await close(app, owner.accessToken, claimed.item.id);
+    expect(closed.statusCode).toBe(200);
+    expect(closed.json().item.status).toBe("closed");
+    expect((await close(app, owner.accessToken, claimed.item.id)).statusCode).toBe(200);
+  });
+
   it("replays concurrent identical amendments instead of returning a conflict", async () => {
     const app = await appForDatabase();
     const installation = await install(app, "127.0.3.3");
@@ -569,7 +647,7 @@ describePostgres("development feedback API", () => {
 
   function admin(
     app: Awaited<ReturnType<typeof buildApp>>,
-    operation: "claim" | "heartbeat" | "progress" | "block" | "ready",
+    operation: "claim" | "heartbeat" | "progress" | "block" | "fail" | "ready",
     itemId: string | null,
     payload: Record<string, unknown>,
   ) {

@@ -211,6 +211,102 @@ describe("development feedback tool", () => {
     expect(screen.getByRole("list")).not.toHaveTextContent("Internal process details");
   });
 
+  it("presents automation failure as a closeable error without owner-input actions", async () => {
+    const api = transport([
+      item({
+        status: "failed",
+        note: "Provider retries were exhausted. Internal controller details are omitted.",
+      }),
+    ]);
+    render(
+      <DevFeedbackTool
+        route="today"
+        shellRevision={"c".repeat(64)}
+        appVersion="0.1.11-dev-debug"
+        canCloseItems
+        transport={api}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work items" }));
+    const row = await screen.findByTestId("dev-feedback-item");
+    expect(row).toHaveTextContent("Failed");
+    expect(row).not.toHaveTextContent("Provider retries were exhausted");
+    expect(screen.queryByRole("button", { name: "Add follow-up" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Accept result" })).toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "View work item #1: Tighten the excavation card" }),
+    );
+    expect(screen.getByText("Error")).toBeTruthy();
+    expect(row).toHaveTextContent("Provider retries were exhausted.");
+    expect(row).not.toHaveTextContent("Internal controller details are omitted.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Close work item" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm close" }));
+    await waitFor(() =>
+      expect(api.close).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111"),
+    );
+  });
+
+  it("shows retries only for the fixed controller progress-note contract", async () => {
+    const api = transport([
+      item({
+        id: "11111111-1111-4111-8111-111111111111",
+        queuePosition: 1,
+        title: "First attempt",
+        status: "in_progress",
+        note: "Attempt 1/3: Preparing the bounded change.",
+      }),
+      item({
+        id: "22222222-2222-4222-8222-222222222222",
+        queuePosition: 2,
+        title: "Second attempt",
+        status: "in_progress",
+        note: "Attempt 2/3: Re-running focused verification.",
+      }),
+      item({
+        id: "33333333-3333-4333-8333-333333333333",
+        queuePosition: 3,
+        title: "Third attempt",
+        status: "in_progress",
+        note: "Attempt 3/3: Recovering after verification failed.",
+      }),
+      item({
+        id: "44444444-4444-4444-8444-444444444444",
+        queuePosition: 4,
+        title: "Unrelated progress",
+        status: "in_progress",
+        note: "Retry attempt 2 of 3.",
+      }),
+      item({
+        id: "55555555-5555-4555-8555-555555555555",
+        queuePosition: 5,
+        title: "Malformed progress",
+        status: "in_progress",
+        note: "Attempt 2/3 - Missing the contract delimiter.",
+      }),
+    ]);
+    render(
+      <DevFeedbackTool
+        route="today"
+        shellRevision={"c".repeat(64)}
+        appVersion="0.1.11-dev-debug"
+        transport={api}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open development feedback" }));
+    fireEvent.click(screen.getByRole("button", { name: "Work items" }));
+    const rows = await screen.findAllByTestId("dev-feedback-item");
+    expect(rows[0]).toHaveTextContent("Working");
+    expect(rows[1]).toHaveTextContent("Retrying 2/3");
+    expect(rows[2]).toHaveTextContent("Retrying 3/3");
+    expect(rows[3]).toHaveTextContent("Working");
+    expect(rows[4]).toHaveTextContent("Working");
+  });
+
   it("keeps follow-ups available while an item is actively running", async () => {
     const api = transport([item({ status: "in_progress" })]);
     render(

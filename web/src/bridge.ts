@@ -554,7 +554,7 @@ function isDevFeedbackItem(value: unknown): value is DevFeedbackItem {
     validBoundedText(value.title, 1, 120) &&
     validBoundedText(value.description, 1, 4_000) &&
     typeof value.status === "string" &&
-    ["queued", "in_progress", "blocked", "ready_for_qa", "accepted", "closed"].includes(
+    ["queued", "in_progress", "blocked", "failed", "ready_for_qa", "accepted", "closed"].includes(
       value.status,
     ) &&
     (value.note === "" || validBoundedText(value.note, 1, 600)) &&

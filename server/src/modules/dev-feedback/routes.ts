@@ -111,7 +111,15 @@ const itemResponse = z.object({
   revision: z.number().int().positive(),
   title: z.string(),
   description: z.string(),
-  status: z.enum(["queued", "in_progress", "blocked", "ready_for_qa", "accepted", "closed"]),
+  status: z.enum([
+    "queued",
+    "in_progress",
+    "blocked",
+    "failed",
+    "ready_for_qa",
+    "accepted",
+    "closed",
+  ]),
   note: z.string(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -445,7 +453,7 @@ export async function registerDevelopmentModule(
   const adminMutation = async (
     request: { headers: Record<string, unknown>; params: { itemId: string }; body: unknown },
     reply: FastifyReply,
-    operation: "heartbeat" | "progress" | "block" | "ready",
+    operation: "heartbeat" | "progress" | "block" | "fail" | "ready",
   ) => {
     const projectId = authorizedProject(request.headers, config, "admin");
     if (!projectId) return reply.code(401).send({ error: "unauthorized" });
@@ -487,6 +495,18 @@ export async function registerDevelopmentModule(
           ),
         });
       }
+      if (operation === "fail") {
+        const body = progressBody.omit({ targetCommit: true }).parse(request.body);
+        return reply.send({
+          item: await repository.fail(
+            projectId,
+            request.params.itemId,
+            body.leaseId,
+            body.revision,
+            body.note,
+          ),
+        });
+      }
       const body = readyBody.parse(request.body);
       const liveRevision = await deployedRevision(projectId, config);
       return reply.send({
@@ -508,7 +528,7 @@ export async function registerDevelopmentModule(
     }
   };
 
-  for (const operation of ["heartbeat", "progress", "block", "ready"] as const) {
+  for (const operation of ["heartbeat", "progress", "block", "fail", "ready"] as const) {
     app.post<{ Params: { itemId: string } }>(
       `/v1/dev-feedback/admin/items/:itemId/${operation}`,
       {
@@ -520,7 +540,7 @@ export async function registerDevelopmentModule(
               ? heartbeatBody
               : operation === "ready"
                 ? readyBody
-                : operation === "block"
+                : operation === "block" || operation === "fail"
                   ? progressBody.omit({ targetCommit: true })
                   : progressBody,
           response: { 200: adminStateResponse, 401: authorizationError, 409: authorizationError },
