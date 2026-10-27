@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   COMMUNITY_CREDIT_SCALE,
-  ExhibitsRequestError,
   contributionCreditMicrounits,
   contributionMultiplierMicros,
+  ExhibitsRequestError,
   effectiveCommunityUsers,
   isPlausibleLocalDate,
   progressBasisPoints,
