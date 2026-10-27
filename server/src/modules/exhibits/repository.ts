@@ -179,10 +179,10 @@ export class ExhibitsRepository {
           kind::text,
           status::text,
           build_channel::text,
-          target_units,
+          target_credit_units AS target_units,
           personal_minimum_units,
           daily_contribution_cap,
-          total_units::double precision AS total_units,
+          total_credit_microunits::double precision AS total_units,
           version,
           starts_at,
           ends_at
@@ -227,15 +227,7 @@ export class ExhibitsRepository {
         throw new ExhibitsConflictError("daily_cap_exceeded");
       }
 
-      const cohort = await readCohortSnapshot(transaction, input.buildChannel);
-      const creditedMicrounits = contributionCreditMicrounits(
-        input.units,
-        cohort.effectiveUserCount,
-      );
-      if (creditedMicrounits !== input.units * cohort.multiplierMicros) {
-        throw new ExhibitsRequestError();
-      }
-
+      await readCohortSnapshot(transaction, input.buildChannel);
       await transaction`
         INSERT INTO exhibit_contributions (
           id,
@@ -243,33 +235,20 @@ export class ExhibitsRepository {
           installation_id,
           idempotency_key,
           local_date,
-          units,
-          cohort_snapshot_date,
-          eligible_user_count,
-          effective_user_count,
-          multiplier_micros,
-          credited_microunits
+          units
         ) VALUES (
           ${randomUUID()},
           ${exhibit.id},
           ${input.installationId},
           ${input.idempotencyKey},
           ${input.localDate}::date,
-          ${input.units},
-          ${cohort.snapshotDate}::date,
-          ${cohort.eligibleUserCount},
-          ${cohort.effectiveUserCount},
-          ${cohort.multiplierMicros},
-          ${creditedMicrounits}
+          ${input.units}
         )
       `;
       await transaction`
         UPDATE exhibits
         SET
-          total_units = LEAST(
-            target_units::bigint * ${COMMUNITY_CREDIT_SCALE},
-            total_units + ${creditedMicrounits}
-          ),
+          total_units = LEAST(target_units, total_units + ${input.units}),
           version = version + 1,
           updated_at = now()
         WHERE id = ${exhibit.id}
@@ -410,10 +389,10 @@ async function readState(
       kind::text,
       status::text,
       build_channel::text,
-      target_units,
+      target_credit_units AS target_units,
       personal_minimum_units,
       daily_contribution_cap,
-      total_units::double precision AS total_units,
+      total_credit_microunits::double precision AS total_units,
       version,
       starts_at,
       ends_at

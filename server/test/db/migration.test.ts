@@ -200,9 +200,11 @@ describePostgres("initial PostgreSQL schema migration", () => {
         "kind",
         "status",
         "target_units",
+        "target_credit_units",
         "personal_minimum_units",
         "daily_contribution_cap",
         "total_units",
+        "total_credit_microunits",
         "image_path",
         "starts_at",
         "ends_at",
@@ -322,7 +324,8 @@ describePostgres("initial PostgreSQL schema migration", () => {
     expect(typeByColumn.get("daily_notification_aggregates.local_date")).toBe("date");
     expect(typeByColumn.get("daily_notification_aggregates.category_counts")).toBe("jsonb");
     expect(typeByColumn.get("users.last_opened")).toBe("timestamp with time zone");
-    expect(typeByColumn.get("exhibits.total_units")).toBe("bigint");
+    expect(typeByColumn.get("exhibits.total_units")).toBe("integer");
+    expect(typeByColumn.get("exhibits.total_credit_microunits")).toBe("bigint");
     expect(typeByColumn.get("exhibit_contributions.credited_microunits")).toBe("bigint");
     expect(typeByColumn.get("auth_refresh_tokens.expires_at")).toBe("timestamp with time zone");
   }, 30_000);
@@ -419,6 +422,8 @@ describePostgres("initial PostgreSQL schema migration", () => {
         expect.objectContaining({ constraint_name: "outbox_jobs_attempt_count_check" }),
         expect.objectContaining({ constraint_name: "exhibits_target_units_check" }),
         expect.objectContaining({ constraint_name: "exhibits_total_units_check" }),
+        expect.objectContaining({ constraint_name: "exhibits_target_credit_units_check" }),
+        expect.objectContaining({ constraint_name: "exhibits_total_credit_microunits_check" }),
         expect.objectContaining({ constraint_name: "exhibit_cohort_snapshots_population_check" }),
         expect.objectContaining({ constraint_name: "exhibit_cohort_snapshots_multiplier_check" }),
         expect.objectContaining({ constraint_name: "exhibit_contributions_credit_check" }),
@@ -455,6 +460,23 @@ describePostgres("initial PostgreSQL schema migration", () => {
     expect(indexNames).toContain(
       "exhibit_contributions:exhibit_contributions_installation_date_idx",
     );
+  });
+
+  it("installs the bounded compatibility triggers for acceptance-time credit", async () => {
+    const triggers = await migrator<Readonly<{ trigger_name: string }>[]>`
+      SELECT trigger.tgname AS trigger_name
+      FROM pg_trigger AS trigger
+      INNER JOIN pg_class AS relation ON relation.oid = trigger.tgrelid
+      INNER JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+      WHERE namespace.nspname = 'public'
+        AND relation.relname = 'exhibit_contributions'
+        AND trigger.tgisinternal = false
+      ORDER BY trigger.tgname
+    `;
+    expect(triggers).toEqual([
+      { trigger_name: "exhibit_contributions_apply_credit" },
+      { trigger_name: "exhibit_contributions_prepare" },
+    ]);
   });
 
   it("enables and forces row-level security, grants only the runtime role, and rejects cross-installation reads and writes", async () => {

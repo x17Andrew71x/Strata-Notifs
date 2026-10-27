@@ -10,14 +10,13 @@ CREATE TABLE "exhibit_cohort_snapshots" (
 	CONSTRAINT "exhibit_cohort_snapshots_multiplier_check" CHECK ("multiplier_micros" = round(10000000000.0 / "effective_user_count"))
 );
 --> statement-breakpoint
-ALTER TABLE "exhibits" DROP CONSTRAINT "exhibits_target_units_check";--> statement-breakpoint
-ALTER TABLE "exhibits" DROP CONSTRAINT "exhibits_total_units_check";--> statement-breakpoint
-ALTER TABLE "exhibits" ALTER COLUMN "total_units" SET DATA TYPE bigint;--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ADD COLUMN "cohort_snapshot_date" date;--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ADD COLUMN "eligible_user_count" integer;--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ADD COLUMN "effective_user_count" integer;--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ADD COLUMN "multiplier_micros" integer;--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ADD COLUMN "credited_microunits" bigint;--> statement-breakpoint
+ALTER TABLE "exhibits" ADD COLUMN "target_credit_units" integer;--> statement-breakpoint
+ALTER TABLE "exhibits" ADD COLUMN "total_credit_microunits" bigint;--> statement-breakpoint
 ALTER TABLE "users" ADD COLUMN "last_opened" timestamp with time zone;--> statement-breakpoint
 UPDATE "users" SET "last_opened" = "created_at" WHERE "last_opened" IS NULL;--> statement-breakpoint
 ALTER TABLE "users" ALTER COLUMN "last_opened" SET DEFAULT now();--> statement-breakpoint
@@ -26,10 +25,13 @@ CREATE POLICY "exhibit_contributions_migrator_access" ON "exhibit_contributions"
   FOR ALL TO "afterchime_migrator"
   USING (true)
   WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "consent_records_cohort_definer_access" ON "consent_records"
+  FOR SELECT TO "afterchime_migrator"
+  USING (true);--> statement-breakpoint
 UPDATE "exhibits"
 SET
-  "target_units" = "target_units" * 100,
-  "total_units" = "total_units" * 100000000;--> statement-breakpoint
+  "target_credit_units" = "target_units" * 100,
+  "total_credit_microunits" = "total_units"::bigint * 100000000;--> statement-breakpoint
 UPDATE "exhibit_contributions"
 SET
   "cohort_snapshot_date" = ("created_at" AT TIME ZONE 'UTC')::date,
@@ -61,15 +63,15 @@ ALTER TABLE "exhibit_contributions" ALTER COLUMN "eligible_user_count" SET NOT N
 ALTER TABLE "exhibit_contributions" ALTER COLUMN "effective_user_count" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ALTER COLUMN "multiplier_micros" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ALTER COLUMN "credited_microunits" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "exhibits" ALTER COLUMN "target_credit_units" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "exhibits" ALTER COLUMN "total_credit_microunits" SET DEFAULT 0;--> statement-breakpoint
+ALTER TABLE "exhibits" ALTER COLUMN "total_credit_microunits" SET NOT NULL;--> statement-breakpoint
 CREATE INDEX "users_build_last_opened_idx" ON "users" USING btree ("build_channel","last_opened");--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ADD CONSTRAINT "exhibit_contributions_population_check" CHECK ("eligible_user_count" >= 0 AND "effective_user_count" = greatest(100, least(10000, "eligible_user_count")));--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ADD CONSTRAINT "exhibit_contributions_multiplier_check" CHECK ("multiplier_micros" = round(10000000000.0 / "effective_user_count"));--> statement-breakpoint
 ALTER TABLE "exhibit_contributions" ADD CONSTRAINT "exhibit_contributions_credit_check" CHECK ("credited_microunits" = "units"::bigint * "multiplier_micros");--> statement-breakpoint
-ALTER TABLE "exhibits" ADD CONSTRAINT "exhibits_target_units_check" CHECK ("target_units" BETWEEN 1 AND 1000000000);--> statement-breakpoint
-ALTER TABLE "exhibits" ADD CONSTRAINT "exhibits_total_units_check" CHECK ("total_units" BETWEEN 0 AND "target_units"::bigint * 1000000);--> statement-breakpoint
-CREATE POLICY "consent_records_cohort_definer_access" ON "consent_records"
-  FOR SELECT TO "afterchime_migrator"
-  USING (true);--> statement-breakpoint
+ALTER TABLE "exhibits" ADD CONSTRAINT "exhibits_target_credit_units_check" CHECK ("target_credit_units" BETWEEN 1 AND 1000000000);--> statement-breakpoint
+ALTER TABLE "exhibits" ADD CONSTRAINT "exhibits_total_credit_microunits_check" CHECK ("total_credit_microunits" BETWEEN 0 AND "target_credit_units"::bigint * 1000000);--> statement-breakpoint
 CREATE FUNCTION public.afterchime_exhibit_cohort_snapshot(
   p_build_channel build_channel
 ) RETURNS TABLE(
@@ -167,4 +169,76 @@ $$;--> statement-breakpoint
 ALTER FUNCTION public.afterchime_exhibit_cohort_snapshot(build_channel) OWNER TO afterchime_migrator;--> statement-breakpoint
 REVOKE ALL ON FUNCTION public.afterchime_exhibit_cohort_snapshot(build_channel) FROM PUBLIC;--> statement-breakpoint
 GRANT EXECUTE ON FUNCTION public.afterchime_exhibit_cohort_snapshot(build_channel) TO afterchime_runtime;--> statement-breakpoint
+CREATE FUNCTION public.afterchime_prepare_exhibit_contribution()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  v_build_channel public.build_channel;
+  v_snapshot record;
+BEGIN
+  IF session_user <> 'afterchime_runtime' THEN
+    RAISE EXCEPTION 'contribution preparation requires the runtime role' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT exhibit.build_channel
+  INTO v_build_channel
+  FROM public.exhibits AS exhibit
+  WHERE exhibit.id = NEW.exhibit_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'exhibit is unavailable' USING ERRCODE = '23503';
+  END IF;
+
+  SELECT *
+  INTO v_snapshot
+  FROM public.afterchime_exhibit_cohort_snapshot(v_build_channel);
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'cohort snapshot is unavailable' USING ERRCODE = 'P0002';
+  END IF;
+
+  NEW.cohort_snapshot_date := v_snapshot.snapshot_date;
+  NEW.eligible_user_count := v_snapshot.eligible_user_count;
+  NEW.effective_user_count := v_snapshot.effective_user_count;
+  NEW.multiplier_micros := v_snapshot.multiplier_micros;
+  NEW.credited_microunits := NEW.units::bigint * v_snapshot.multiplier_micros;
+  RETURN NEW;
+END;
+$$;--> statement-breakpoint
+ALTER FUNCTION public.afterchime_prepare_exhibit_contribution() OWNER TO afterchime_migrator;--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.afterchime_prepare_exhibit_contribution() FROM PUBLIC;--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION public.afterchime_prepare_exhibit_contribution() TO afterchime_runtime;--> statement-breakpoint
+CREATE TRIGGER "exhibit_contributions_prepare"
+BEFORE INSERT ON "exhibit_contributions"
+FOR EACH ROW EXECUTE FUNCTION public.afterchime_prepare_exhibit_contribution();--> statement-breakpoint
+CREATE FUNCTION public.afterchime_apply_exhibit_credit()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+BEGIN
+  IF session_user <> 'afterchime_runtime' THEN
+    RAISE EXCEPTION 'contribution credit requires the runtime role' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.exhibits
+  SET total_credit_microunits = least(
+    target_credit_units::bigint * 1000000,
+    total_credit_microunits + NEW.credited_microunits
+  )
+  WHERE id = NEW.exhibit_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'exhibit is unavailable' USING ERRCODE = '23503';
+  END IF;
+  RETURN NEW;
+END;
+$$;--> statement-breakpoint
+ALTER FUNCTION public.afterchime_apply_exhibit_credit() OWNER TO afterchime_migrator;--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.afterchime_apply_exhibit_credit() FROM PUBLIC;--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION public.afterchime_apply_exhibit_credit() TO afterchime_runtime;--> statement-breakpoint
+CREATE TRIGGER "exhibit_contributions_apply_credit"
+AFTER INSERT ON "exhibit_contributions"
+FOR EACH ROW EXECUTE FUNCTION public.afterchime_apply_exhibit_credit();--> statement-breakpoint
 REVOKE ALL ON TABLE "exhibit_cohort_snapshots" FROM PUBLIC, "afterchime_runtime";

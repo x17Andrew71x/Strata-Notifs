@@ -38,9 +38,13 @@ export const exhibits = pgTable(
     status: exhibitStatus("status").notNull(),
     buildChannel: buildChannel("build_channel").notNull(),
     targetUnits: integer("target_units").notNull(),
+    targetCreditUnits: integer("target_credit_units").notNull(),
     personalMinimumUnits: integer("personal_minimum_units").notNull(),
     dailyContributionCap: integer("daily_contribution_cap").notNull(),
-    totalUnits: bigint("total_units", { mode: "number" }).notNull().default(0),
+    totalUnits: integer("total_units").notNull().default(0),
+    totalCreditMicrounits: bigint("total_credit_microunits", { mode: "number" })
+      .notNull()
+      .default(0),
     version: integer("version").notNull().default(1),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }),
@@ -59,15 +63,20 @@ export const exhibits = pgTable(
       "exhibits_image_path_check",
       sql`"image_path" ~ '^/exhibits/[a-z0-9-]{1,128}-[a-f0-9]{12}\\.webp$'`,
     ),
-    check("exhibits_target_units_check", sql`"target_units" BETWEEN 1 AND 1000000000`),
+    check("exhibits_target_units_check", sql`"target_units" BETWEEN 1 AND 10000000`),
+    check(
+      "exhibits_target_credit_units_check",
+      sql`"target_credit_units" BETWEEN 1 AND 1000000000`,
+    ),
     check(
       "exhibits_personal_minimum_check",
       sql`"personal_minimum_units" BETWEEN 1 AND "target_units"`,
     ),
     check("exhibits_daily_cap_check", sql`"daily_contribution_cap" BETWEEN 1 AND 100000`),
+    check("exhibits_total_units_check", sql`"total_units" BETWEEN 0 AND "target_units"`),
     check(
-      "exhibits_total_units_check",
-      sql`"total_units" BETWEEN 0 AND "target_units"::bigint * 1000000`,
+      "exhibits_total_credit_microunits_check",
+      sql`"total_credit_microunits" BETWEEN 0 AND "target_credit_units"::bigint * 1000000`,
     ),
     check("exhibits_version_check", sql`"version" >= 1`),
     check("exhibits_time_check", sql`"ends_at" IS NULL OR "ends_at" > "starts_at"`),

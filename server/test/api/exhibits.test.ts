@@ -43,12 +43,20 @@ describePostgres("Exhibits API", () => {
       UPDATE exhibits
       SET
         total_units = CASE slug
+          WHEN 'returning-light-2027' THEN 2823
+          WHEN 'long-night-2026' THEN 3648
+          WHEN 'monsoon-choir-2026' THEN 5000
+          WHEN 'ember-flight-2026' THEN 5000
+          WHEN 'tideglass-2026' THEN 4300
+          ELSE total_units
+        END,
+        total_credit_microunits = CASE slug
           WHEN 'returning-light-2027' THEN 282300000000
           WHEN 'long-night-2026' THEN 364800000000
           WHEN 'monsoon-choir-2026' THEN 500000000000
           WHEN 'ember-flight-2026' THEN 500000000000
           WHEN 'tideglass-2026' THEN 430000000000
-          ELSE total_units
+          ELSE total_credit_microunits
         END,
         version = 1
     `;
@@ -187,6 +195,29 @@ describePostgres("Exhibits API", () => {
         multiplier_micros: 100_000_000,
       },
     ]);
+    const [compatibilityTotals] = await admin<
+      Readonly<{
+        target_credit_units: number;
+        target_units: number;
+        total_credit_microunits: string;
+        total_units: number;
+      }>[]
+    >`
+      SELECT
+        target_units,
+        total_units,
+        target_credit_units,
+        total_credit_microunits::text
+      FROM exhibits
+      WHERE slug = 'returning-light-2027'
+        AND build_channel = 'dev'::build_channel
+    `;
+    expect(compatibilityTotals).toEqual({
+      target_units: 5_000,
+      total_units: 2_841,
+      target_credit_units: 500_000,
+      total_credit_microunits: "284100000000",
+    });
   });
 
   it("snapshots only community-enabled profiles opened within 28 days and never rewrites that UTC day", async () => {

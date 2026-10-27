@@ -27,9 +27,9 @@
 - next forward migration
 - migration/RLS tests
 
-Store a fixed maximum-cohort-equivalent `target_units`, personal minimum and raw-energy daily cap per Exhibit. Snapshot eligible profiles once per UTC day: distinct non-synthetic profiles with current essential-online/community consent and a general server-authored `last_opened` within 28 days. Clamp the effective cohort to 100–10,000 and credit each accepted raw energy unit with `round(10,000 × 1,000,000 ÷ effective_users)` microunits. Keep personal minimums/caps raw, preserve the acceptance-time cohort/multiplier/credit on every contribution, and never revalue history. Keep the 102,400 visual cells independent: progress basis points derive from aggregate fixed-point credit against the fixed target, and the client maps that percentage across the reveal grid.
+Store a fixed maximum-cohort-equivalent `target_credit_units`, personal minimum and raw-energy daily cap per Exhibit. Snapshot eligible profiles once per UTC day: distinct non-synthetic profiles with current essential-online/community consent and a general server-authored `last_opened` within 28 days. Clamp the effective cohort to 100–10,000 and credit each accepted raw energy unit with `round(10,000 × 1,000,000 ÷ effective_users)` microunits. Keep personal minimums/caps raw, preserve the acceptance-time cohort/multiplier/credit on every contribution, and never revalue history. Keep the 102,400 visual cells independent: progress basis points derive from aggregate fixed-point credit against the fixed target, and the client maps that percentage across the reveal grid.
 
-Persist exhibit definitions, installation-scoped idempotent contributions and unlock records. Force RLS on installation-owned rows. Grant the runtime role only the required reads/inserts plus bounded aggregate-progress updates.
+Persist exhibit definitions, installation-scoped idempotent contributions and unlock records. Force RLS on installation-owned rows. Grant the runtime role only the required reads/inserts plus bounded aggregate-progress updates. Add the scaled target/aggregate beside the existing raw target/aggregate and let database triggers prepare contribution credit, so the pre-deploy migration and a bounded rollback remain compatible with the preceding server while both revisions dual-write the legacy raw total.
 
 ## Task 2 — Authenticated Exhibits API
 

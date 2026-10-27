@@ -1,5 +1,5 @@
 {
-  "id": "08bdce95-88e8-4bcd-9ebc-79f5a2e42605",
+  "id": "45bad510-ed2c-4bda-86f9-44b960010fd5",
   "prevId": "fe3ab5a5-911d-4439-943a-6375959218fd",
   "version": "7",
   "dialect": "postgresql",
@@ -1165,6 +1165,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "target_credit_units": {
+          "name": "target_credit_units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
         "personal_minimum_units": {
           "name": "personal_minimum_units",
           "type": "integer",
@@ -1179,6 +1185,13 @@
         },
         "total_units": {
           "name": "total_units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "total_credit_microunits": {
+          "name": "total_credit_microunits",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
@@ -1303,7 +1316,11 @@
         },
         "exhibits_target_units_check": {
           "name": "exhibits_target_units_check",
-          "value": "\"target_units\" BETWEEN 1 AND 1000000000"
+          "value": "\"target_units\" BETWEEN 1 AND 10000000"
+        },
+        "exhibits_target_credit_units_check": {
+          "name": "exhibits_target_credit_units_check",
+          "value": "\"target_credit_units\" BETWEEN 1 AND 1000000000"
         },
         "exhibits_personal_minimum_check": {
           "name": "exhibits_personal_minimum_check",
@@ -1315,7 +1332,11 @@
         },
         "exhibits_total_units_check": {
           "name": "exhibits_total_units_check",
-          "value": "\"total_units\" BETWEEN 0 AND \"target_units\"::bigint * 1000000"
+          "value": "\"total_units\" BETWEEN 0 AND \"target_units\""
+        },
+        "exhibits_total_credit_microunits_check": {
+          "name": "exhibits_total_credit_microunits_check",
+          "value": "\"total_credit_microunits\" BETWEEN 0 AND \"target_credit_units\"::bigint * 1000000"
         },
         "exhibits_version_check": {
           "name": "exhibits_version_check",
