@@ -330,6 +330,27 @@ describePostgres("initial PostgreSQL schema migration", () => {
     expect(typeByColumn.get("auth_refresh_tokens.expires_at")).toBe("timestamp with time zone");
   }, 30_000);
 
+  it("retires seeded placeholder Exhibits before they can reach the public surface", async () => {
+    const rows = await migrator<
+      Readonly<{
+        build_channel: string;
+        placeholder_artwork: boolean;
+        slug: string;
+        status: string;
+      }>[]
+    >`
+      SELECT slug, build_channel::text, placeholder_artwork, status::text
+      FROM exhibits
+      WHERE placeholder_artwork = true
+      ORDER BY slug
+    `;
+
+    expect(rows).toHaveLength(5);
+    expect(rows.every((row) => row.build_channel === "dev" && row.status === "cancelled")).toBe(
+      true,
+    );
+  });
+
   it("enforces ownership, bounded idempotency, aggregate revision, and synthetic-build constraints", async () => {
     const constraints = await migrator<
       Readonly<{

@@ -189,6 +189,7 @@ export class ExhibitsRepository {
         FROM exhibits
         WHERE slug = ${input.exhibitId}
           AND build_channel = ${input.buildChannel}::build_channel
+          AND placeholder_artwork = false
         FOR UPDATE
       `;
       if (!exhibit) throw new ExhibitsConflictError("exhibit_unavailable");
@@ -218,6 +219,7 @@ export class ExhibitsRepository {
         FROM exhibits
         WHERE build_channel = ${input.buildChannel}::build_channel
           AND status = 'open'::exhibit_status
+          AND placeholder_artwork = false
           AND starts_at <= ${input.now}
           AND (ends_at IS NULL OR ends_at > ${input.now})
       `;
@@ -399,6 +401,7 @@ async function readState(
     FROM exhibits
     WHERE build_channel = ${input.buildChannel}::build_channel
       AND status IN ('open'::exhibit_status, 'closed'::exhibit_status)
+      AND placeholder_artwork = false
     ORDER BY starts_at DESC, id
   `;
   const contributionRows = await transaction<Readonly<{ exhibit_id: string; total: number }>[]>`

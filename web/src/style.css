@@ -1451,6 +1451,7 @@ p {
 }
 
 .archive-contribute {
+  min-width: 104px;
   min-height: 38px;
   font-size: 10px;
 }
@@ -2660,7 +2661,7 @@ p {
   }
 
   .archive-exhibit-card {
-    grid-template-columns: 68px minmax(0, 1fr) auto;
+    grid-template-columns: 68px minmax(0, 1fr);
     gap: 10px;
     padding: 9px;
   }
@@ -2679,15 +2680,12 @@ p {
   }
 
   .archive-contribute {
-    width: 42px;
-    overflow: hidden;
-    padding: 0;
-    font-size: 0;
-  }
-
-  .archive-contribute::after {
-    font-size: 18px;
-    content: "+";
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 10px;
   }
 
   .past-exhibits-row {

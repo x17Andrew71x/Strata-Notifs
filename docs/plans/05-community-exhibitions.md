@@ -61,7 +61,7 @@ On each authenticated foreground app open, call the dedicated profile-open endpo
 - `web/src/ExhibitReveal.tsx`
 - `web/src/exhibits.ts`
 - `web/src/style.css`
-- content-addressed placeholder images and fallback-cache inventory
+- approved content-addressed seasonal images and fallback-cache inventory
 
 Match the approved lean hierarchy exactly:
 
@@ -73,7 +73,7 @@ Use a broad top-left to bottom-right reveal with a narrow rough pixel-scattered 
 
 ## Task 5 — Later content operations and live updates
 
-The first pass uses deterministic content-addressed placeholder images. Before real seasonal artwork ships, add the separately reviewed Draft → Ready → Active → Closed administration flow, private draft previews, atomic publication and replacement-safe content caching.
+Keep Exhibits in an honest empty state until approved seasonal names, dates, targets and artwork are ready. Hide empty Archive and Past sections; never publish fabricated history or placeholder campaigns. Then add the separately reviewed Draft → Ready → Active → Closed administration flow, private draft previews, atomic publication and replacement-safe content caching.
 
 Native-authenticated refresh after app open/focus, contribution and visible-tab polling is the first-pass freshness path. A percentage-only server-sent event stream may later replace visible-tab polling after load and connection behaviour are measured; it must coalesce aggregate versions and never expose identities.
 

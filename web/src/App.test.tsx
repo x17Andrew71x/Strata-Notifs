@@ -299,6 +299,9 @@ describe("full shell application", () => {
     expect(screen.getByText("18 ready")).toBeTruthy();
     expect(screen.getByText("The Long Night")).toBeTruthy();
     expect(screen.getByText("Monsoon Choir")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Contribute all to The Long Night" }),
+    ).toHaveTextContent("Contribute energy");
     expect(screen.queryByText(/102,400/)).toBeNull();
     expect(screen.queryByText(/participant count/i)).toBeNull();
 
@@ -315,6 +318,53 @@ describe("full shell application", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Monsoon Choir" }));
     expect(screen.getByRole("dialog", { name: "Monsoon Choir" })).toBeTruthy();
+  });
+
+  it("states when no Exhibits exist and hides empty Archive and Past sections", () => {
+    renderWithState({
+      ...baseState,
+      preferences: { ...baseState.preferences, onlineFeaturesEnabled: true },
+      exhibits: {
+        status: "READY",
+        bankedEnergy: 0,
+        contributionInFlight: false,
+        featured: null,
+        archive: null,
+        past: [],
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Exhibits" }));
+
+    expect(screen.getByRole("heading", { name: "Exhibits" })).toBeTruthy();
+    expect(
+      screen.getByText("No Exhibits are available yet. New seasons will appear here when ready."),
+    ).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Restoration Archive" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Past Exhibits" })).toBeNull();
+    for (const inventedTitle of [
+      "The Returning Light",
+      "The Long Night",
+      "Monsoon Choir",
+      "Ember Flight",
+      "Tideglass",
+    ]) {
+      expect(screen.queryByText(inventedTitle)).toBeNull();
+    }
+  });
+
+  it("hides only empty optional Exhibit sections when a Featured Season exists", () => {
+    renderWithState({
+      ...baseState,
+      preferences: { ...baseState.preferences, onlineFeaturesEnabled: true },
+      exhibits: { ...exhibitsState, archive: null, past: [] },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Exhibits" }));
+
+    expect(screen.getByText("The Returning Light")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Restoration Archive" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Past Exhibits" })).toBeNull();
   });
 
   it("shows only active fossil rarities in the Collection filter", () => {
@@ -771,7 +821,7 @@ describe("full shell application", () => {
     expect(requests().some(({ type }) => type === "museum.combine")).toBe(false);
   });
 
-  it("keeps optional online settings off and sends one explicit preference mutation", () => {
+  it("defaults both data choices back on when online features are enabled", () => {
     renderWithState(baseState);
     fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
     const online = screen.getByRole("checkbox", { name: /Online features/i });
@@ -780,11 +830,36 @@ describe("full shell application", () => {
     expect(online).not.toBeChecked();
     expect(improve).toBeDisabled();
     expect(dailyTotals).toBeDisabled();
+
     fireEvent.click(online);
-    expect(lastRequest()).toMatchObject({
-      version: 2,
-      type: "preferences.update",
-      payload: { key: "onlineFeaturesEnabled", value: true },
+
+    const preferenceUpdates = requests().filter(({ type }) => type === "preferences.update");
+    expect(preferenceUpdates).toHaveLength(3);
+    expect(preferenceUpdates.map(({ payload }) => payload)).toEqual([
+      { key: "onlineFeaturesEnabled", value: true },
+      { key: "productAnalyticsEnabled", value: true },
+      { key: "notificationAggregateSharingEnabled", value: true },
+    ]);
+  });
+
+  it("lets either defaulted data choice be switched off independently", () => {
+    renderWithState({
+      ...baseState,
+      preferences: {
+        ...baseState.preferences,
+        onlineFeaturesEnabled: true,
+        productAnalyticsEnabled: true,
+        notificationAggregateSharingEnabled: true,
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Settings$/ }));
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /Help improve Afterchime/i }));
+
+    const preferenceUpdates = requests().filter(({ type }) => type === "preferences.update");
+    expect(preferenceUpdates).toHaveLength(1);
+    expect(preferenceUpdates[0]).toMatchObject({
+      payload: { key: "productAnalyticsEnabled", value: false },
     });
   });
 
@@ -798,7 +873,7 @@ describe("full shell application", () => {
     expect(screen.getByText("Relic Vault · Included for launch", { exact: true })).toBeTruthy();
     for (const detail of [
       /Choose which apps may add layers/i,
-      /your collection still works offline/i,
+      /turn on both data choices below/i,
       /which parts of Afterchime are used and basic device details/i,
       /one day’s counts by broad type and hour/i,
       /Turn off excavation and reveal animations/i,

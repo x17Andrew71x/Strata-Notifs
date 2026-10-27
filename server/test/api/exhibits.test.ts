@@ -31,7 +31,8 @@ describePostgres("Exhibits API", () => {
         status = CASE
           WHEN slug IN ('returning-light-2027', 'long-night-2026') THEN 'open'::exhibit_status
           ELSE 'closed'::exhibit_status
-        END
+        END,
+        placeholder_artwork = false
     `;
   }, 30_000);
 
@@ -58,7 +59,8 @@ describePostgres("Exhibits API", () => {
           WHEN 'tideglass-2026' THEN 430000000000
           ELSE total_credit_microunits
         END,
-        version = 1
+        version = 1,
+        placeholder_artwork = false
     `;
   });
 
@@ -104,6 +106,41 @@ describePostgres("Exhibits API", () => {
     expect(consent.statusCode).toBe(200);
     return session;
   }
+
+  it("never publishes placeholder exhibit records", async () => {
+    const app = await appForDatabase();
+    const session = await registered(app);
+    const localDate = new Date().toISOString().slice(0, 10);
+    await admin`UPDATE exhibits SET placeholder_artwork = true`;
+
+    const response = await app.inject({
+      headers: { authorization: `Bearer ${session.accessToken}` },
+      method: "GET",
+      url: `/v1/exhibits/current?local_date=${localDate}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      archive: null,
+      dailyContributionCap: 0,
+      featured: null,
+      past: [],
+      status: "ready",
+      version: 0,
+    });
+
+    const contribution = await app.inject({
+      headers: {
+        authorization: `Bearer ${session.accessToken}`,
+        "idempotency-key": randomUUID(),
+      },
+      method: "POST",
+      payload: { local_date: localDate, units: 1 },
+      url: "/v1/exhibits/returning-light-2027/contributions",
+    });
+    expect(contribution.statusCode).toBe(409);
+    expect(contribution.json()).toEqual({ error: "exhibit_unavailable" });
+  });
 
   it("returns private eligibility with percentage-only shared progress and accepts an idempotent contribution", async () => {
     const app = await appForDatabase();

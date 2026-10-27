@@ -545,8 +545,8 @@ function Onboarding({
         <div className="privacy-card">
           <strong>Your choices remain yours.</strong>
           <p>
-            Online tools, app-improvement reports, and daily activity totals stay off unless you
-            turn them on.
+            Online tools and both data choices begin only when you turn on Online features. You can
+            then switch either data choice off.
           </p>
         </div>
         {!access && (
@@ -1084,7 +1084,7 @@ function Community({
   const exhibits = state.exhibits;
   const [opened, setOpened] = useState<ShellPastExhibit | null>(null);
   const featured = exhibits?.featured ?? null;
-  if (exhibits?.status !== "READY" || !featured) {
+  if (exhibits?.status !== "READY") {
     const unavailable = exhibits?.status === "DISABLED" || !state.preferences.onlineFeaturesEnabled;
     return (
       <section className="screen exhibits-screen exhibits-empty" aria-labelledby="exhibits-title">
@@ -1095,27 +1095,42 @@ function Community({
           description={
             unavailable
               ? "Enable online features in Settings to join shared restorations."
-              : "The current community restoration is temporarily unavailable."
+              : "Exhibits are temporarily unavailable."
           }
+        />
+      </section>
+    );
+  }
+  if (!featured && !exhibits.archive && exhibits.past.length === 0) {
+    return (
+      <section className="screen exhibits-screen exhibits-empty" aria-labelledby="exhibits-title">
+        <PageHeading
+          eyebrow="Community excavation"
+          title="Exhibits"
+          titleId="exhibits-title"
+          description="No Exhibits are available yet. New seasons will appear here when ready."
         />
       </section>
     );
   }
 
   const contributeDisabled =
+    !featured ||
     exhibits.bankedEnergy === 0 ||
     exhibits.contributionInFlight ||
     featured.closed ||
     featured.unlocked;
-  const contributionLabel = featured.closed
-    ? "Season closed"
-    : featured.unlocked
-      ? "Exhibit unlocked"
-      : exhibits.contributionInFlight
-        ? "Contributing…"
-        : exhibits.bankedEnergy === 0
-          ? "No energy ready"
-          : "Contribute all";
+  const contributionLabel = !featured
+    ? ""
+    : featured.closed
+      ? "Season closed"
+      : featured.unlocked
+        ? "Exhibit unlocked"
+        : exhibits.contributionInFlight
+          ? "Contributing…"
+          : exhibits.bankedEnergy === 0
+            ? "No energy ready"
+            : "Contribute all";
 
   return (
     <section className="screen exhibits-screen" aria-labelledby="exhibits-title">
@@ -1127,103 +1142,105 @@ function Community({
         <p>One shared restoration. Your contribution remains private.</p>
       </header>
 
-      <article className="featured-exhibit" aria-labelledby="featured-exhibit-title">
-        <div
-          className={`featured-exhibit-art${featured.closed && !featured.unlocked ? " missed" : ""}`}
-        >
-          <ExhibitReveal
-            basisPoints={featured.progressBasisPoints}
-            imagePath={featured.imagePath}
-            label={`${featured.title}, ${formatProgressBasisPoints(featured.progressBasisPoints)} restored`}
-            reduceMotion={state.preferences.reduceMotionEnabled}
-          />
-          <span className="featured-exhibit-badge">{featured.seasonLabel}</span>
-          <strong className="featured-exhibit-percent">
-            {formatProgressBasisPoints(featured.progressBasisPoints)}
-          </strong>
-          <div className="featured-exhibit-title">
-            <small>Featured season</small>
-            <strong id="featured-exhibit-title">{featured.title}</strong>
-          </div>
-          {featured.closed && !featured.unlocked && (
-            <span className="featured-exhibit-lock">Minimum not met</span>
-          )}
-        </div>
-
-        <div className="featured-exhibit-panel">
-          <div className="featured-exhibit-season">
-            <strong>
-              {featured.closed
-                ? "Season complete"
-                : featured.unlocked
-                  ? "Exhibit unlocked"
-                  : featured.communityComplete
-                    ? "Community goal reached"
-                    : "Restoration in progress"}
+      {featured && (
+        <article className="featured-exhibit" aria-labelledby="featured-exhibit-title">
+          <div
+            className={`featured-exhibit-art${featured.closed && !featured.unlocked ? " missed" : ""}`}
+          >
+            <ExhibitReveal
+              basisPoints={featured.progressBasisPoints}
+              imagePath={featured.imagePath}
+              label={`${featured.title}, ${formatProgressBasisPoints(featured.progressBasisPoints)} restored`}
+              reduceMotion={state.preferences.reduceMotionEnabled}
+            />
+            <span className="featured-exhibit-badge">{featured.seasonLabel}</span>
+            <strong className="featured-exhibit-percent">
+              {formatProgressBasisPoints(featured.progressBasisPoints)}
             </strong>
-            <span>
-              {featured.closed
-                ? "Season ended"
-                : featured.daysRemaining === null
-                  ? "No deadline"
-                  : `${featured.daysRemaining} days remain`}
-            </span>
+            <div className="featured-exhibit-title">
+              <small>Featured season</small>
+              <strong id="featured-exhibit-title">{featured.title}</strong>
+            </div>
+            {featured.closed && !featured.unlocked && (
+              <span className="featured-exhibit-lock">Minimum not met</span>
+            )}
           </div>
 
-          <div>
-            <ExhibitMeter
-              label="Everyone"
-              value={formatProgressBasisPoints(featured.progressBasisPoints)}
-              progress={featured.progressBasisPoints / 100}
-              footerLeft="Shared progress"
-              footerRight="Updated moments ago"
-            />
-            <ExhibitMeter
-              label="You"
-              value={`${featured.personalContribution.toLocaleString()} / ${featured.personalMinimum.toLocaleString()}`}
-              progress={(featured.personalContribution / featured.personalMinimum) * 100}
-              footerLeft="Personal minimum"
-              footerRight={
-                featured.qualified
-                  ? featured.communityComplete
+          <div className="featured-exhibit-panel">
+            <div className="featured-exhibit-season">
+              <strong>
+                {featured.closed
+                  ? "Season complete"
+                  : featured.unlocked
                     ? "Exhibit unlocked"
-                    : "Qualified · awaiting community"
-                  : `${Math.max(0, featured.personalMinimum - featured.personalContribution).toLocaleString()} to qualify`
-              }
-              qualified={featured.qualified}
-            />
-          </div>
-
-          <div className="exhibit-contribute-row">
-            <div className="exhibit-energy">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.7"
-                aria-hidden="true"
-              >
-                <path d="m13.5 2-8 12h6l-1 8 8-12h-6l1-8Z" />
-              </svg>
+                    : featured.communityComplete
+                      ? "Community goal reached"
+                      : "Restoration in progress"}
+              </strong>
               <span>
-                <strong>{exhibits.bankedEnergy} ready</strong>
-                <small>Expires tonight</small>
+                {featured.closed
+                  ? "Season ended"
+                  : featured.daysRemaining === null
+                    ? "No deadline"
+                    : `${featured.daysRemaining} days remain`}
               </span>
             </div>
-            <button
-              type="button"
-              className="primary"
-              disabled={contributeDisabled}
-              onClick={() => onContribute(featured.id, exhibits.bankedEnergy)}
-            >
-              {contributionLabel}
-            </button>
+
+            <div>
+              <ExhibitMeter
+                label="Everyone"
+                value={formatProgressBasisPoints(featured.progressBasisPoints)}
+                progress={featured.progressBasisPoints / 100}
+                footerLeft="Shared progress"
+                footerRight="Updated moments ago"
+              />
+              <ExhibitMeter
+                label="You"
+                value={`${featured.personalContribution.toLocaleString()} / ${featured.personalMinimum.toLocaleString()}`}
+                progress={(featured.personalContribution / featured.personalMinimum) * 100}
+                footerLeft="Personal minimum"
+                footerRight={
+                  featured.qualified
+                    ? featured.communityComplete
+                      ? "Exhibit unlocked"
+                      : "Qualified · awaiting community"
+                    : `${Math.max(0, featured.personalMinimum - featured.personalContribution).toLocaleString()} to qualify`
+                }
+                qualified={featured.qualified}
+              />
+            </div>
+
+            <div className="exhibit-contribute-row">
+              <div className="exhibit-energy">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  aria-hidden="true"
+                >
+                  <path d="m13.5 2-8 12h6l-1 8 8-12h-6l1-8Z" />
+                </svg>
+                <span>
+                  <strong>{exhibits.bankedEnergy} ready</strong>
+                  <small>Expires tonight</small>
+                </span>
+              </div>
+              <button
+                type="button"
+                className="primary"
+                disabled={contributeDisabled}
+                onClick={() => onContribute(featured.id, exhibits.bankedEnergy)}
+              >
+                {contributionLabel}
+              </button>
+            </div>
+            <p className="exhibit-privacy">
+              Only shared progress and your own contribution are shown.
+            </p>
           </div>
-          <p className="exhibit-privacy">
-            Only shared progress and your own contribution are shown.
-          </p>
-        </div>
-      </article>
+        </article>
+      )}
 
       {exhibits.archive && (
         <section className="exhibit-section" aria-labelledby="archive-title">
@@ -1257,46 +1274,50 @@ function Community({
               disabled={exhibits.bankedEnergy === 0 || exhibits.contributionInFlight}
               onClick={() => onContribute(exhibits.archive?.id ?? "", exhibits.bankedEnergy)}
             >
-              Contribute
+              Contribute energy
             </button>
           </article>
         </section>
       )}
 
-      <section className="exhibit-section" aria-labelledby="past-exhibits-title">
-        <div className="exhibit-section-heading">
-          <h2 id="past-exhibits-title">Past Exhibits</h2>
-          <span>Earned in colour · missed in grayscale</span>
-        </div>
-        <div className="past-exhibits-row">
-          {exhibits.past.map((exhibit) => (
-            <button
-              type="button"
-              key={exhibit.id}
-              className={`past-exhibit-card ${exhibit.unlocked ? "earned" : "locked"}`}
-              disabled={!exhibit.unlocked}
-              aria-label={exhibit.title}
-              onClick={() => setOpened(exhibit)}
-            >
-              <span className="past-exhibit-thumb">
-                <img
-                  src={exhibit.imagePath}
-                  alt=""
-                  draggable="false"
-                  style={exhibit.unlocked ? undefined : { filter: "grayscale(1) brightness(0.5)" }}
-                />
-                {!exhibit.unlocked && <span className="past-exhibit-lock">⌑</span>}
-              </span>
-              <span className="past-exhibit-copy">
-                <strong>{exhibit.title}</strong>
-                <small className={exhibit.unlocked ? "earned-exhibit-state" : undefined}>
-                  {exhibit.seasonLabel} · {exhibit.unlocked ? "Unlocked" : exhibit.lockedReason}
-                </small>
-              </span>
-            </button>
-          ))}
-        </div>
-      </section>
+      {exhibits.past.length > 0 && (
+        <section className="exhibit-section" aria-labelledby="past-exhibits-title">
+          <div className="exhibit-section-heading">
+            <h2 id="past-exhibits-title">Past Exhibits</h2>
+            <span>Earned in colour · missed in grayscale</span>
+          </div>
+          <div className="past-exhibits-row">
+            {exhibits.past.map((exhibit) => (
+              <button
+                type="button"
+                key={exhibit.id}
+                className={`past-exhibit-card ${exhibit.unlocked ? "earned" : "locked"}`}
+                disabled={!exhibit.unlocked}
+                aria-label={exhibit.title}
+                onClick={() => setOpened(exhibit)}
+              >
+                <span className="past-exhibit-thumb">
+                  <img
+                    src={exhibit.imagePath}
+                    alt=""
+                    draggable="false"
+                    style={
+                      exhibit.unlocked ? undefined : { filter: "grayscale(1) brightness(0.5)" }
+                    }
+                  />
+                  {!exhibit.unlocked && <span className="past-exhibit-lock">⌑</span>}
+                </span>
+                <span className="past-exhibit-copy">
+                  <strong>{exhibit.title}</strong>
+                  <small className={exhibit.unlocked ? "earned-exhibit-state" : undefined}>
+                    {exhibit.seasonLabel} · {exhibit.unlocked ? "Unlocked" : exhibit.lockedReason}
+                  </small>
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {opened && (
         <div className="exhibit-dialog-backdrop">
@@ -1395,9 +1416,15 @@ function More({
           </button>
           <Toggle
             label="Online features"
-            detail="Connect to optional online tools; your collection still works offline"
+            detail="Connect to online tools and turn on both data choices below; you can switch either one off"
             checked={preferences.onlineFeaturesEnabled}
-            onChange={(value) => onPreference("onlineFeaturesEnabled", value)}
+            onChange={(value) => {
+              onPreference("onlineFeaturesEnabled", value);
+              if (value) {
+                onPreference("productAnalyticsEnabled", true);
+                onPreference("notificationAggregateSharingEnabled", true);
+              }
+            }}
           />
         </div>
       </section>

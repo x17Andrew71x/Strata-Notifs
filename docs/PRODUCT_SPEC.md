@@ -265,8 +265,10 @@ Exhibits runs four substantial Featured Seasons per year. Each season is indepen
 - a deterministic reveal-order version;
 - a private maximum-cohort-equivalent community target;
 - a private per-user minimum and one shared daily contribution cap;
-- placeholder/production artwork state; and
+- private artwork publication state; and
 - immutable completion and historical eligibility rules.
+
+Placeholder or illustrative campaigns never enter the public API or shell. When no approved Featured Season, Archive restoration or history exists, show one honest empty-state sentence and omit each empty section rather than inventing names, dates, progress or artwork.
 
 The server fixes the target, minimum and cap before a season opens and never moves the live target. Newly accepted contributions receive a private population-based credit fixed at acceptance; prior contributions are never revalued, so progress cannot fall. Public presentation shows only progress to two decimal places and time remaining—never raw units, scaled credit, reveal-cell count, contributor count, eligible population or multiplier.
 
@@ -421,11 +423,11 @@ The complete daily collection and museum work without an account, analytics cons
 
 ### 11.3 Consent scopes
 
-1. **Essential online records:** created only when the user enables community or cloud-linked features; includes pseudonymous installation identity, contributions, awards and entitlement state.
-2. **Product analytics:** explicit opt-in; includes app interactions and coarse performance/error events.
-3. **Notification aggregates:** explicit opt-in; includes hourly or daily counts and approved derived measures, never individual notification payloads.
+1. **Essential online records:** created only when the user enables Online features; includes pseudonymous installation identity, contributions, awards and entitlement state.
+2. **Product analytics:** enabled together with Online features after the setting explains that both data choices will turn on; includes app interactions and coarse performance/error events.
+3. **Notification aggregates:** enabled on that same disclosed action; includes hourly or daily counts and approved derived measures, never individual notification payloads.
 
-Declining one scope must not silently enable another. Consent changes are themselves audited as domain records but never expose the previous setting through a public surface.
+Turning Online features off revokes all three scopes and switches both data choices off. Turning it on again defaults both data choices back on; the user may then switch either one off independently. Individual changes remain audited as domain records, and the public UI never exposes prior consent history.
 
 ### 11.4 User controls
 
