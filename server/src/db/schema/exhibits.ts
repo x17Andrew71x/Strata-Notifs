@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   check,
   date,
@@ -7,6 +8,7 @@ import {
   integer,
   pgEnum,
   pgTable,
+  primaryKey,
   timestamp,
   unique,
   uniqueIndex,
@@ -38,7 +40,7 @@ export const exhibits = pgTable(
     targetUnits: integer("target_units").notNull(),
     personalMinimumUnits: integer("personal_minimum_units").notNull(),
     dailyContributionCap: integer("daily_contribution_cap").notNull(),
-    totalUnits: integer("total_units").notNull().default(0),
+    totalUnits: bigint("total_units", { mode: "number" }).notNull().default(0),
     version: integer("version").notNull().default(1),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
     endsAt: timestamp("ends_at", { withTimezone: true }),
@@ -57,18 +59,47 @@ export const exhibits = pgTable(
       "exhibits_image_path_check",
       sql`"image_path" ~ '^/exhibits/[a-z0-9-]{1,128}-[a-f0-9]{12}\\.webp$'`,
     ),
-    check("exhibits_target_units_check", sql`"target_units" BETWEEN 1 AND 10000000`),
+    check("exhibits_target_units_check", sql`"target_units" BETWEEN 1 AND 1000000000`),
     check(
       "exhibits_personal_minimum_check",
       sql`"personal_minimum_units" BETWEEN 1 AND "target_units"`,
     ),
     check("exhibits_daily_cap_check", sql`"daily_contribution_cap" BETWEEN 1 AND 100000`),
-    check("exhibits_total_units_check", sql`"total_units" BETWEEN 0 AND "target_units"`),
+    check(
+      "exhibits_total_units_check",
+      sql`"total_units" BETWEEN 0 AND "target_units"::bigint * 1000000`,
+    ),
     check("exhibits_version_check", sql`"version" >= 1`),
     check("exhibits_time_check", sql`"ends_at" IS NULL OR "ends_at" > "starts_at"`),
     check(
       "exhibits_kind_deadline_check",
       sql`("kind" = 'featured'::exhibit_kind AND "ends_at" IS NOT NULL) OR ("kind" = 'archive'::exhibit_kind AND "ends_at" IS NULL)`,
+    ),
+  ],
+);
+
+export const exhibitCohortSnapshots = pgTable(
+  "exhibit_cohort_snapshots",
+  {
+    buildChannel: buildChannel("build_channel").notNull(),
+    snapshotDate: date("snapshot_date").notNull(),
+    eligibleUserCount: integer("eligible_user_count").notNull(),
+    effectiveUserCount: integer("effective_user_count").notNull(),
+    multiplierMicros: integer("multiplier_micros").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      columns: [table.buildChannel, table.snapshotDate],
+      name: "exhibit_cohort_snapshots_pk",
+    }),
+    check(
+      "exhibit_cohort_snapshots_population_check",
+      sql`"eligible_user_count" >= 0 AND "effective_user_count" = greatest(100, least(10000, "eligible_user_count"))`,
+    ),
+    check(
+      "exhibit_cohort_snapshots_multiplier_check",
+      sql`"multiplier_micros" = round(10000000000.0 / "effective_user_count")`,
     ),
   ],
 );
@@ -86,6 +117,11 @@ export const exhibitContributions = pgTable(
     idempotencyKey: uuid("idempotency_key").notNull(),
     localDate: date("local_date").notNull(),
     units: integer("units").notNull(),
+    cohortSnapshotDate: date("cohort_snapshot_date").notNull(),
+    eligibleUserCount: integer("eligible_user_count").notNull(),
+    effectiveUserCount: integer("effective_user_count").notNull(),
+    multiplierMicros: integer("multiplier_micros").notNull(),
+    creditedMicrounits: bigint("credited_microunits", { mode: "number" }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -96,6 +132,18 @@ export const exhibitContributions = pgTable(
     ),
     index("exhibit_contributions_installation_date_idx").on(table.installationId, table.localDate),
     check("exhibit_contributions_units_check", sql`"units" BETWEEN 1 AND 100000`),
+    check(
+      "exhibit_contributions_population_check",
+      sql`"eligible_user_count" >= 0 AND "effective_user_count" = greatest(100, least(10000, "eligible_user_count"))`,
+    ),
+    check(
+      "exhibit_contributions_multiplier_check",
+      sql`"multiplier_micros" = round(10000000000.0 / "effective_user_count")`,
+    ),
+    check(
+      "exhibit_contributions_credit_check",
+      sql`"credited_microunits" = "units"::bigint * "multiplier_micros"`,
+    ),
   ],
 );
 

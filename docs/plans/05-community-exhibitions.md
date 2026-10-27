@@ -4,7 +4,7 @@
 
 **Goal:** Deliver one calm, contribution-first Exhibits surface: a quarterly Featured Season, one optional Restoration Archive target, and a Past Exhibits list.
 
-**Architecture:** PostgreSQL owns exhibit definitions, immutable contribution targets, idempotent contribution rows, shared-cap enforcement and personal eligibility. Android contributes only locally earned post-excavation surplus through the authenticated native boundary. The hosted shell renders a cached 960×960 image through a deterministic 320×320 WebGL2/Canvas reveal mask.
+**Architecture:** PostgreSQL owns exhibit definitions, immutable maximum-cohort-equivalent targets, daily eligible-profile multiplier snapshots, idempotent acceptance-time contribution credit, shared-cap enforcement and personal eligibility. Android records a general foreground `last_opened` profile timestamp and contributes only locally earned post-excavation surplus through the authenticated native boundary. The hosted shell renders a cached 960×960 image through a deterministic 320×320 WebGL2/Canvas reveal mask.
 
 ---
 
@@ -27,7 +27,7 @@
 - next forward migration
 - migration/RLS tests
 
-Store a fixed `target_units`, personal minimum and daily cap per exhibit. Keep the 102,400 visual cells independent: progress basis points are `floor(total_units × 10,000 ÷ target_units)`, and the client maps that percentage across the fixed reveal grid. This is the cold-start scaling mechanism. Fix values before opening and never move a live target.
+Store a fixed maximum-cohort-equivalent `target_units`, personal minimum and raw-energy daily cap per Exhibit. Snapshot eligible profiles once per UTC day: distinct non-synthetic profiles with current essential-online/community consent and a general server-authored `last_opened` within 28 days. Clamp the effective cohort to 100–10,000 and credit each accepted raw energy unit with `round(10,000 × 1,000,000 ÷ effective_users)` microunits. Keep personal minimums/caps raw, preserve the acceptance-time cohort/multiplier/credit on every contribution, and never revalue history. Keep the 102,400 visual cells independent: progress basis points derive from aggregate fixed-point credit against the fixed target, and the client maps that percentage across the reveal grid.
 
 Persist exhibit definitions, installation-scoped idempotent contributions and unlock records. Force RLS on installation-owned rows. Grant the runtime role only the required reads/inserts plus bounded aggregate-progress updates.
 
@@ -39,10 +39,11 @@ Persist exhibit definitions, installation-scoped idempotent contributions and un
 
 Provide:
 
+- `POST /v1/profile/open`
 - `GET /v1/exhibits/current?local_date=YYYY-MM-DD`
 - `POST /v1/exhibits/{id}/contributions`
 
-Return aggregate progress only as integer basis points, plus the requesting installation's private contribution/minimum. Enforce essential-online consent, build-channel isolation, one cap across both destinations, row-locked progress updates and exact idempotent replay. Do not return target units, total units or participant counts.
+`profile/open` advances the authenticated profile's general `last_opened` using server time after a real foreground app open; it does not require or depend on community consent and background workers never call it. Return aggregate Exhibit progress only as integer basis points, plus the requesting installation's private contribution/minimum. Enforce essential-online consent for Exhibits, build-channel isolation, one cap and one cohort snapshot across both destinations, row-locked progress updates and exact idempotent replay. Do not return target units, total credit, cohort counts, multipliers or participant counts.
 
 ## Task 3 — Android contribution and reconciliation boundary
 
@@ -51,7 +52,7 @@ Return aggregate progress only as integer basis points, plus the requesting inst
 - network models/client extensions
 - strict native bridge actions and tests
 
-Derive banked Exhibit energy from the completed daily excavation's surplus, minus the server-acknowledged amount already contributed that local day. Persist one non-secret pending attempt with its idempotency key. Preserve it across network ambiguity; clear it only after accepted/duplicate acknowledgement or a definitive rejection. Do not expose bearer credentials to the hosted shell.
+On each authenticated foreground app open, call the dedicated profile-open endpoint before refreshing Exhibits so `last_opened` reflects general app use rather than community-tab use; do not call it from periodic/background sync. Derive banked Exhibit energy from the completed daily excavation's surplus, minus the server-acknowledged amount already contributed that local day. Persist one non-secret pending attempt with its idempotency key. Preserve it across network ambiguity; clear it only after accepted/duplicate acknowledgement or a definitive rejection. Do not expose bearer credentials to the hosted shell.
 
 ## Task 4 — Approved Exhibits v3 shell
 
@@ -80,8 +81,10 @@ Native-authenticated refresh after app open/focus, contribution and visible-tab 
 
 - Contribution cannot occur before the personal daily excavation completes.
 - Featured and Archive destinations share one enforced daily cap.
-- Exact retry returns duplicate without adding units twice.
-- Public state contains no raw global counters or population data.
+- Exact retry returns duplicate without adding or revaluing credit twice.
+- General foreground app opens update `users.last_opened` independently of community consent; background sync does not.
+- Daily eligible-profile snapshots clamp to 100–10,000, and each accepted contribution retains its original fixed-point multiplier/credit.
+- Public state contains no raw global counters, cohort counts or multiplier data.
 - 0.00%–100.00% maps deterministically across all 102,400 visual cells.
 - WebGL2 and forced Canvas fallback both render the same direction.
 - Active, complete/under-minimum, earned and missed states work at 320×568, 360×640, 412×915 and desktop widths without horizontal overflow.

@@ -139,6 +139,7 @@ describe("analytics contract v1", () => {
       paths?: Record<string, unknown>;
     };
 
+    expect(openapi.paths).toHaveProperty("/v1/profile/open.post");
     expect(openapi.paths).toHaveProperty("/v1/exhibits/current.get");
     expect(openapi.paths).toHaveProperty("/v1/exhibits/{exhibitId}/contributions.post");
     const exhibitProperties = openapi.components?.schemas?.["ExhibitView"]?.properties ?? {};
@@ -147,6 +148,8 @@ describe("analytics contract v1", () => {
     expect(exhibitProperties).not.toHaveProperty("targetUnits");
     expect(exhibitProperties).not.toHaveProperty("totalUnits");
     expect(exhibitProperties).not.toHaveProperty("participantCount");
+    expect(exhibitProperties).not.toHaveProperty("eligibleCommunityUsers");
+    expect(exhibitProperties).not.toHaveProperty("contributionMultiplier");
   });
 
   it("rejects unknown events, unknown properties, unsupported schema versions, and oversized values", async () => {

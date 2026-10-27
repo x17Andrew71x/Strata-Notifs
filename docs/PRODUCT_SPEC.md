@@ -263,12 +263,12 @@ Exhibits runs four substantial Featured Seasons per year. Each season is indepen
 - opening and closing timestamps;
 - one content-addressed 960×960 seasonal image;
 - a deterministic reveal-order version;
-- a private community contribution-unit target;
+- a private maximum-cohort-equivalent community target;
 - a private per-user minimum and one shared daily contribution cap;
 - placeholder/production artwork state; and
 - immutable completion and historical eligibility rules.
 
-The server fixes the target, minimum and cap before a season opens and never raises a live target. Public presentation shows only progress to two decimal places and time remaining—never raw units, reveal-cell count, contributor count or population size.
+The server fixes the target, minimum and cap before a season opens and never moves the live target. Newly accepted contributions receive a private population-based credit fixed at acceptance; prior contributions are never revalued, so progress cannot fall. Public presentation shows only progress to two decimal places and time remaining—never raw units, scaled credit, reveal-cell count, contributor count, eligible population or multiplier.
 
 ### 8.3 Contributing surplus energy
 
@@ -283,7 +283,9 @@ The server fixes the target, minimum and cap before a season opens and never rai
 
 The artwork uses a fixed **320×320 logical reveal map** over the 960×960 source image: 102,400 visual cells, each corresponding to a 3×3 source-art block. A WebGL2 mask renders the primary path with a deterministic Canvas 2D fallback. Reveal order moves from the top-left toward the bottom-right with a narrow rough pixel-scattered edge; large grouped holes and fully random noise are excluded.
 
-Visual cells are deliberately decoupled from private contribution units. Each campaign stores a fixed `target_units`; the server computes integer progress basis points as `floor(total_units × 10,000 ÷ target_units)`, and the client maps that percentage across the 102,400-cell artwork. This is the scaling modifier: a small launch community can receive a lower target without changing the art resolution or public interface, while a larger later community can receive a higher target. The target is calibrated from recent active contributors and observed post-excavation surplus before launch, bounded conservatively for cold start, and never changed after opening.
+Visual cells are deliberately decoupled from private contribution units. Each Exhibit stores a fixed maximum-cohort-equivalent `target_units`; aggregate progress is held in millionth-credit fixed point and rendered as integer basis points. Once per UTC day, the server snapshots the number of distinct non-synthetic profiles that both have current essential-online/community consent and a general profile `last_opened` within the preceding 28 days. `last_opened` is server-authored after an authenticated foreground app open successfully reaches the service; it is general app activity, continues independently of community consent, and is never advanced by background workers or client timestamps.
+
+Let `N = clamp(eligible_profiles, 100, 10,000)`. Each raw energy unit accepted that day receives `round(10,000 × 1,000,000 ÷ N)` private microunits of community credit: 100× at the 100-profile floor, 10× at 1,000, 2× at 5,000 and 1× at 10,000 or more. Below 100 profiles there is no additional boost. One daily snapshot and multiplier serve Featured and Archive together. Every contribution durably records the snapshot date, eligible and effective counts, multiplier and credited microunits; retries reuse the original record, and historical credit is never recomputed. Personal minimums and the shared daily cap remain raw energy. Public responses omit every cohort and multiplier field.
 
 Only the aggregate progress version/count and each user's own eligibility are synchronised. The artwork and reveal order are immutable cached assets; ordinary progress updates never replace or redownload the image.
 
@@ -579,14 +581,15 @@ Sensitive error messages and stack traces are scrubbed before upload. Crash coll
 
 Business-critical outcomes must not rely solely on analytics events. PostgreSQL domain tables independently record:
 
-- pseudonymous users and installations;
+- pseudonymous users and installations, including a server-authored general `last_opened` profile timestamp;
 - consent history;
 - auth sessions and refresh-token families;
 - daily notification aggregates;
 - specimen identity, generator version and server-known sync state;
 - inventory mutations;
-- exhibit definitions, immutable targets and artwork paths;
-- idempotent Exhibit energy contributions;
+- exhibit definitions, immutable maximum-cohort-equivalent targets and artwork paths;
+- private daily eligible-population/multiplier snapshots;
+- idempotent Exhibit energy contributions with immutable acceptance-time credit;
 - per-installation personal contribution totals and unlock eligibility;
 - product catalogue and entitlements;
 - purchase-verification attempts and outcomes;
@@ -736,9 +739,10 @@ Pending Exhibit energy is reserved locally until success, definitive failure or 
 
 ### 14.6 Community consistency
 
-- PostgreSQL transactions own contribution rows and aggregate Exhibit progress.
-- Row locks prevent target/cap races, while aggregate progress is clamped at the immutable target.
-- One shared daily cap is enforced across Featured Season and Restoration Archive destinations.
+- PostgreSQL transactions own raw contribution rows, acceptance-time scaled credit and aggregate Exhibit progress.
+- One private UTC-day cohort snapshot uses community consent plus the profile's general 28-day `last_opened` window, clamped to 100–10,000 effective users.
+- Row locks prevent target/cap races, aggregate progress is clamped at the immutable target, and accepted historical credit is never revalued.
+- One shared raw-energy daily cap and one snapshot multiplier are enforced across Featured Season and Restoration Archive destinations.
 - Replayed requests return the original result and cannot double-count.
 - Artwork and reveal-order assets remain immutable and content-addressed; progress updates contain state only.
 
@@ -815,6 +819,7 @@ Private fossils remain local and are not uploaded or consumed for Exhibits.
 ### 16.3 Exhibits domain
 
 - `exhibits`
+- `exhibit_cohort_snapshots`
 - `exhibit_contributions`
 - `exhibit_unlocks`
 
@@ -851,6 +856,7 @@ All routes are under `/v1` except health endpoints.
 ### 17.1 Identity
 
 - `POST /installations`
+- `POST /profile/open`
 - `POST /auth/refresh`
 - `POST /auth/logout`
 - `DELETE /account`
@@ -1061,7 +1067,7 @@ The development beta does not authorise:
 | Exhibits consume only post-excavation surplus energy, never specimens | Accepted |
 | Seasonal images live in Exhibits rather than any Series Museum | Accepted |
 | Seasonal collaborative pieces are core scope | Accepted |
-| Fixed private target units scale independently from the 102,400-cell artwork | Accepted |
+| Fixed maximum-cohort-equivalent targets use private 100–10,000 active-profile contribution scaling | Accepted |
 | Nearly all reasonable interactions are captured under explicit consent | Accepted with privacy boundary |
 | Railway/PostgreSQL host development analytics and community services | Accepted |
 | Development and production environments are separate | Accepted |

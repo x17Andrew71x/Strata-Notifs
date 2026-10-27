@@ -36,6 +36,9 @@ import com.techfullymade.afterchime.identity.AtomicCredentialEnvelopeStorage
 import com.techfullymade.afterchime.identity.CredentialStore
 import com.techfullymade.afterchime.identity.IdentityResult
 import com.techfullymade.afterchime.identity.OnlineIdentityRepository
+import com.techfullymade.afterchime.identity.NetworkProfileActivityApi
+import com.techfullymade.afterchime.identity.ProfileActivityRepository
+import com.techfullymade.afterchime.identity.ProfileTokenProvider
 import com.techfullymade.afterchime.identity.TokenAuthenticator
 import com.techfullymade.afterchime.network.NetworkModule
 import com.techfullymade.afterchime.network.RegistrationRequest
@@ -110,6 +113,12 @@ class AfterchimeApplication : Application() {
   }
   private val onlineTokenAuthenticator: TokenAuthenticator by lazy {
     TokenAuthenticator(onlineIdentityRepository, refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS)
+  }
+  internal val profileActivityRepository: ProfileActivityRepository by lazy {
+    ProfileActivityRepository(
+      api = NetworkProfileActivityApi(onlineApi),
+      tokenProvider = ProfileTokenProvider { profileAccessToken() },
+    )
   }
 
   private val productUseReporter: ProductUseReporter by lazy {
@@ -222,7 +231,9 @@ class AfterchimeApplication : Application() {
     }
   }
 
-  private suspend fun communityAccessToken(): String? = withContext(Dispatchers.IO) {
+  private suspend fun communityAccessToken(): String? = profileAccessToken()
+
+  private suspend fun profileAccessToken(): String? = withContext(Dispatchers.IO) {
     if (!userPreferences.values.first().onlineFeaturesEnabled) return@withContext null
     val existing = onlineTokenAuthenticator.accessToken()
     if (existing is com.techfullymade.afterchime.identity.TokenResult.Available) {

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
+import { verifyAccessToken } from "../../security/tokens.js";
 import { IdempotencyConflictError, IdentityRepository } from "./repository.js";
 import { IdentityService } from "./service.js";
 
@@ -41,7 +42,7 @@ const sessionResponse = z.object({
 });
 
 const errorResponse = z.object({
-  error: z.enum(["idempotency_conflict", "invalid_refresh_token"]),
+  error: z.enum(["idempotency_conflict", "invalid_refresh_token", "unauthorized"]),
 });
 
 export async function registerIdentityRoutes(
@@ -49,7 +50,8 @@ export async function registerIdentityRoutes(
   config: ServerConfig,
   database: DatabaseClient,
 ): Promise<void> {
-  const service = new IdentityService(config, new IdentityRepository(database));
+  const repository = new IdentityRepository(database);
+  const service = new IdentityService(config, repository);
 
   app.post(
     "/v1/installations",
@@ -89,6 +91,20 @@ export async function registerIdentityRoutes(
   );
 
   app.post(
+    "/v1/profile/open",
+    {
+      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
+    },
+    async (request, reply) => {
+      const claims = authenticatedClaims(request.headers.authorization, config);
+      if (!claims || !(await repository.markOpened(claims))) {
+        return reply.code(401).send({ error: "unauthorized" });
+      }
+      return reply.code(204).send();
+    },
+  );
+
+  app.post(
     "/v1/auth/refresh",
     {
       schema: {
@@ -122,4 +138,25 @@ export async function registerIdentityRoutes(
       return reply.code(204).send();
     },
   );
+}
+
+function authenticatedClaims(authorization: string | string[] | undefined, config: ServerConfig) {
+  if (
+    typeof authorization !== "string" ||
+    authorization.length > 4_096 ||
+    !authorization.startsWith("Bearer ")
+  ) {
+    return null;
+  }
+  const token = authorization.slice("Bearer ".length);
+  if (!token) return null;
+  try {
+    return verifyAccessToken({
+      audience: config.tokenAudience,
+      secret: config.accessTokenSecret,
+      token,
+    });
+  } catch {
+    return null;
+  }
 }

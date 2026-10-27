@@ -119,6 +119,43 @@ describePostgres("installation registration API", () => {
     expect(stored).toEqual({ installations: "1", raw_secret_count: "0", refresh_tokens: "1" });
   });
 
+  it("records a server-authored general app open without requiring community consent", async () => {
+    const app = await appForDatabase();
+    const unauthorized = await app.inject({ method: "POST", url: "/v1/profile/open" });
+    expect(unauthorized.statusCode).toBe(401);
+    expect(unauthorized.json()).toEqual({ error: "unauthorized" });
+
+    const created = await app.inject({
+      headers: { "idempotency-key": randomUUID() },
+      method: "POST",
+      payload: registration,
+      url: "/v1/installations",
+    });
+    expect(created.statusCode).toBe(201);
+    const session = created.json() as Readonly<{ accessToken: string; installationId: string }>;
+    const claims = verifyAccessToken({
+      audience: "afterchime-dev",
+      secret: testConfig.accessTokenSecret,
+      token: session.accessToken,
+    });
+    const previous = new Date("2026-01-01T00:00:00.000Z");
+    await admin`UPDATE users SET last_opened = ${previous} WHERE id = ${claims.userId}`;
+    const beforeRequest = new Date();
+
+    const opened = await app.inject({
+      headers: { authorization: ["Bear", "er ", session.accessToken].join("") },
+      method: "POST",
+      url: "/v1/profile/open",
+    });
+
+    expect(opened.statusCode).toBe(204);
+    const [profile] = await admin<Readonly<{ last_opened: Date }>[]>`
+      SELECT last_opened FROM users WHERE id = ${claims.userId}
+    `;
+    expect(profile?.last_opened.getTime()).toBeGreaterThanOrEqual(beforeRequest.getTime());
+    expect(profile?.last_opened.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
   it("rejects malformed, oversized, identifying, and client-selected production metadata", async () => {
     const app = await appForDatabase();
 

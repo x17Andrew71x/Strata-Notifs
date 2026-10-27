@@ -164,6 +164,11 @@ class ContractTest {
     api.logout(LogoutRequest(inertRefreshValue))
     assertEquals("/v1/auth/logout", connection.url.path)
     assertEquals("POST", connection.requestMethod)
+
+    api.markOpened("sample-token")
+    assertEquals("/v1/profile/open", connection.url.path)
+    assertEquals("POST", connection.requestMethod)
+    assertEquals("Bearer sample-token", connection.header("Authorization"))
   }
 
   @Test

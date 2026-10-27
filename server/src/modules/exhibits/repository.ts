@@ -34,6 +34,17 @@ type StoredContribution = Readonly<{
   units: number;
 }>;
 
+type CohortSnapshot = Readonly<{
+  effectiveUserCount: number;
+  eligibleUserCount: number;
+  multiplierMicros: number;
+  snapshotDate: string;
+}>;
+
+export const COMMUNITY_CREDIT_SCALE = 1_000_000;
+export const MIN_EFFECTIVE_COMMUNITY_USERS = 100;
+export const MAX_EFFECTIVE_COMMUNITY_USERS = 10_000;
+
 export type ExhibitView = Readonly<{
   closed: boolean;
   communityComplete: boolean;
@@ -120,6 +131,7 @@ export class ExhibitsRepository {
     return this.database.begin(async (transaction) => {
       await setActor(transaction, input);
       await assertInstallationAndConsent(transaction, input);
+      await readCohortSnapshot(transaction, input.buildChannel);
       return readState(transaction, input);
     });
   }
@@ -170,7 +182,7 @@ export class ExhibitsRepository {
           target_units,
           personal_minimum_units,
           daily_contribution_cap,
-          total_units,
+          total_units::double precision AS total_units,
           version,
           starts_at,
           ends_at
@@ -189,7 +201,7 @@ export class ExhibitsRepository {
           AND exhibit_id = ${exhibit.id}
       `;
       if (
-        exhibit.total_units >= exhibit.target_units &&
+        isCommunityComplete(exhibit) &&
         (personal?.total ?? 0) >= exhibit.personal_minimum_units
       ) {
         throw new ExhibitsConflictError("exhibit_unavailable");
@@ -215,6 +227,15 @@ export class ExhibitsRepository {
         throw new ExhibitsConflictError("daily_cap_exceeded");
       }
 
+      const cohort = await readCohortSnapshot(transaction, input.buildChannel);
+      const creditedMicrounits = contributionCreditMicrounits(
+        input.units,
+        cohort.effectiveUserCount,
+      );
+      if (creditedMicrounits !== input.units * cohort.multiplierMicros) {
+        throw new ExhibitsRequestError();
+      }
+
       await transaction`
         INSERT INTO exhibit_contributions (
           id,
@@ -222,20 +243,33 @@ export class ExhibitsRepository {
           installation_id,
           idempotency_key,
           local_date,
-          units
+          units,
+          cohort_snapshot_date,
+          eligible_user_count,
+          effective_user_count,
+          multiplier_micros,
+          credited_microunits
         ) VALUES (
           ${randomUUID()},
           ${exhibit.id},
           ${input.installationId},
           ${input.idempotencyKey},
           ${input.localDate}::date,
-          ${input.units}
+          ${input.units},
+          ${cohort.snapshotDate}::date,
+          ${cohort.eligibleUserCount},
+          ${cohort.effectiveUserCount},
+          ${cohort.multiplierMicros},
+          ${creditedMicrounits}
         )
       `;
       await transaction`
         UPDATE exhibits
         SET
-          total_units = LEAST(target_units, total_units + ${input.units}),
+          total_units = LEAST(
+            target_units::bigint * ${COMMUNITY_CREDIT_SCALE},
+            total_units + ${creditedMicrounits}
+          ),
           version = version + 1,
           updated_at = now()
         WHERE id = ${exhibit.id}
@@ -245,16 +279,43 @@ export class ExhibitsRepository {
   }
 }
 
-export function progressBasisPoints(totalUnits: number, targetUnits: number): number {
+export function effectiveCommunityUsers(eligibleUsers: number): number {
+  if (!Number.isSafeInteger(eligibleUsers) || eligibleUsers < 0) {
+    throw new ExhibitsRequestError();
+  }
+  return Math.max(
+    MIN_EFFECTIVE_COMMUNITY_USERS,
+    Math.min(MAX_EFFECTIVE_COMMUNITY_USERS, eligibleUsers),
+  );
+}
+
+export function contributionMultiplierMicros(eligibleUsers: number): number {
+  const effectiveUsers = effectiveCommunityUsers(eligibleUsers);
+  return Math.round((MAX_EFFECTIVE_COMMUNITY_USERS * COMMUNITY_CREDIT_SCALE) / effectiveUsers);
+}
+
+export function contributionCreditMicrounits(units: number, eligibleUsers: number): number {
+  if (!Number.isSafeInteger(units) || units < 1 || units > 100_000) {
+    throw new ExhibitsRequestError();
+  }
+  const credit = units * contributionMultiplierMicros(eligibleUsers);
+  if (!Number.isSafeInteger(credit)) throw new ExhibitsRequestError();
+  return credit;
+}
+
+export function progressBasisPoints(totalMicrounits: number, targetUnits: number): number {
   if (
-    !Number.isSafeInteger(totalUnits) ||
+    !Number.isSafeInteger(totalMicrounits) ||
     !Number.isSafeInteger(targetUnits) ||
-    totalUnits < 0 ||
+    totalMicrounits < 0 ||
     targetUnits < 1
   ) {
     throw new ExhibitsRequestError();
   }
-  return Math.max(0, Math.min(10_000, Math.floor((totalUnits * 10_000) / targetUnits)));
+  const basisPoints = Number(
+    (BigInt(totalMicrounits) * 10_000n) / (BigInt(targetUnits) * BigInt(COMMUNITY_CREDIT_SCALE)),
+  );
+  return Math.max(0, Math.min(10_000, basisPoints));
 }
 
 export function isPlausibleLocalDate(localDate: string, now: Date): boolean {
@@ -264,6 +325,41 @@ export function isPlausibleLocalDate(localDate: string, now: Date): boolean {
     return false;
   const currentUtcDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   return Math.abs(parsed.getTime() - currentUtcDay) <= 86_400_000;
+}
+
+async function readCohortSnapshot(
+  transaction: postgres.TransactionSql,
+  buildChannel: "dev" | "prod",
+): Promise<CohortSnapshot> {
+  const [snapshot] = await transaction<
+    Readonly<{
+      effective_user_count: number;
+      eligible_user_count: number;
+      multiplier_micros: number;
+      snapshot_date: string;
+    }>[]
+  >`
+    SELECT
+      snapshot_date::text,
+      eligible_user_count,
+      effective_user_count,
+      multiplier_micros
+    FROM public.afterchime_exhibit_cohort_snapshot(${buildChannel}::build_channel)
+  `;
+  if (
+    !snapshot ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(snapshot.snapshot_date) ||
+    effectiveCommunityUsers(snapshot.eligible_user_count) !== snapshot.effective_user_count ||
+    contributionMultiplierMicros(snapshot.effective_user_count) !== snapshot.multiplier_micros
+  ) {
+    throw new ExhibitsRequestError();
+  }
+  return {
+    snapshotDate: snapshot.snapshot_date,
+    eligibleUserCount: snapshot.eligible_user_count,
+    effectiveUserCount: snapshot.effective_user_count,
+    multiplierMicros: snapshot.multiplier_micros,
+  };
 }
 
 async function setActor(
@@ -317,7 +413,7 @@ async function readState(
       target_units,
       personal_minimum_units,
       daily_contribution_cap,
-      total_units,
+      total_units::double precision AS total_units,
       version,
       starts_at,
       ends_at
@@ -370,7 +466,7 @@ function exhibitView(
   now: Date,
 ): ExhibitView {
   const personal = contributions.get(row.id) ?? 0;
-  const communityComplete = row.total_units >= row.target_units;
+  const communityComplete = isCommunityComplete(row);
   const qualified = personal >= row.personal_minimum_units;
   const closed = !isContributable(row, now);
   return {
@@ -393,7 +489,7 @@ function exhibitView(
 
 function pastView(row: ExhibitRow, contributions: ReadonlyMap<string, number>): PastExhibitView {
   const personal = contributions.get(row.id) ?? 0;
-  const communityComplete = row.total_units >= row.target_units;
+  const communityComplete = isCommunityComplete(row);
   const qualified = personal >= row.personal_minimum_units;
   const unlocked = communityComplete && qualified;
   return {
@@ -404,6 +500,10 @@ function pastView(row: ExhibitRow, contributions: ReadonlyMap<string, number>): 
     unlocked,
     lockedReason: unlocked ? null : communityComplete ? "Minimum not met" : "Community goal missed",
   };
+}
+
+function isCommunityComplete(row: ExhibitRow): boolean {
+  return row.total_units >= row.target_units * COMMUNITY_CREDIT_SCALE;
 }
 
 function isContributable(row: ExhibitRow, now: Date): boolean {

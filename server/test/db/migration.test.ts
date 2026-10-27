@@ -17,6 +17,7 @@ const requiredTables = [
   "auth_refresh_tokens",
   "consent_records",
   "daily_notification_aggregates",
+  "exhibit_cohort_snapshots",
   "exhibit_contributions",
   "exhibit_unlocks",
   "exhibits",
@@ -122,7 +123,14 @@ describePostgres("initial PostgreSQL schema migration", () => {
     );
 
     expect(columnNames(columns.get("users"))).toEqual(
-      expect.arrayContaining(["id", "build_channel", "is_synthetic", "created_at", "updated_at"]),
+      expect.arrayContaining([
+        "id",
+        "build_channel",
+        "is_synthetic",
+        "last_opened",
+        "created_at",
+        "updated_at",
+      ]),
     );
     expect(columnNames(columns.get("installations"))).toEqual(
       expect.arrayContaining([
@@ -200,6 +208,16 @@ describePostgres("initial PostgreSQL schema migration", () => {
         "ends_at",
       ]),
     );
+    expect(columnNames(columns.get("exhibit_cohort_snapshots"))).toEqual(
+      expect.arrayContaining([
+        "build_channel",
+        "snapshot_date",
+        "eligible_user_count",
+        "effective_user_count",
+        "multiplier_micros",
+        "created_at",
+      ]),
+    );
     expect(columnNames(columns.get("exhibit_contributions"))).toEqual(
       expect.arrayContaining([
         "id",
@@ -208,6 +226,11 @@ describePostgres("initial PostgreSQL schema migration", () => {
         "idempotency_key",
         "local_date",
         "units",
+        "cohort_snapshot_date",
+        "eligible_user_count",
+        "effective_user_count",
+        "multiplier_micros",
+        "credited_microunits",
       ]),
     );
     expect(columnNames(columns.get("analytics_daily_installation"))).toEqual(
@@ -298,6 +321,9 @@ describePostgres("initial PostgreSQL schema migration", () => {
     expect(typeByColumn.get("analytics_events.properties")).toBe("jsonb");
     expect(typeByColumn.get("daily_notification_aggregates.local_date")).toBe("date");
     expect(typeByColumn.get("daily_notification_aggregates.category_counts")).toBe("jsonb");
+    expect(typeByColumn.get("users.last_opened")).toBe("timestamp with time zone");
+    expect(typeByColumn.get("exhibits.total_units")).toBe("bigint");
+    expect(typeByColumn.get("exhibit_contributions.credited_microunits")).toBe("bigint");
     expect(typeByColumn.get("auth_refresh_tokens.expires_at")).toBe("timestamp with time zone");
   }, 30_000);
 
@@ -336,6 +362,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
       "analytics_daily_installation",
       "analytics_notification_volume",
       "analytics_release_health",
+      "exhibit_cohort_snapshots",
     ]);
     for (const table of requiredTables) {
       if (!tablesWithCompositePrimaryKeys.has(table)) {
@@ -347,6 +374,8 @@ describePostgres("initial PostgreSQL schema migration", () => {
     expect(signatures).toContain("analytics_daily_installation:PRIMARY KEY:installation_id");
     expect(signatures).toContain("analytics_notification_volume:PRIMARY KEY:utc_date");
     expect(signatures).toContain("analytics_release_health:PRIMARY KEY:received_date");
+    expect(signatures).toContain("exhibit_cohort_snapshots:PRIMARY KEY:build_channel");
+    expect(signatures).toContain("exhibit_cohort_snapshots:PRIMARY KEY:snapshot_date");
     expect(signatures).toContain("installations:FOREIGN KEY:user_id");
     expect(signatures).toContain("auth_refresh_tokens:FOREIGN KEY:installation_id");
     expect(signatures).toContain("consent_records:FOREIGN KEY:installation_id");
@@ -390,6 +419,9 @@ describePostgres("initial PostgreSQL schema migration", () => {
         expect.objectContaining({ constraint_name: "outbox_jobs_attempt_count_check" }),
         expect.objectContaining({ constraint_name: "exhibits_target_units_check" }),
         expect.objectContaining({ constraint_name: "exhibits_total_units_check" }),
+        expect.objectContaining({ constraint_name: "exhibit_cohort_snapshots_population_check" }),
+        expect.objectContaining({ constraint_name: "exhibit_cohort_snapshots_multiplier_check" }),
+        expect.objectContaining({ constraint_name: "exhibit_contributions_credit_check" }),
       ]),
     );
 
@@ -417,6 +449,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
     );
     expect(indexNames).toContain("outbox_jobs:outbox_jobs_claim_idx");
     expect(indexNames).toContain("job_runs:job_runs_job_name_started_idx");
+    expect(indexNames).toContain("users:users_build_last_opened_idx");
     expect(indexNames).toContain("exhibits:exhibits_current_idx");
     expect(indexNames).toContain("exhibits:exhibits_one_open_per_kind_idx");
     expect(indexNames).toContain(
@@ -475,6 +508,22 @@ describePostgres("initial PostgreSQL schema migration", () => {
       `;
       expect(privilege?.allowed).toBe(true);
     }
+    const [cohortPrivileges] = await migrator<
+      Readonly<{ direct_table_read: boolean; function_execute: boolean }>[]
+    >`
+      SELECT
+        has_table_privilege(
+          'afterchime_runtime',
+          'public.exhibit_cohort_snapshots',
+          'SELECT'
+        ) AS direct_table_read,
+        has_function_privilege(
+          'afterchime_runtime',
+          'public.afterchime_exhibit_cohort_snapshot(build_channel)',
+          'EXECUTE'
+        ) AS function_execute
+    `;
+    expect(cohortPrivileges).toEqual({ direct_table_read: false, function_execute: true });
 
     await admin`
       INSERT INTO users (id, build_channel, is_synthetic)
@@ -495,6 +544,9 @@ describePostgres("initial PostgreSQL schema migration", () => {
         SELECT id FROM installations WHERE id = ${ids.installationA}
       `;
       expect(withoutContext).toEqual([]);
+      await expect(
+        runtime`SELECT * FROM public.afterchime_exhibit_cohort_snapshot('dev'::build_channel)`,
+      ).rejects.toThrow();
 
       const ownInstallation = await runtime.begin(async (transaction) => {
         await transaction`SELECT set_config('afterchime.user_id', ${ids.userA}, true)`;
@@ -555,7 +607,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "10", hash: expect.any(String) });
+    expect(before).toEqual({ count: "11", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });

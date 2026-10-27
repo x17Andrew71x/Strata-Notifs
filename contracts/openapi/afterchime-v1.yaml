@@ -44,6 +44,15 @@
         }
       }
     },
+    "/v1/profile/open": {
+      "post": {
+        "summary": "Record a server-authored foreground app open for the authenticated profile",
+        "responses": {
+          "204": { "description": "The profile last_opened timestamp was advanced." },
+          "401": { "description": "Installation authentication failed." }
+        }
+      }
+    },
     "/v1/auth/refresh": {
       "post": {
         "summary": "Rotate a refresh-token family",
@@ -263,7 +272,7 @@
         "type": "object",
         "additionalProperties": false,
         "required": ["error"],
-        "properties": { "error": { "type": "string", "enum": ["idempotency_conflict", "invalid_refresh_token"] } }
+        "properties": { "error": { "type": "string", "enum": ["idempotency_conflict", "invalid_refresh_token", "unauthorized"] } }
       },
       "ExhibitView": {
         "type": "object",

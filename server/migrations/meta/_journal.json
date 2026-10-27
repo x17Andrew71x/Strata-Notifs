@@ -71,6 +71,13 @@
       "when": 1793035413271,
       "tag": "0009_exhibits",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793074463398,
+      "tag": "0010_dynamic_exhibit_scaling",
+      "breakpoints": true
     }
   ]
 }

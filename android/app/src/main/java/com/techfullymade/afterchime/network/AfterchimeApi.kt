@@ -59,6 +59,17 @@ class AfterchimeApi(
       parser = { Unit },
     )
 
+  fun markOpened(bearerToken: String): ApiResult<Unit> =
+    execute(
+      path = "/v1/profile/open",
+      method = "POST",
+      body = null,
+      token = bearerToken,
+      headers = emptyMap(),
+      successCodes = intArrayOf(204),
+      parser = { Unit },
+    )
+
   fun updateConsent(
     request: ConsentUpdate,
     bearerToken: String,

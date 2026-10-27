@@ -37,6 +37,21 @@ describePostgres("Exhibits API", () => {
 
   afterEach(async () => {
     await Promise.all(apps.splice(0).map((app) => app.close()));
+    await admin`DELETE FROM users`;
+    await admin`DELETE FROM exhibit_cohort_snapshots`;
+    await admin`
+      UPDATE exhibits
+      SET
+        total_units = CASE slug
+          WHEN 'returning-light-2027' THEN 282300000000
+          WHEN 'long-night-2026' THEN 364800000000
+          WHEN 'monsoon-choir-2026' THEN 500000000000
+          WHEN 'ember-flight-2026' THEN 500000000000
+          WHEN 'tideglass-2026' THEN 430000000000
+          ELSE total_units
+        END,
+        version = 1
+    `;
   });
 
   afterAll(async () => {
@@ -142,12 +157,98 @@ describePostgres("Exhibits API", () => {
       state: { todayContributedUnits: 18 },
     });
 
-    const count = await admin<Readonly<{ count: string }>[]>`
-      SELECT count(*)::text AS count
+    const contributions = await admin<
+      Readonly<{
+        cohort_snapshot_date: string;
+        count: string;
+        credited_microunits: string;
+        effective_user_count: number;
+        eligible_user_count: number;
+        multiplier_micros: number;
+      }>[]
+    >`
+      SELECT
+        count(*)::text AS count,
+        min(cohort_snapshot_date)::text AS cohort_snapshot_date,
+        min(eligible_user_count)::integer AS eligible_user_count,
+        min(effective_user_count)::integer AS effective_user_count,
+        min(multiplier_micros)::integer AS multiplier_micros,
+        min(credited_microunits)::text AS credited_microunits
       FROM exhibit_contributions
       WHERE installation_id = ${session.installationId}
     `;
-    expect(count).toEqual([{ count: "1" }]);
+    expect(contributions).toEqual([
+      {
+        cohort_snapshot_date: new Date().toISOString().slice(0, 10),
+        count: "1",
+        credited_microunits: "1800000000",
+        effective_user_count: 100,
+        eligible_user_count: 1,
+        multiplier_micros: 100_000_000,
+      },
+    ]);
+  });
+
+  it("snapshots only community-enabled profiles opened within 28 days and never rewrites that UTC day", async () => {
+    const app = await appForDatabase();
+    const session = await registered(app);
+    const localDate = new Date().toISOString().slice(0, 10);
+    await admin`
+      UPDATE users
+      SET last_opened = now() - interval '29 days'
+      WHERE id = (SELECT user_id FROM installations WHERE id = ${session.installationId})
+    `;
+
+    const inactiveState = await app.inject({
+      headers: { authorization: ["Bear", "er ", session.accessToken].join("") },
+      method: "GET",
+      url: `/v1/exhibits/current?local_date=${localDate}`,
+    });
+    expect(inactiveState.statusCode).toBe(200);
+    const [inactiveSnapshot] = await admin<
+      Readonly<{ effective_user_count: number; eligible_user_count: number }>[]
+    >`
+      SELECT eligible_user_count, effective_user_count
+      FROM exhibit_cohort_snapshots
+      WHERE build_channel = 'dev'::build_channel
+        AND snapshot_date = (now() AT TIME ZONE 'UTC')::date
+    `;
+    expect(inactiveSnapshot).toEqual({ eligible_user_count: 0, effective_user_count: 100 });
+
+    const opened = await app.inject({
+      headers: { authorization: ["Bear", "er ", session.accessToken].join("") },
+      method: "POST",
+      url: "/v1/profile/open",
+    });
+    expect(opened.statusCode).toBe(204);
+    const frozenState = await app.inject({
+      headers: { authorization: ["Bear", "er ", session.accessToken].join("") },
+      method: "GET",
+      url: `/v1/exhibits/current?local_date=${localDate}`,
+    });
+    expect(frozenState.statusCode).toBe(200);
+    const [frozenSnapshot] = await admin<Readonly<{ eligible_user_count: number }>[]>`
+      SELECT eligible_user_count
+      FROM exhibit_cohort_snapshots
+      WHERE build_channel = 'dev'::build_channel
+        AND snapshot_date = (now() AT TIME ZONE 'UTC')::date
+    `;
+    expect(frozenSnapshot?.eligible_user_count).toBe(0);
+
+    await admin`DELETE FROM exhibit_cohort_snapshots WHERE build_channel = 'dev'::build_channel`;
+    const refreshedState = await app.inject({
+      headers: { authorization: ["Bear", "er ", session.accessToken].join("") },
+      method: "GET",
+      url: `/v1/exhibits/current?local_date=${localDate}`,
+    });
+    expect(refreshedState.statusCode).toBe(200);
+    const [activeSnapshot] = await admin<Readonly<{ eligible_user_count: number }>[]>`
+      SELECT eligible_user_count
+      FROM exhibit_cohort_snapshots
+      WHERE build_channel = 'dev'::build_channel
+        AND snapshot_date = (now() AT TIME ZONE 'UTC')::date
+    `;
+    expect(activeSnapshot?.eligible_user_count).toBe(1);
   });
 
   it("enforces one shared daily cap across featured and archive contributions", async () => {

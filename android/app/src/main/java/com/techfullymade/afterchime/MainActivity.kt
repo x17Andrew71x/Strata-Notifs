@@ -246,7 +246,10 @@ class MainActivity : ComponentActivity() {
     todayViewModel.refreshDate()
     sendCapabilityState("resume")
     sendShellState("resume_state")
-    lifecycleScope.launch { refreshExhibits() }
+    lifecycleScope.launch {
+      applicationState.profileActivityRepository.recordOpened()
+      refreshExhibits()
+    }
   }
 
   override fun onDestroy() {

@@ -1,4 +1,5 @@
 import type { DatabaseClient } from "../../db/client.js";
+import type { AccessTokenClaims } from "../../security/tokens.js";
 
 const refreshTokenLifetimeMilliseconds = 30 * 24 * 60 * 60 * 1000;
 
@@ -46,6 +47,26 @@ function expiresAt(now: Date = new Date()): Date {
 
 export class IdentityRepository {
   public constructor(private readonly database: DatabaseClient) {}
+
+  public async markOpened(input: AccessTokenClaims): Promise<boolean> {
+    return this.database.begin(async (transaction) => {
+      await transaction`SELECT set_config('afterchime.user_id', ${input.userId}, true)`;
+      await transaction`SELECT set_config('afterchime.installation_id', ${input.installationId}, true)`;
+      const [updated] = await transaction<Readonly<{ id: string }>[]>`
+        UPDATE users
+        SET last_opened = now(), updated_at = now()
+        WHERE id = ${input.userId}
+          AND EXISTS (
+            SELECT 1
+            FROM installations
+            WHERE installations.id = ${input.installationId}
+              AND installations.user_id = users.id
+          )
+        RETURNING id
+      `;
+      return updated?.id === input.userId;
+    });
+  }
 
   public async registerInstallation(input: RegisterInstallationInput): Promise<RegistrationRecord> {
     try {

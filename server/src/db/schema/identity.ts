@@ -24,10 +24,12 @@ export const users = pgTable(
     id: uuid("id").primaryKey().notNull(),
     buildChannel: buildChannel("build_channel").notNull(),
     isSynthetic: boolean("is_synthetic").notNull().default(false),
+    lastOpened: timestamp("last_opened", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  () => [
+  (table) => [
+    index("users_build_last_opened_idx").on(table.buildChannel, table.lastOpened),
     check(
       "users_synthetic_build_check",
       sql`NOT ("is_synthetic" AND "build_channel" = 'prod'::build_channel)`,
