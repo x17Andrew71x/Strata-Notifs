@@ -151,7 +151,7 @@ BEGIN
     v_eligible_user_count,
     v_effective_user_count,
     v_multiplier_micros
-  ) ON CONFLICT (build_channel, snapshot_date) DO NOTHING;
+  ) ON CONFLICT ON CONSTRAINT exhibit_cohort_snapshots_pk DO NOTHING;
 
   RETURN QUERY
   SELECT
