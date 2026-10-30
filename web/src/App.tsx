@@ -22,7 +22,7 @@ import {
 } from "./bridge";
 import type { DevFeedbackResponseSink } from "./dev-feedback/DevelopmentFeedbackRuntime";
 import { ExhibitReveal } from "./ExhibitReveal";
-import { formatProgressBasisPoints } from "./exhibits";
+import { exhibitArtwork, formatProgressBasisPoints } from "./exhibits";
 import { referenceNotesFor } from "./relic-reference";
 import {
   type Artifact,
@@ -193,6 +193,7 @@ function App() {
   const [shellState, setShellState] = useState<ShellState | null>(null);
   const [access, setAccess] = useState<boolean | null>(null);
   const [appDetailsAction, setAppDetailsAction] = useState(false);
+  const [exhibitDownloads, setExhibitDownloads] = useState(false);
   const [message, setMessage] = useState("");
   const [toastExiting, setToastExiting] = useState(false);
   const [metadata, setMetadata] = useState<ShellMetadata | null>(null);
@@ -223,6 +224,7 @@ function App() {
       } else if (response.type === "capabilities.state") {
         setAccess(response.notificationAccess);
         setAppDetailsAction(response.appDetailsAction);
+        setExhibitDownloads(response.exhibitDownloads === true);
         setDevFeedbackEnabled(DEV_FEEDBACK_BUILD && response.devFeedback === true);
         setNativeAppVersion(response.appVersion ?? "");
         if (response.catalogUpdates && remoteOrigin && !catalogSyncStarted) {
@@ -426,6 +428,10 @@ function App() {
         {route === "community" && (
           <Community
             state={displayState}
+            canDownload={exhibitDownloads}
+            onDownload={(imagePath) =>
+              act("exhibits.download", { imagePath }, "Starting download…")
+            }
             onContribute={(exhibitId, units) =>
               act(
                 "exhibits.contribute",
@@ -1074,15 +1080,37 @@ function ReferenceSeries({ artifactId, ownedCount }: { artifactId: string; owned
   );
 }
 
+type ExhibitArtworkSummary = Pick<ShellPastExhibit, "id" | "title" | "seasonLabel" | "imagePath">;
+
+type OpenedExhibit = Readonly<{
+  id: string;
+  title: string;
+  seasonLabel: string;
+  fullImagePath: string;
+}>;
+
 function Community({
   state,
+  canDownload,
+  onDownload,
   onContribute,
 }: {
   state: ShellState;
+  canDownload: boolean;
+  onDownload(imagePath: string): void;
   onContribute(exhibitId: string, units: number): void;
 }) {
   const exhibits = state.exhibits;
-  const [opened, setOpened] = useState<ShellPastExhibit | null>(null);
+  const [opened, setOpened] = useState<OpenedExhibit | null>(null);
+  const openExhibit = (exhibit: ExhibitArtworkSummary) => {
+    const artwork = exhibitArtwork(exhibit.id, exhibit.imagePath);
+    setOpened({
+      id: exhibit.id,
+      title: exhibit.title,
+      seasonLabel: exhibit.seasonLabel,
+      fullImagePath: artwork.fullImagePath,
+    });
+  };
   const featured = exhibits?.featured ?? null;
   if (exhibits?.status !== "READY") {
     const unavailable = exhibits?.status === "DISABLED" || !state.preferences.onlineFeaturesEnabled;
@@ -1235,6 +1263,31 @@ function Community({
                 {contributionLabel}
               </button>
             </div>
+            {featured.unlocked && (
+              <div className="exhibit-earned-actions">
+                <button
+                  type="button"
+                  className="secondary exhibit-view-action"
+                  aria-label={`Open ${featured.title} full screen`}
+                  onClick={() => openExhibit(featured)}
+                >
+                  <FullscreenIcon />
+                  <span>View 4K</span>
+                </button>
+                {canDownload && (
+                  <button
+                    type="button"
+                    className="secondary exhibit-icon-action"
+                    aria-label={`Download ${featured.title}`}
+                    onClick={() =>
+                      onDownload(exhibitArtwork(featured.id, featured.imagePath).fullImagePath)
+                    }
+                  >
+                    <DownloadIcon />
+                  </button>
+                )}
+              </div>
+            )}
             <p className="exhibit-privacy">
               Only shared progress and your own contribution are shown.
             </p>
@@ -1288,32 +1341,45 @@ function Community({
           </div>
           <div className="past-exhibits-row">
             {exhibits.past.map((exhibit) => (
-              <button
-                type="button"
-                key={exhibit.id}
-                className={`past-exhibit-card ${exhibit.unlocked ? "earned" : "locked"}`}
-                disabled={!exhibit.unlocked}
-                aria-label={exhibit.title}
-                onClick={() => setOpened(exhibit)}
-              >
-                <span className="past-exhibit-thumb">
-                  <img
-                    src={exhibit.imagePath}
-                    alt=""
-                    draggable="false"
-                    style={
-                      exhibit.unlocked ? undefined : { filter: "grayscale(1) brightness(0.5)" }
+              <div className="past-exhibit-card-shell" key={exhibit.id}>
+                <button
+                  type="button"
+                  className={`past-exhibit-card ${exhibit.unlocked ? "earned" : "locked"}`}
+                  disabled={!exhibit.unlocked}
+                  aria-label={exhibit.title}
+                  onClick={() => openExhibit(exhibit)}
+                >
+                  <span className="past-exhibit-thumb">
+                    <img
+                      src={exhibit.imagePath}
+                      alt=""
+                      draggable="false"
+                      style={
+                        exhibit.unlocked ? undefined : { filter: "grayscale(1) brightness(0.5)" }
+                      }
+                    />
+                    {!exhibit.unlocked && <span className="past-exhibit-lock">⌑</span>}
+                  </span>
+                  <span className="past-exhibit-copy">
+                    <strong>{exhibit.title}</strong>
+                    <small className={exhibit.unlocked ? "earned-exhibit-state" : undefined}>
+                      {exhibit.seasonLabel} · {exhibit.unlocked ? "Unlocked" : exhibit.lockedReason}
+                    </small>
+                  </span>
+                </button>
+                {exhibit.unlocked && canDownload && (
+                  <button
+                    type="button"
+                    className="past-exhibit-download"
+                    aria-label={`Download ${exhibit.title}`}
+                    onClick={() =>
+                      onDownload(exhibitArtwork(exhibit.id, exhibit.imagePath).fullImagePath)
                     }
-                  />
-                  {!exhibit.unlocked && <span className="past-exhibit-lock">⌑</span>}
-                </span>
-                <span className="past-exhibit-copy">
-                  <strong>{exhibit.title}</strong>
-                  <small className={exhibit.unlocked ? "earned-exhibit-state" : undefined}>
-                    {exhibit.seasonLabel} · {exhibit.unlocked ? "Unlocked" : exhibit.lockedReason}
-                  </small>
-                </span>
-              </button>
+                  >
+                    <DownloadIcon />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </section>
@@ -1327,7 +1393,7 @@ function Community({
             aria-modal="true"
             aria-labelledby="opened-exhibit-title"
           >
-            <img src={opened.imagePath} alt="" draggable="false" />
+            <img src={opened.fullImagePath} alt={opened.title} draggable="false" />
             <div>
               <button type="button" aria-label="Close exhibit" onClick={() => setOpened(null)}>
                 ×
@@ -1340,6 +1406,49 @@ function Community({
         </div>
       )}
     </section>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M12 3v11" />
+      <path d="m7.5 10 4.5 4.5 4.5-4.5" />
+      <path d="M5 20h14" />
+    </svg>
+  );
+}
+
+function FullscreenIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M8 3H3v5" />
+      <path d="m3 3 6 6" />
+      <path d="M16 3h5v5" />
+      <path d="m21 3-6 6" />
+      <path d="M8 21H3v-5" />
+      <path d="m3 21 6-6" />
+      <path d="M16 21h5v-5" />
+      <path d="m21 21-6-6" />
+    </svg>
   );
 }
 
@@ -1741,6 +1850,8 @@ function actionMessage(action: NativeAction, ok: boolean): string {
       return "Excavation updated.";
     case "exhibits.contribute":
       return "Contribution recorded.";
+    case "exhibits.download":
+      return "Download started.";
     case "exhibits.refresh":
       return "Exhibits updated.";
     default:

@@ -261,7 +261,7 @@ Community play gives opted-in surplus activity a satisfying shared destination w
 Exhibits runs four substantial Featured Seasons per year. Each season is independent of the active Series and defines:
 
 - opening and closing timestamps;
-- one content-addressed 960×960 seasonal image;
+- one content-addressed 960×960 reveal derivative and its exact 4096×4096 full-resolution master;
 - a deterministic reveal-order version;
 - a private maximum-cohort-equivalent community target;
 - a private per-user minimum and one shared daily contribution cap;
@@ -283,13 +283,13 @@ The server fixes the target, minimum and cap before a season opens and never mov
 
 ### 8.4 Artwork reveal and cold-start scaling
 
-The artwork uses a fixed **320×320 logical reveal map** over the 960×960 source image: 102,400 visual cells, each corresponding to a 3×3 source-art block. A WebGL2 mask renders the primary path with a deterministic Canvas 2D fallback. Reveal order moves from the top-left toward the bottom-right with a narrow rough pixel-scattered edge; large grouped holes and fully random noise are excluded.
+The artwork uses a fixed **320×320 logical reveal map** over the 960×960 derivative: 102,400 visual cells, each corresponding to a 3×3 source-art block. That derivative is deterministically downscaled from the approved 4096×4096 master; independent generations for different sizes are forbidden. A WebGL2 mask renders the primary path with a deterministic Canvas 2D fallback. Reveal order moves from the top-left toward the bottom-right with a narrow rough pixel-scattered edge; large grouped holes and fully random noise are excluded.
 
 Visual cells are deliberately decoupled from private contribution units. Each Exhibit stores a fixed maximum-cohort-equivalent `target_credit_units` beside its rollback-compatible legacy raw target; aggregate progress is held in `total_credit_microunits` fixed point and rendered as integer basis points. Once per UTC day, the server snapshots the number of distinct non-synthetic profiles that both have current essential-online/community consent and a general profile `last_opened` within the preceding 28 days. `last_opened` is server-authored after an authenticated foreground app open successfully reaches the service; it is general app activity, continues independently of community consent, and is never advanced by background workers or client timestamps.
 
 Let `N = clamp(eligible_profiles, 100, 10,000)`. Each raw energy unit accepted that day receives `round(10,000 × 1,000,000 ÷ N)` private microunits of community credit: 100× at the 100-profile floor, 10× at 1,000, 2× at 5,000 and 1× at 10,000 or more. Below 100 profiles there is no additional boost. One daily snapshot and multiplier serve Featured and Archive together. Every contribution durably records the snapshot date, eligible and effective counts, multiplier and credited microunits; retries reuse the original record, and historical credit is never recomputed. Personal minimums and the shared daily cap remain raw energy. Public responses omit every cohort and multiplier field.
 
-Only the aggregate progress version/count and each user's own eligibility are synchronised. The artwork and reveal order are immutable cached assets; ordinary progress updates never replace or redownload the image.
+Only the aggregate progress version/count and each user's own eligibility are synchronised. The 960×960 reveal image, 4096×4096 master and reveal order are immutable cached assets; ordinary progress updates never replace or redownload them.
 
 ### 8.5 Eligibility, completion and Restoration Archive
 
@@ -298,7 +298,7 @@ A seasonal image unlocks only when both gates are satisfied:
 1. the community reaches the season target; and
 2. the user reaches that season's individual minimum.
 
-If the community finishes early, the Featured Season remains open through its scheduled end so users can finish their minimum. At close, qualifying users keep the image in the dedicated Past Exhibits list; all other users retain a grayscale disabled historical entry with a plain reason.
+If the community finishes early, the Featured Season remains open through its scheduled end so users can finish their minimum. A qualifying user may immediately open the full-resolution master and download that exact file. At close, qualifying users keep the image in the dedicated Past Exhibits list; all other users retain a grayscale disabled historical entry with a plain reason.
 
 No more than one former season may return as a Restoration Archive target at a time. A return restarts community progress at zero, has a substantially larger fixed target and no deadline, and preserves the same individual-minimum gate. After its shared target completes, it remains available to users still finishing their own minimum. Seasonal rewards remain in Exhibits and never enter a Series Museum.
 
@@ -396,7 +396,7 @@ Game character comes from reveal choreography, collection shelves, restoration a
 
 ### 10.6 Sharing
 
-Users may export a specimen, diorama or completed community artwork as an image. Exports contain no notification counts, dates or account identifiers unless the user explicitly enables a date label. A discreet Afterchime signature may be included and can be removed for owned premium worlds.
+Users may export a specimen, diorama or completed community artwork as an image. Earned community artwork opens from its Exhibit entry at the approved 4096×4096 master and exposes a download control before full-screen viewing. Exports contain no notification counts, dates or account identifiers unless the user explicitly enables a date label. A discreet Afterchime signature may be included and can be removed for owned premium worlds.
 
 ---
 

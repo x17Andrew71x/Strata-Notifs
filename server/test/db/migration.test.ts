@@ -351,6 +351,59 @@ describePostgres("initial PostgreSQL schema migration", () => {
     );
   });
 
+  it("publishes the approved first Featured Exhibit only in development", async () => {
+    const rows = await migrator<
+      Readonly<{
+        build_channel: string;
+        daily_contribution_cap: number;
+        ends_at: string;
+        image_path: string;
+        personal_minimum_units: number;
+        placeholder_artwork: boolean;
+        season_label: string;
+        slug: string;
+        starts_at: string;
+        status: string;
+        target_credit_units: number;
+        title: string;
+      }>[]
+    >`
+      SELECT
+        slug,
+        title,
+        season_label,
+        image_path,
+        build_channel::text,
+        status::text,
+        target_credit_units,
+        personal_minimum_units,
+        daily_contribution_cap,
+        starts_at::text,
+        ends_at::text,
+        placeholder_artwork
+      FROM exhibits
+      WHERE slug = 'fall-seasonal-special-2026'
+      ORDER BY build_channel
+    `;
+
+    expect(rows).toEqual([
+      {
+        slug: "fall-seasonal-special-2026",
+        title: "Fall Seasonal Special",
+        season_label: "Oct 1 – Nov 30, 2026",
+        image_path: "/exhibits/fall-seasonal-special-2026-960-96742ee33671.webp",
+        build_channel: "dev",
+        status: "open",
+        target_credit_units: 500_000,
+        personal_minimum_units: 900,
+        daily_contribution_cap: 30,
+        starts_at: "2026-10-01 00:00:00+00",
+        ends_at: "2026-12-01 00:00:00+00",
+        placeholder_artwork: false,
+      },
+    ]);
+  });
+
   it("enforces ownership, bounded idempotency, aggregate revision, and synthetic-build constraints", async () => {
     const constraints = await migrator<
       Readonly<{
@@ -650,7 +703,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "12", hash: expect.any(String) });
+    expect(before).toEqual({ count: "13", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });

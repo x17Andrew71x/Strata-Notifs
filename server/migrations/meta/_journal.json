@@ -85,6 +85,13 @@
       "when": 1793111031271,
       "tag": "0011_retire_placeholder_exhibits",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793389392894,
+      "tag": "0012_first_featured_exhibit",
+      "breakpoints": true
     }
   ]
 }

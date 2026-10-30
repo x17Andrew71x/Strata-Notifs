@@ -25,6 +25,12 @@ describePostgres("Exhibits API", () => {
     runtime = createSqlClient(harness.runtimeDatabaseUrl);
     await admin`
       UPDATE exhibits
+      SET status = 'closed'::exhibit_status
+      WHERE slug = 'fall-seasonal-special-2026'
+        AND build_channel = 'dev'::build_channel
+    `;
+    await admin`
+      UPDATE exhibits
       SET
         starts_at = now() - interval '1 day',
         ends_at = CASE WHEN kind = 'featured'::exhibit_kind THEN now() + interval '47 days' ELSE NULL END,

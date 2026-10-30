@@ -4,7 +4,7 @@
 
 **Goal:** Deliver one calm, contribution-first Exhibits surface: a quarterly Featured Season, one optional Restoration Archive target, and a Past Exhibits list.
 
-**Architecture:** PostgreSQL owns exhibit definitions, immutable maximum-cohort-equivalent targets, daily eligible-profile multiplier snapshots, idempotent acceptance-time contribution credit, shared-cap enforcement and personal eligibility. Android records a general foreground `last_opened` profile timestamp and contributes only locally earned post-excavation surplus through the authenticated native boundary. The hosted shell renders a cached 960×960 image through a deterministic 320×320 WebGL2/Canvas reveal mask.
+**Architecture:** PostgreSQL owns exhibit definitions, immutable maximum-cohort-equivalent targets, daily eligible-profile multiplier snapshots, idempotent acceptance-time contribution credit, shared-cap enforcement and personal eligibility. Android records a general foreground `last_opened` profile timestamp and contributes only locally earned post-excavation surplus through the authenticated native boundary. The hosted shell renders a cached 960×960 derivative through a deterministic 320×320 WebGL2/Canvas reveal mask, then opens and downloads its exact 4096×4096 master after unlock.
 
 ---
 
@@ -17,6 +17,8 @@
 - Reward eligibility requires both the community target and the user's individual minimum.
 - Public progress is percentage-only with two decimal places; raw units, reveal cells and population remain private.
 - Seasonal images remain in Exhibits, separate from Museum specimens and every Series.
+- The first approved development Featured Season is **Fall Seasonal Special**, open from `2026-10-01T00:00:00Z` through the end of November (`ends_at = 2026-12-01T00:00:00Z`), with 500,000 maximum-cohort-equivalent credits, a 900-energy personal minimum and a 30-energy daily cap.
+- Every size comes from one approved image: keep the 4096×4096 master and deterministically derive the 960×960 reveal asset; never generate them separately.
 - Personal showcases, browsing other users, feeds, following, comments, messages, ranks and leaderboards are out of scope.
 - Outbound Afterchime notifications require a separate later design pass.
 
@@ -61,13 +63,15 @@ On each authenticated foreground app open, call the dedicated profile-open endpo
 - `web/src/ExhibitReveal.tsx`
 - `web/src/exhibits.ts`
 - `web/src/style.css`
-- approved content-addressed seasonal images and fallback-cache inventory
+- approved content-addressed 960×960 reveal derivatives, 4096×4096 masters and fallback-cache inventory
 
 Match the approved lean hierarchy exactly:
 
 1. Featured Season image and compact progress/action panel.
 2. One compact Restoration Archive row.
 3. Compact Past Exhibits cards; earned colour/viewable, missed grayscale/disabled.
+
+Earned Featured and Past entries expose the download icon before opening a near-full-screen viewer. The viewer and Android download action both use the exact content-addressed 4096×4096 master; the progressive reveal never loads that master.
 
 Use a broad top-left to bottom-right reveal with a narrow rough pixel-scattered edge. Use WebGL2 first, retain a deterministic Canvas 2D/context-loss fallback, honour Reduce motion, and never render 102,400 DOM elements.
 
@@ -88,5 +92,5 @@ Native-authenticated refresh after app open/focus, contribution and visible-tab 
 - 0.00%–100.00% maps deterministically across all 102,400 visual cells.
 - WebGL2 and forced Canvas fallback both render the same direction.
 - Active, complete/under-minimum, earned and missed states work at 320×568, 360×640, 412×915 and desktop widths without horizontal overflow.
-- Placeholder assets are content-addressed, hash-verified and present in both hosted and bundled fallback inventories.
+- Seasonal assets are content-addressed, hash-verified, lineage-recorded and present in both hosted and bundled fallback inventories.
 - Focused web/server/Android tests, migration/RLS proof, full repository checks and a verified development APK pass before the slice is called complete.

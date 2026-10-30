@@ -161,6 +161,15 @@ class MainActivityTest {
         """{"version":2,"id":"bad_exhibits","type":"exhibits.contribute","payload":{"exhibitId":"returning-light-2027","localDate":"2026-10-26","units":0}}""",
       ),
     )
+    val download = parseBridgeRequest(
+      """{"version":2,"id":"exhibit_download","type":"exhibits.download","payload":{"imagePath":"/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp"}}""",
+    )
+    assertEquals("exhibits.download", download?.type)
+    assertNull(
+      parseBridgeRequest(
+        """{"version":2,"id":"bad_exhibit_download","type":"exhibits.download","payload":{"imagePath":"https://example.invalid/private.webp"}}""",
+      ),
+    )
     val catalogPayload = FossilCatalogManifest(
       revision = FossilCatalog.BUNDLED_REVISION,
       items = FossilCatalog.items,
@@ -278,6 +287,7 @@ class MainActivityTest {
     assertEquals("capabilities.state", response.getString("type"))
     assertTrue(response.getBoolean("appDetailsAction"))
     assertTrue(response.getBoolean("catalogUpdates"))
+    assertTrue(response.getBoolean("exhibitDownloads"))
     assertEquals(
       BuildConfig.DEV_FEEDBACK_ENABLED,
       response.getBoolean("devFeedback"),
@@ -292,6 +302,42 @@ class MainActivityTest {
     assertEquals("shell.example", refreshed.host)
     assertEquals("/app", refreshed.path)
     assertEquals("1234", refreshed.getQueryParameter("dev-refresh"))
+  }
+
+  @Test
+  fun `exhibit downloads stay on the configured HTTPS origin with a content-addressed filename`() {
+    var capturedUri: Uri? = null
+    var capturedFilename: String? = null
+    val accepted = enqueueExhibitDownload(
+      imagePath = "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+      remoteUri = Uri.parse("https://shell.example/app?stale=true"),
+    ) { uri, filename ->
+      capturedUri = uri
+      capturedFilename = filename
+      42L
+    }
+
+    assertTrue(accepted)
+    assertEquals(
+      "https://shell.example/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+      capturedUri.toString(),
+    )
+    assertEquals(
+      "fall-seasonal-special-2026-4k-eb20514a5829.webp",
+      capturedFilename,
+    )
+    assertFalse(
+      enqueueExhibitDownload(
+        "https://example.invalid/private.webp",
+        Uri.parse("https://shell.example/"),
+      ) { _, _ -> 1L },
+    )
+    assertFalse(
+      enqueueExhibitDownload(
+        "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+        Uri.parse("https://shell-disabled.invalid/"),
+      ) { _, _ -> 1L },
+    )
   }
 
   @Test

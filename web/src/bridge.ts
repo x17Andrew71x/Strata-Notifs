@@ -22,6 +22,7 @@ const CORE_PAYLOAD_ACTIONS = [
   "museum.combine",
   "excavation.dig",
   "exhibits.contribute",
+  "exhibits.download",
   "worlds.select",
   "worlds.own",
 ] as const;
@@ -205,6 +206,7 @@ export type NativeResponse =
       notificationAccess: boolean;
       appDetailsAction: boolean;
       catalogUpdates?: boolean;
+      exhibitDownloads?: boolean;
       devFeedback?: boolean;
       appVersion?: string;
     }
@@ -299,15 +301,20 @@ function parseNativeResponse(value: unknown): NativeResponse | null {
       "notificationAccess",
       "appDetailsAction",
     ];
-    const catalogKeys = [...legacyKeys, "catalogUpdates"];
+    const capabilityKeySets = [
+      legacyKeys,
+      [...legacyKeys, "catalogUpdates"],
+      [...legacyKeys, "catalogUpdates", "exhibitDownloads"],
+    ];
     if (
-      (hasExactKeys(value, legacyKeys) ||
-        hasExactKeys(value, catalogKeys) ||
-        (DEV_FEEDBACK_BUILD && isDevFeedbackCapabilities(value, catalogKeys))) &&
+      (capabilityKeySets.some((keys) => hasExactKeys(value, keys)) ||
+        (DEV_FEEDBACK_BUILD &&
+          capabilityKeySets.some((keys) => isDevFeedbackCapabilities(value, keys)))) &&
       value.bridgeVersion === BRIDGE_VERSION &&
       typeof value.notificationAccess === "boolean" &&
       typeof value.appDetailsAction === "boolean" &&
-      (value.catalogUpdates === undefined || typeof value.catalogUpdates === "boolean")
+      (value.catalogUpdates === undefined || typeof value.catalogUpdates === "boolean") &&
+      (value.exhibitDownloads === undefined || typeof value.exhibitDownloads === "boolean")
     ) {
       return value as NativeResponse;
     }
@@ -329,10 +336,10 @@ function parseNativeResponse(value: unknown): NativeResponse | null {
 
 function isDevFeedbackCapabilities(
   value: Record<string, unknown>,
-  catalogKeys: readonly string[],
+  capabilityKeys: readonly string[],
 ): boolean {
   return (
-    hasExactKeys(value, [...catalogKeys, "devFeedback", "appVersion"]) &&
+    hasExactKeys(value, [...capabilityKeys, "devFeedback", "appVersion"]) &&
     typeof value.devFeedback === "boolean" &&
     validBoundedText(value.appVersion, 1, 64)
   );
@@ -717,6 +724,9 @@ function validPayload(type: string, payload: Record<string, unknown>): boolean {
       /^\d{4}-\d{2}-\d{2}$/.test(payload.localDate) &&
       isInteger(payload.units, 1, 100_000)
     );
+  }
+  if (type === "exhibits.download") {
+    return hasExactKeys(payload, ["imagePath"]) && validExhibitImagePath(payload.imagePath);
   }
   if (type === "worlds.select" || type === "worlds.own") {
     return hasExactKeys(payload, ["world"]) && isWorld(payload.world);

@@ -320,6 +320,68 @@ describe("full shell application", () => {
     expect(screen.getByRole("dialog", { name: "Monsoon Choir" })).toBeTruthy();
   });
 
+  it("opens the earned 4K seasonal master and offers its native download before full screen", () => {
+    render(<App />);
+    sendState({
+      ...baseState,
+      preferences: { ...baseState.preferences, onlineFeaturesEnabled: true },
+      exhibits: {
+        status: "READY",
+        bankedEnergy: 0,
+        contributionInFlight: false,
+        featured: {
+          id: "fall-seasonal-special-2026",
+          title: "Fall Seasonal Special",
+          seasonLabel: "Oct 1 – Nov 30, 2026",
+          imagePath: "/exhibits/fall-seasonal-special-2026-960-96742ee33671.webp",
+          progressBasisPoints: 10_000,
+          personalContribution: 900,
+          personalMinimum: 900,
+          daysRemaining: 31,
+          communityComplete: true,
+          qualified: true,
+          unlocked: true,
+          closed: false,
+        },
+        archive: null,
+        past: [],
+      },
+    });
+    act(() => {
+      native.onmessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            version: 2,
+            id: "capabilities",
+            type: "capabilities.state",
+            bridgeVersion: 2,
+            notificationAccess: true,
+            appDetailsAction: true,
+            catalogUpdates: true,
+            exhibitDownloads: true,
+          }),
+        }),
+      );
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Exhibits" }));
+    const download = screen.getByRole("button", { name: "Download Fall Seasonal Special" });
+    fireEvent.click(download);
+    expect(lastRequest()).toMatchObject({
+      type: "exhibits.download",
+      payload: {
+        imagePath: "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Fall Seasonal Special full screen" }));
+    const dialog = screen.getByRole("dialog", { name: "Fall Seasonal Special" });
+    expect(within(dialog).getByRole("img", { name: "Fall Seasonal Special" })).toHaveAttribute(
+      "src",
+      "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+    );
+  });
+
   it("states when no Exhibits exist and hides empty Archive and Past sections", () => {
     renderWithState({
       ...baseState,

@@ -2,6 +2,28 @@ export const EXHIBIT_GRID_SIZE = 320;
 export const EXHIBIT_CELL_COUNT = EXHIBIT_GRID_SIZE * EXHIBIT_GRID_SIZE;
 export const EXHIBIT_PROGRESS_MAX_BASIS_POINTS = 10_000;
 
+export type ExhibitArtwork = Readonly<{
+  revealImagePath: string;
+  fullImagePath: string;
+}>;
+
+const APPROVED_EXHIBIT_ARTWORK: Readonly<Record<string, ExhibitArtwork>> = {
+  "fall-seasonal-special-2026": {
+    revealImagePath: "/exhibits/fall-seasonal-special-2026-960-96742ee33671.webp",
+    fullImagePath: "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+  },
+};
+
+export const EXHIBIT_ASSET_PATHS = Object.values(APPROVED_EXHIBIT_ARTWORK).flatMap(
+  ({ revealImagePath, fullImagePath }) => [revealImagePath, fullImagePath],
+);
+
+export function exhibitArtwork(id: string, revealImagePath: string): ExhibitArtwork {
+  const approved = APPROVED_EXHIBIT_ARTWORK[id];
+  if (approved?.revealImagePath === revealImagePath) return approved;
+  return { revealImagePath, fullImagePath: revealImagePath };
+}
+
 function seededNoise(x: number, y: number): number {
   const value = Math.sin(x * 12.9898 + y * 78.233 + 4.731) * 43_758.5453;
   return value - Math.floor(value);

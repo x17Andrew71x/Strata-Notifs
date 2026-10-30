@@ -189,7 +189,7 @@ describe("last-known-good web shell", () => {
     );
 
     await worker.activate();
-    const state = stores.get("afterchime-shell-v36")?.get(`${origin}/.afterchime/current`);
+    const state = stores.get("afterchime-shell-v37")?.get(`${origin}/.afterchime/current`);
     expect(await state?.clone().json()).toMatchObject({ catalogRevision: 2 });
     offline = true;
 
@@ -319,6 +319,31 @@ describe("last-known-good web shell", () => {
     expect(await artwork.text()).toBe("image");
   });
 
+  it("includes both approved seasonal resolutions in the verified offline shell", async () => {
+    let offline = false;
+    const worker = await createWorker(async (input) => {
+      if (offline) throw new TypeError("offline");
+      const url = new URL(responseUrl(input), origin);
+      if (url.pathname === "/")
+        return new Response(entryHtml("/assets/main-AbCdEf123456.js"), {
+          headers: { "content-type": "text/html" },
+        });
+      if (url.pathname === "/assets/main-AbCdEf123456.js") return assetResponse();
+      return new Response("missing", { status: 404 });
+    });
+
+    await worker.activate();
+    offline = true;
+    for (const path of [
+      "/exhibits/fall-seasonal-special-2026-960-96742ee33671.webp",
+      "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+    ]) {
+      const artwork = await worker.asset(path);
+      expect(artwork.status).toBe(200);
+      expect(artwork.headers.get("content-type")).toBe("image/webp");
+    }
+  });
+
   it("keeps the prior entry after an incomplete update and fails closed without a valid entry", async () => {
     let update = false;
     let offline = false;
@@ -362,10 +387,10 @@ describe("last-known-good web shell", () => {
       transformSource: (source) =>
         source
           .replace(
+            'const CACHE_NAME = "afterchime-shell-v37";',
             'const CACHE_NAME = "afterchime-shell-v36";',
-            'const CACHE_NAME = "afterchime-shell-v35";',
           )
-          .replace('  "afterchime-shell-v35",\n', ""),
+          .replace('  "afterchime-shell-v36",\n', ""),
     });
     await prior.activate();
     offline = true;

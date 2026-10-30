@@ -53,6 +53,24 @@ describe("versioned native bridge requests", () => {
     expect(
       parseNativeRequest({
         version: 2,
+        id: "req_exhibit_download",
+        type: "exhibits.download",
+        payload: {
+          imagePath: "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+        },
+      }),
+    ).not.toBeNull();
+    expect(
+      parseNativeRequest({
+        version: 2,
+        id: "req_bad_exhibit_download",
+        type: "exhibits.download",
+        payload: { imagePath: "https://example.invalid/private.webp" },
+      }),
+    ).toBeNull();
+    expect(
+      parseNativeRequest({
+        version: 2,
         id: "req_catalog",
         type: "catalog.update",
         payload: relicVaultCatalogUpdate(),
@@ -225,6 +243,7 @@ describe("versioned native bridge requests", () => {
           notificationAccess: true,
           appDetailsAction: true,
           catalogUpdates: true,
+          exhibitDownloads: true,
           devFeedback: true,
           appVersion: "0.1.10-dev-debug",
         }),
@@ -239,7 +258,11 @@ describe("versioned native bridge requests", () => {
 
     expect(responses).toHaveLength(2);
     expect(responses[0]).toEqual(feedback);
-    expect(responses[1]).toMatchObject({ devFeedback: true, appVersion: "0.1.10-dev-debug" });
+    expect(responses[1]).toMatchObject({
+      devFeedback: true,
+      exhibitDownloads: true,
+      appVersion: "0.1.10-dev-debug",
+    });
   });
 
   it("accepts failed development-feedback items while rejecting unknown statuses", () => {

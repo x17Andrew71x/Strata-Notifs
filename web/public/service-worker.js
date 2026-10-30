@@ -1,6 +1,7 @@
-const CACHE_NAME = "afterchime-shell-v36";
+const CACHE_NAME = "afterchime-shell-v37";
 const CATALOG_REVISION = 2;
 const LEGACY_CACHE_NAMES = [
+  "afterchime-shell-v36",
   "afterchime-shell-v35",
   "afterchime-shell-v34",
   "afterchime-shell-v33",
@@ -78,6 +79,10 @@ const WORLD_ASSETS = [
   "/worlds/relic-archaeopteryx-slab-excavation-30a8e4b75684.webp",
   "/worlds/signal-ruins-artifact-67f7d4054fb5.webp",
 ];
+const EXHIBIT_ASSETS = [
+  "/exhibits/fall-seasonal-special-2026-960-96742ee33671.webp",
+  "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+];
 
 self.addEventListener("install", (event) => event.waitUntil(installWorker()));
 self.addEventListener("activate", (event) => event.waitUntil(activateWorker()));
@@ -151,7 +156,12 @@ async function promoteCompleteShell(response, cache) {
     ),
   ].map((match) => match[1]);
   if (entryReferences.length === 0 || entryReferences.length > 32) return false;
-  const references = new Set([...entryReferences, ...BRAND_ASSETS, ...WORLD_ASSETS]);
+  const references = new Set([
+    ...entryReferences,
+    ...BRAND_ASSETS,
+    ...WORLD_ASSETS,
+    ...EXHIBIT_ASSETS,
+  ]);
   const pending = [...references];
 
   const assets = [];

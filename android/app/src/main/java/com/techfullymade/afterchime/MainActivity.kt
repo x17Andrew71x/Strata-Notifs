@@ -1,11 +1,13 @@
 package com.techfullymade.afterchime
 
+import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.provider.Settings
 import android.view.ViewGroup
 import android.webkit.SslErrorHandler
@@ -65,6 +67,8 @@ private const val REMOTE_READY_TIMEOUT_MS = 5_000L
 private val Context.worldCatalogDataStore by preferencesDataStore(name = "world_catalog")
 private val requestIdPattern = Regex("[A-Za-z0-9_-]{1,64}")
 private val specimenIdPattern = Regex("[A-Za-z0-9_-]{1,128}")
+private val exhibitImagePathPattern =
+  Regex("^/exhibits/[a-z0-9-]{1,128}-[a-f0-9]{12}\\.webp$")
 private val preferenceKeys = setOf(
   "onlineFeaturesEnabled",
   "productAnalyticsEnabled",
@@ -141,6 +145,10 @@ internal fun parseBridgeRequest(
         runCatching { java.time.LocalDate.parse(payload.getString("localDate")) }.isSuccess &&
         payload.opt("units") is Int &&
         payload.getInt("units") in 1..100_000
+    "exhibits.download" ->
+      payload.length() == 1 &&
+        payload.opt("imagePath") is String &&
+        exhibitImagePathPattern.matches(payload.getString("imagePath"))
     "worlds.select", "worlds.own" ->
       payload.length() == 1 &&
         payload.opt("world") is String &&
@@ -176,6 +184,23 @@ internal fun isDevelopmentFeedbackEnabled(flavor: String, productionEnabled: Boo
 
 internal fun developmentRefreshUrl(remoteUri: Uri, nonce: Long): Uri =
   remoteUri.buildUpon().appendQueryParameter("dev-refresh", nonce.toString()).build()
+
+internal fun enqueueExhibitDownload(
+  imagePath: String,
+  remoteUri: Uri,
+  enqueue: (uri: Uri, filename: String) -> Long,
+): Boolean {
+  if (!exhibitImagePathPattern.matches(imagePath)) return false
+  if (
+    remoteUri.scheme != "https" ||
+      remoteUri.host.isNullOrBlank() ||
+      remoteUri.userInfo != null ||
+      remoteUri.host in setOf("shell-disabled.invalid", "production-disabled.invalid")
+  ) return false
+  val target = remoteUri.buildUpon().encodedPath(imagePath).clearQuery().fragment(null).build()
+  val filename = imagePath.substringAfterLast('/')
+  return runCatching { enqueue(target, filename) > 0L }.getOrDefault(false)
+}
 
 internal fun isRemoteShellEnabled(remoteUri: Uri, bridgeSupported: Boolean): Boolean =
   bridgeSupported &&
@@ -451,6 +476,7 @@ class MainActivity : ComponentActivity() {
         postActionResult(request, refreshExhibits(), proxy)
       }
       "exhibits.contribute" -> contributeToExhibit(request, proxy)
+      "exhibits.download" -> downloadExhibit(request, proxy)
       "museum.lock" -> updateSpecimenLock(request, proxy)
       "museum.share" -> shareSpecimen(request, proxy)
       "museum.combine" -> combineSpecimens(request, proxy)
@@ -496,6 +522,27 @@ class MainActivity : ComponentActivity() {
         proxy,
       )
     }
+  }
+
+  @Suppress("DEPRECATION")
+  private fun downloadExhibit(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
+    val imagePath = request.payload?.getString("imagePath") ?: return
+    val manager = getSystemService(DownloadManager::class.java)
+    val accepted = enqueueExhibitDownload(imagePath, remoteUri) { uri, filename ->
+      manager.enqueue(
+        DownloadManager.Request(uri)
+          .setMimeType("image/webp")
+          .setTitle("Afterchime Exhibit")
+          .setDescription("Saving full-resolution artwork")
+          .setAllowedOverMetered(true)
+          .setAllowedOverRoaming(false)
+          .setNotificationVisibility(
+            DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED,
+          )
+          .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename),
+      )
+    }
+    postActionResult(request, accepted, proxy)
   }
 
   private fun updatePreference(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
@@ -631,7 +678,8 @@ class MainActivity : ComponentActivity() {
       .put("bridgeVersion", BRIDGE_VERSION)
       .put("notificationAccess", notificationAccessEnabled())
       .put("appDetailsAction", true)
-      .put("catalogUpdates", true),
+      .put("catalogUpdates", true)
+      .put("exhibitDownloads", true),
   )
 
   private fun sendCapabilityState(id: String) {

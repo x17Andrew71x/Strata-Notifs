@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildExhibitRevealRanks,
   EXHIBIT_CELL_COUNT,
+  exhibitArtwork,
   formatProgressBasisPoints,
   revealedCellsForBasisPoints,
 } from "./exhibits";
@@ -24,5 +25,17 @@ describe("Exhibits reveal mapping", () => {
     const shownAt = (x: number, y: number) => ranks[y * 320 + x] < EXHIBIT_CELL_COUNT / 2;
     expect(shownAt(20, 20)).toBe(true);
     expect(shownAt(299, 299)).toBe(false);
+  });
+
+  it("opens and downloads the approved 4K master while revealing its exact 960 derivative", () => {
+    expect(
+      exhibitArtwork(
+        "fall-seasonal-special-2026",
+        "/exhibits/fall-seasonal-special-2026-960-96742ee33671.webp",
+      ),
+    ).toEqual({
+      fullImagePath: "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+      revealImagePath: "/exhibits/fall-seasonal-special-2026-960-96742ee33671.webp",
+    });
   });
 });

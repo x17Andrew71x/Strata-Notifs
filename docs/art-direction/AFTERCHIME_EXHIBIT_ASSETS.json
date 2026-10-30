@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "exhibits": [
+    {
+      "id": "fall-seasonal-special-2026",
+      "title": "Fall Seasonal Special",
+      "seasonLabel": "Oct 1 – Nov 30, 2026",
+      "startsAt": "2026-10-01T00:00:00Z",
+      "endsAtExclusive": "2026-12-01T00:00:00Z",
+      "generation": {
+        "provider": "openai-codex",
+        "model": "gpt-image-2-medium",
+        "requestId": "6624f82a-5fda-41c0-b33a-acde58f4e5e6",
+        "prompt": "Create a premium photorealistic 960×960 autumn landscape intended as a collectible seasonal special image for the Afterchime app. A rugged Appalachian-style mountain ridge sits in the far background beneath a quiet, lightly clouded late-afternoon sky. In the foreground and along both side edges, mature deciduous trees carry rich but natural fall foliage—burnt orange, copper, russet, muted crimson, and touches of ochre—with a few fallen leaves and tall dry grasses. A harvested field crosses the middle ground with several convincing cylindrical hay bales placed at varied depths. Place one weathered vintage red farm tractor off-centre at the lower-right rule-of-thirds intersection, facing inward toward the scene; it should be a clear secondary focal point, not oversized and never centred. Use layered depth, a subtle S-curve through the field, realistic atmospheric haze on the mountain, restrained warm sunlight, natural shadows, finely detailed bark/grass/metal, and the look of a high-end full-frame 35 mm landscape photograph. Composition must remain visually strong as one square image and support a broad top-left-to-bottom-right progressive reveal. No people, animals, buildings, signs, logos, lettering, border, collage, illustration, fantasy glow, oversaturation, excessive HDR, duplicated objects, malformed wheels, or impossible farm machinery."
+      },
+      "source": {
+        "filename": "afterchime-fall-seasonal-special-v1-approved-source.png",
+        "sha256": "d54dfc057ab4b8cdc04b8e0adc14506db636bd4778fd4b0001fa2aec334be61f",
+        "width": 1254,
+        "height": 1254,
+        "format": "PNG"
+      },
+      "master": {
+        "path": "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
+        "sha256": "eb20514a58293906364dcc0524692573c9f8c2d019d49b52322585ba28d86bf6",
+        "bytes": 2635862,
+        "width": 4096,
+        "height": 4096,
+        "format": "WEBP",
+        "derivedFromSha256": "d54dfc057ab4b8cdc04b8e0adc14506db636bd4778fd4b0001fa2aec334be61f",
+        "resampling": "Pillow LANCZOS",
+        "quality": 92,
+        "method": 6
+      },
+      "reveal": {
+        "path": "/exhibits/fall-seasonal-special-2026-960-96742ee33671.webp",
+        "sha256": "96742ee3367169fbfa01d1e7f95b0bf5c543002f9c28c01f3f17474bf44366e8",
+        "bytes": 272976,
+        "width": 960,
+        "height": 960,
+        "format": "WEBP",
+        "derivedFromSha256": "eb20514a58293906364dcc0524692573c9f8c2d019d49b52322585ba28d86bf6",
+        "resampling": "Pillow LANCZOS",
+        "quality": 82,
+        "method": 6
+      }
+    }
+  ]
+}
