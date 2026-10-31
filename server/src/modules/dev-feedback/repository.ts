@@ -64,6 +64,16 @@ export type DevFeedbackAdminItem = Readonly<{
   screenshotHeight: number;
 }>;
 
+export type DevFeedbackRestoreResult = Readonly<{
+  targetInstallationId: string;
+  movedItems: number;
+}>;
+
+type RestoreRow = Readonly<{
+  target_installation_id: string;
+  moved_items: number;
+}>;
+
 type ItemRow = Readonly<{
   id: string;
   queue_position: string | number;
@@ -387,6 +397,21 @@ export class DevFeedbackRepository {
       SELECT * FROM public.afterchime_get_dev_feedback(${projectId}, ${itemId})
     `;
     return row ? mapAdminItem(row) : null;
+  }
+
+  public async restoreLatestClient(
+    projectId: DevFeedbackProject,
+  ): Promise<DevFeedbackRestoreResult | null> {
+    const [row] = await this.database<RestoreRow[]>`
+      SELECT * FROM public.afterchime_restore_latest_feedback_client(${projectId})
+    `;
+    if (!row) return null;
+    if (!Number.isSafeInteger(row.moved_items) || row.moved_items < 0)
+      throw new Error("invalid restored item count");
+    return {
+      targetInstallationId: row.target_installation_id,
+      movedItems: row.moved_items,
+    };
   }
 
   public async heartbeat(

@@ -86,7 +86,7 @@ Alfred must additionally verify the live shell manifest and changed asset or beh
 
 ## Security
 
-- App routes require the existing short-lived pseudonymous installation bearer token and remain installation-scoped under forced RLS. In the development flavour only, disabling Online features revokes essential, analytics and notification-summary consent but retains that anonymous credential so the owner-only feedback queue remains reachable; no totals or analytics may upload while Online features are off. Production continues to log out and erase the credential after revocation.
+- App routes require the existing short-lived pseudonymous installation bearer token and remain installation-scoped under forced RLS. In the development flavour only, disabling Online features revokes essential, analytics and notification-summary consent but retains that anonymous credential so the owner-only feedback queue remains reachable; no totals or analytics may upload while Online features are off. If the encrypted credential boundary already fails closed after an interrupted logout, the development feedback path may erase only that unusable local envelope/key state and register once more; ordinary uncertain network failures remain preserved. Production continues to log out and erase the credential after revocation.
 - The development-feedback module is disabled unless the development environment explicitly enables it.
 - Production builds and services fail closed: Vite tree-shakes the feedback chunk, the server prunes its compiled module and runtime migration bundle, and Android compiles the implementation only in `src/dev`; artifact scans reject feedback action, route and class markers in production outputs.
 - Controller credentials remain outside the client and are hashed server-side.
@@ -95,6 +95,8 @@ Alfred must additionally verify the live shell manifest and changed asset or beh
 - The app communicates only with its configured Afterchime development origin; it never contacts Hermes or the workforce plane directly.
 
 ## Android refresh
+
+The native launch handoff stays literal black until the first complete shell state: the Android window and WebView backgrounds are black, the initial hosted HTML carries an inline black startup mask, and React removes that mask in a layout effect only when native state is ready. No branded or unstyled bootstrap view may render between the system splash and the themed application.
 
 The development control's refresh action asks the native shell to reload the configured HTTPS development entry with cache bypass. The Service Worker still promotes only a complete digest-verified shell, preserving the last known good build on a partial or failed deployment. The action never clears application storage, Room, DataStore or Keystore state.
 

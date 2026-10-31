@@ -11,6 +11,7 @@ import App, {
   registerShellWorker,
   reloadOnShellWorkerChange,
   SHELL_STATE_REFRESH_MS,
+  STARTUP_MASK_CLASS,
   TOAST_DURATION_MS,
   TOAST_FADE_START_MS,
 } from "./App";
@@ -53,6 +54,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  document.documentElement.classList.remove(STARTUP_MASK_CLASS);
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
@@ -143,6 +145,17 @@ describe("full shell application", () => {
     act(() => {
       native.onmessage?.(new MessageEvent("message", { data: JSON.stringify(baseState) }));
     });
+    expect(screen.getByRole("heading", { name: "Today is still forming" })).toBeTruthy();
+  });
+
+  it("keeps the native startup mask until the first complete shell state", () => {
+    document.documentElement.classList.add(STARTUP_MASK_CLASS);
+    render(<App />);
+    expect(document.documentElement.classList.contains(STARTUP_MASK_CLASS)).toBe(true);
+
+    sendState(baseState);
+
+    expect(document.documentElement.classList.contains(STARTUP_MASK_CLASS)).toBe(false);
     expect(screen.getByRole("heading", { name: "Today is still forming" })).toBeTruthy();
   });
 

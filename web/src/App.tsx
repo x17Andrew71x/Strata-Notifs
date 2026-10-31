@@ -70,6 +70,7 @@ export const EXHIBIT_REFRESH_MS = 10_000;
 export const IMAGE_RETRY_DELAYS_MS = [250, 750, 1_500, 3_000, 5_000] as const;
 export const EXCAVATION_CLEAR_MS = 600;
 export const ENERGY_GAIN_PULSE_MS = 700;
+export const STARTUP_MASK_CLASS = "app-loading";
 const EXCAVATION_TILE_IDS = Array.from(
   { length: 100 },
   (_, tileIndex) => `excavation-tile-${tileIndex}`,
@@ -263,6 +264,12 @@ function App() {
       document.removeEventListener("visibilitychange", refreshState);
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (shellState || !window.AfterchimeBridge) {
+      document.documentElement.classList.remove(STARTUP_MASK_CLASS);
+    }
+  }, [shellState]);
 
   useEffect(() => {
     if (route !== "community") return;

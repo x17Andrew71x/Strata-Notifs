@@ -78,11 +78,15 @@ describePostgres("development feedback API", () => {
     return app;
   }
 
-  async function install(app: Awaited<ReturnType<typeof buildApp>>, address: string) {
+  async function install(
+    app: Awaited<ReturnType<typeof buildApp>>,
+    address: string,
+    appVersion = registration.appVersion,
+  ) {
     const response = await app.inject({
       headers: { "idempotency-key": randomUUID() },
       method: "POST",
-      payload: registration,
+      payload: { ...registration, appVersion },
       remoteAddress: address,
       url: "/v1/installations",
     });
@@ -141,6 +145,51 @@ describePostgres("development feedback API", () => {
       url: `/v1/dev-feedback/items/${secondItem.json().item.id}/amendments`,
     });
     expect(crossItemReplay.statusCode).toBe(409);
+  });
+
+  it("restores intact open feedback to the latest authenticated development client", async () => {
+    const app = await appForDatabase();
+    const prior = await install(app, "127.0.2.11", "0.1.15-dev-debug");
+    const created = await submit(
+      app,
+      prior.accessToken,
+      randomUUID(),
+      feedbackPayload("Preserved review"),
+    );
+    const current = await install(app, "127.0.2.12", "0.1.17-dev-debug");
+    expect((await list(app, current.accessToken)).json().items).toEqual([]);
+
+    const restored = await app.inject({
+      method: "POST",
+      url: "/v1/dev-feedback/admin/restore-latest-client",
+      headers: { "x-afterchime-admin-key": adminKey },
+      payload: {},
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(restored.json()).toEqual({
+      targetInstallationId: current.installationId,
+      movedItems: 1,
+    });
+    expect((await list(app, prior.accessToken)).json().items).toEqual([]);
+    expect((await list(app, current.accessToken)).json().items).toEqual([
+      expect.objectContaining({
+        id: created.json().item.id,
+        status: "queued",
+        title: "Preserved review",
+      }),
+    ]);
+
+    const repeated = await app.inject({
+      method: "POST",
+      url: "/v1/dev-feedback/admin/restore-latest-client",
+      headers: { "x-afterchime-admin-key": adminKey },
+      payload: {},
+    });
+    expect(repeated.statusCode).toBe(200);
+    expect(repeated.json()).toEqual({
+      targetInstallationId: current.installationId,
+      movedItems: 0,
+    });
   });
 
   it("keeps trusted Decree and PJS queues isolated under separate credentials", async () => {

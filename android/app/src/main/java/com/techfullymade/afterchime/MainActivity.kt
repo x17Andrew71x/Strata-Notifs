@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -254,6 +255,7 @@ class MainActivity : ComponentActivity() {
         ViewGroup.LayoutParams.MATCH_PARENT,
         ViewGroup.LayoutParams.MATCH_PARENT,
       )
+      setBackgroundColor(Color.BLACK)
     }
     configureWebView()
     setContentView(shell)

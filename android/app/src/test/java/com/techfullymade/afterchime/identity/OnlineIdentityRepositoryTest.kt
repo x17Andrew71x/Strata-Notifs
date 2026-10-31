@@ -109,6 +109,21 @@ class OnlineIdentityRepositoryTest {
   }
 
   @Test
+  fun `explicit development repair clears only an already unavailable credential boundary`() {
+    val fixture = Fixture()
+    val repository = fixture.repository()
+    assertFalse(repository.resetUnavailableCredentials())
+
+    assertTrue(fixture.store.save(fixture.session("a1", "r1", fixture.clock.millis())))
+    fixture.storage.envelope = null
+    assertEquals(CredentialRead.Unavailable, fixture.store.read())
+
+    assertTrue(repository.resetUnavailableCredentials())
+    assertEquals(CredentialRead.Missing, fixture.store.read())
+    assertFalse(repository.resetUnavailableCredentials())
+  }
+
+  @Test
   fun `initialization marker loss fails closed`() {
     val fixture = Fixture()
     assertTrue(fixture.store.save(fixture.session("a1", "r1", fixture.clock.millis())))

@@ -153,6 +153,10 @@ const adminItemResponse = z.object({
   screenshotHeight: z.number().int().positive(),
 });
 const adminStateResponse = z.object({ item: adminItemResponse.nullable() });
+const restoreResponse = z.object({
+  targetInstallationId: uuid,
+  movedItems: z.number().int().nonnegative(),
+});
 const leaseSeconds = z.number().int().min(60).max(900);
 const claimBody = z.object({ leaseSeconds: leaseSeconds.optional() }).strict();
 const leaseBody = z.object({ leaseId: uuid, revision: z.number().int().positive() }).strict();
@@ -416,6 +420,29 @@ export async function registerDevelopmentModule(
       },
     );
   }
+
+  app.post(
+    "/v1/dev-feedback/admin/restore-latest-client",
+    {
+      schema: {
+        headers: adminHeaders,
+        body: z.object({}).strict(),
+        response: {
+          200: restoreResponse,
+          401: authorizationError,
+          409: authorizationError,
+        },
+      },
+    },
+    async (request, reply) => {
+      const projectId = authorizedProject(request.headers, config, "admin");
+      if (!projectId) return reply.code(401).send({ error: "unauthorized" });
+      if (projectId !== "afterchime") return reply.code(409).send({ error: "not_ready" });
+      const restored = await repository.restoreLatestClient(projectId);
+      if (!restored) return reply.code(409).send({ error: "not_ready" });
+      return reply.send(restored);
+    },
+  );
 
   app.post(
     "/v1/dev-feedback/admin/claim",
