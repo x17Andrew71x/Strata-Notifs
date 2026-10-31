@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createSqlClient, type DatabaseClient } from "../../src/db/client.js";
@@ -404,6 +405,138 @@ describePostgres("initial PostgreSQL schema migration", () => {
     ]);
   });
 
+  it("restores open Afterchime review items to the latest installation without accepting them", async () => {
+    const recovery = {
+      acceptedItem: "00000000-0000-4000-8000-000000009022",
+      acceptedRevision: "00000000-0000-4000-8000-000000009032",
+      currentInstallation: "00000000-0000-4000-8000-000000009012",
+      currentItem: "00000000-0000-4000-8000-000000009023",
+      currentRevision: "00000000-0000-4000-8000-000000009033",
+      currentUser: "00000000-0000-4000-8000-000000009002",
+      oldInstallation: "00000000-0000-4000-8000-000000009011",
+      oldUser: "00000000-0000-4000-8000-000000009001",
+      readyItem: "00000000-0000-4000-8000-000000009021",
+      readyRevision: "00000000-0000-4000-8000-000000009031",
+    } as const;
+
+    try {
+      await admin`
+        INSERT INTO users (id, build_channel, is_synthetic)
+        VALUES
+          (${recovery.oldUser}, 'dev', false),
+          (${recovery.currentUser}, 'dev', false)
+      `;
+      await admin`
+        INSERT INTO installations (id, user_id, app_version, build_channel, is_synthetic)
+        VALUES
+          (${recovery.oldInstallation}, ${recovery.oldUser}, '0.1.14-dev', 'dev', false),
+          (${recovery.currentInstallation}, ${recovery.currentUser}, '0.1.15-dev', 'dev', false)
+      `;
+      await admin`
+        INSERT INTO dev_feedback_items (
+          id, installation_id, project_id, title, description, status, note, accepted_at
+        ) VALUES
+          (
+            ${recovery.readyItem}, ${recovery.oldInstallation}, 'afterchime',
+            'Ready review', 'Preserve this review.', 'ready_for_qa', 'Ready for QA.', NULL
+          ),
+          (
+            ${recovery.acceptedItem}, ${recovery.oldInstallation}, 'afterchime',
+            'Accepted review', 'Keep this accepted.', 'accepted', 'Accepted by Andrew.', now()
+          ),
+          (
+            ${recovery.currentItem}, ${recovery.currentInstallation}, 'afterchime',
+            'Current request', 'Newest installation request.', 'queued', 'Queued in submission order.', NULL
+          )
+      `;
+      await admin`
+        INSERT INTO dev_feedback_revisions (
+          id, item_id, installation_id, revision, idempotency_key, request_hash,
+          title, description, context, screenshot, screenshot_media_type,
+          screenshot_sha256, screenshot_width, screenshot_height
+        ) VALUES
+          (
+            ${recovery.readyRevision}, ${recovery.readyItem}, ${recovery.oldInstallation}, 1,
+            '00000000-0000-4000-8000-000000009041', ${"1".repeat(64)},
+            'Ready review', 'Preserve this review.', '{}'::jsonb, decode('00', 'hex'),
+            'image/webp', ${"2".repeat(64)}, 1, 1
+          ),
+          (
+            ${recovery.acceptedRevision}, ${recovery.acceptedItem}, ${recovery.oldInstallation}, 1,
+            '00000000-0000-4000-8000-000000009042', ${"3".repeat(64)},
+            'Accepted review', 'Keep this accepted.', '{}'::jsonb, decode('00', 'hex'),
+            'image/webp', ${"4".repeat(64)}, 1, 1
+          ),
+          (
+            ${recovery.currentRevision}, ${recovery.currentItem}, ${recovery.currentInstallation}, 1,
+            '00000000-0000-4000-8000-000000009043', ${"5".repeat(64)},
+            'Current request', 'Newest installation request.', '{}'::jsonb, decode('00', 'hex'),
+            'image/webp', ${"6".repeat(64)}, 1, 1
+          )
+      `;
+
+      const migrationSql = await readFile(
+        path.join(process.cwd(), "migrations/0013_restore_feedback_review_queue.sql"),
+        "utf8",
+      );
+      await admin.unsafe(migrationSql);
+      await admin.unsafe(migrationSql);
+
+      const rows = await admin<
+        Readonly<{
+          id: string;
+          installation_id: string;
+          revision_installation_id: string;
+          status: string;
+        }>[]
+      >`
+        SELECT
+          item.id::text,
+          item.installation_id::text,
+          revision.installation_id::text AS revision_installation_id,
+          item.status::text
+        FROM dev_feedback_items AS item
+        INNER JOIN dev_feedback_revisions AS revision ON revision.item_id = item.id
+        WHERE item.id IN (${recovery.readyItem}, ${recovery.acceptedItem}, ${recovery.currentItem})
+        ORDER BY item.id
+      `;
+
+      expect(rows).toEqual([
+        {
+          id: recovery.readyItem,
+          installation_id: recovery.currentInstallation,
+          revision_installation_id: recovery.currentInstallation,
+          status: "ready_for_qa",
+        },
+        {
+          id: recovery.acceptedItem,
+          installation_id: recovery.oldInstallation,
+          revision_installation_id: recovery.oldInstallation,
+          status: "accepted",
+        },
+        {
+          id: recovery.currentItem,
+          installation_id: recovery.currentInstallation,
+          revision_installation_id: recovery.currentInstallation,
+          status: "queued",
+        },
+      ]);
+    } finally {
+      await admin`
+        DELETE FROM dev_feedback_items
+        WHERE id IN (${recovery.readyItem}, ${recovery.acceptedItem}, ${recovery.currentItem})
+      `;
+      await admin`
+        DELETE FROM installations
+        WHERE id IN (${recovery.oldInstallation}, ${recovery.currentInstallation})
+      `;
+      await admin`
+        DELETE FROM users
+        WHERE id IN (${recovery.oldUser}, ${recovery.currentUser})
+      `;
+    }
+  });
+
   it("enforces ownership, bounded idempotency, aggregate revision, and synthetic-build constraints", async () => {
     const constraints = await migrator<
       Readonly<{
@@ -703,7 +836,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "13", hash: expect.any(String) });
+    expect(before).toEqual({ count: "14", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });

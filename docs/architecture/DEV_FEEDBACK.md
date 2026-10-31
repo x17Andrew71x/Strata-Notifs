@@ -72,6 +72,7 @@ Rules:
 - Every worker mutation is fenced by the current lease and item revision.
 - A stale worker cannot update status after an amendment or lease recovery.
 - Accept is idempotent and valid only from Ready for QA.
+- Anonymous installation rotation must not hide, accept, close or delete Andrew's pending review queue. A controlled recovery may re-home only Queued, Blocked, Failed and Ready-for-QA Afterchime items—and their immutable revisions—to the current installation; Accepted and Closed history remains bound to its original identity. Acceptance still requires Andrew's explicit action after review.
 
 ## Deployment proof
 
