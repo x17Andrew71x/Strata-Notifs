@@ -64,6 +64,7 @@ private const val BRIDGE_VERSION = 2
 private const val MAX_BRIDGE_REQUEST = 128 * 1024
 internal const val LOCAL_ORIGIN = "https://appassets.androidplatform.net"
 internal const val LOCAL_ENTRY_URL = "$LOCAL_ORIGIN/assets/web/index.html"
+internal const val STARTUP_BACKGROUND_COLOR = Color.BLACK
 private const val REMOTE_READY_TIMEOUT_MS = 5_000L
 private val Context.worldCatalogDataStore by preferencesDataStore(name = "world_catalog")
 private val requestIdPattern = Regex("[A-Za-z0-9_-]{1,64}")
@@ -255,7 +256,7 @@ class MainActivity : ComponentActivity() {
         ViewGroup.LayoutParams.MATCH_PARENT,
         ViewGroup.LayoutParams.MATCH_PARENT,
       )
-      setBackgroundColor(Color.BLACK)
+      setBackgroundColor(STARTUP_BACKGROUND_COLOR)
     }
     configureWebView()
     setContentView(shell)

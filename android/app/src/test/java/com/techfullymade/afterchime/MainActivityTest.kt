@@ -74,7 +74,7 @@ class MainActivityTest {
     assertFalse(webView.settings.allowContentAccess)
     assertFalse(webView.settings.javaScriptCanOpenWindowsAutomatically)
     assertTrue(webView.settings.domStorageEnabled)
-    assertEquals(Color.BLACK, webView.solidColor)
+    assertEquals(Color.BLACK, STARTUP_BACKGROUND_COLOR)
     assertEquals(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW, webView.settings.mixedContentMode)
     val configuredShell = Uri.parse(BuildConfig.SHELL_URL)
     val expectedEntry = if (
