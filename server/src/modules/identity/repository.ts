@@ -2,7 +2,7 @@ import type { DatabaseClient } from "../../db/client.js";
 import type { AccessTokenClaims } from "../../security/tokens.js";
 
 const refreshTokenLifetimeMilliseconds = 30 * 24 * 60 * 60 * 1000;
-const automaticFeedbackRestoreVersions = new Set(["0.1.18-dev-debug"]);
+const automaticFeedbackRestoreVersions = new Set(["0.1.18-dev-debug", "0.1.19-dev-debug"]);
 
 export class IdempotencyConflictError extends Error {
   public constructor() {

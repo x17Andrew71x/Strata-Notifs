@@ -11,6 +11,10 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import org.json.JSONObject
 
+private const val ONLINE_CREDENTIAL_FILE_NAME = "afterchime-online-credentials.enc"
+private const val ONLINE_CREDENTIAL_INITIALIZATION_FILE_NAME = "afterchime-online-credentials.initialized"
+private const val ONLINE_CREDENTIAL_KEY_ALIAS = "afterchime.online-credentials.v1"
+
 /** Only this complete, encrypted session is eligible for durable storage. */
 data class CredentialSession(
   val installationId: String,
@@ -125,15 +129,21 @@ class CredentialStore(
   }
 }
 
-class AndroidCredentialCipher : CredentialCipher {
+class AndroidCredentialCipher(
+  private val keyAlias: String = ONLINE_CREDENTIAL_KEY_ALIAS,
+) : CredentialCipher {
+  init {
+    require(keyAlias.isNotBlank())
+  }
+
   private val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
 
   @Synchronized
-  override fun hasKey(): Boolean = keyStore.getKey(KEY_ALIAS, null) is SecretKey
+  override fun hasKey(): Boolean = keyStore.getKey(keyAlias, null) is SecretKey
 
   @Synchronized
   override fun encrypt(plaintext: ByteArray): ByteArray {
-    val key = keyStore.getKey(KEY_ALIAS, null) as? SecretKey ?: createKey()
+    val key = keyStore.getKey(keyAlias, null) as? SecretKey ?: createKey()
     val cipher = Cipher.getInstance(TRANSFORMATION)
     cipher.init(Cipher.ENCRYPT_MODE, key)
     return cipher.iv + cipher.doFinal(plaintext)
@@ -142,7 +152,7 @@ class AndroidCredentialCipher : CredentialCipher {
   @Synchronized
   override fun decrypt(envelope: ByteArray): ByteArray {
     require(envelope.size >= IV_LENGTH + TAG_LENGTH_BYTES)
-    val key = keyStore.getKey(KEY_ALIAS, null) as? SecretKey ?: throw IllegalStateException()
+    val key = keyStore.getKey(keyAlias, null) as? SecretKey ?: throw IllegalStateException()
     val cipher = Cipher.getInstance(TRANSFORMATION)
     cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(TAG_LENGTH_BITS, envelope.copyOfRange(0, IV_LENGTH)))
     return cipher.doFinal(envelope.copyOfRange(IV_LENGTH, envelope.size))
@@ -150,14 +160,14 @@ class AndroidCredentialCipher : CredentialCipher {
 
   @Synchronized
   override fun deleteKey(): Boolean {
-    if (!keyStore.containsAlias(KEY_ALIAS)) return true
-    keyStore.deleteEntry(KEY_ALIAS)
-    return !keyStore.containsAlias(KEY_ALIAS)
+    if (!keyStore.containsAlias(keyAlias)) return true
+    keyStore.deleteEntry(keyAlias)
+    return !keyStore.containsAlias(keyAlias)
   }
 
   private fun createKey(): SecretKey = KeyGenerator.getInstance("AES", KEYSTORE).run {
     init(android.security.keystore.KeyGenParameterSpec.Builder(
-      KEY_ALIAS,
+      keyAlias,
       android.security.keystore.KeyProperties.PURPOSE_ENCRYPT or android.security.keystore.KeyProperties.PURPOSE_DECRYPT,
     ).setBlockModes(android.security.keystore.KeyProperties.BLOCK_MODE_GCM)
       .setEncryptionPaddings(android.security.keystore.KeyProperties.ENCRYPTION_PADDING_NONE)
@@ -169,7 +179,6 @@ class AndroidCredentialCipher : CredentialCipher {
 
   private companion object {
     const val KEYSTORE = "AndroidKeyStore"
-    const val KEY_ALIAS = "afterchime.online-credentials.v1"
     const val TRANSFORMATION = "AES/GCM/NoPadding"
     const val IV_LENGTH = 12
     const val TAG_LENGTH_BITS = 128
@@ -178,9 +187,19 @@ class AndroidCredentialCipher : CredentialCipher {
 }
 
 /** AtomicFile gives crash-safe replacement; its contents are always ciphertext. */
-class AtomicCredentialEnvelopeStorage(context: Context) : CredentialEnvelopeStorage {
-  private val file = AtomicFile(File(context.noBackupFilesDir, FILE_NAME))
-  private val initializationFile = AtomicFile(File(context.noBackupFilesDir, INITIALIZATION_FILE_NAME))
+class AtomicCredentialEnvelopeStorage(
+  context: Context,
+  fileName: String = ONLINE_CREDENTIAL_FILE_NAME,
+  initializationFileName: String = ONLINE_CREDENTIAL_INITIALIZATION_FILE_NAME,
+) : CredentialEnvelopeStorage {
+  init {
+    require(fileName.isNotBlank())
+    require(initializationFileName.isNotBlank())
+    require(fileName != initializationFileName)
+  }
+
+  private val file = AtomicFile(File(context.noBackupFilesDir, fileName))
+  private val initializationFile = AtomicFile(File(context.noBackupFilesDir, initializationFileName))
 
   @Synchronized
   override fun read(): ByteArray? = if (file.baseFile.exists()) file.openRead().use { input ->
@@ -238,8 +257,6 @@ class AtomicCredentialEnvelopeStorage(context: Context) : CredentialEnvelopeStor
   }
 
   private companion object {
-    const val FILE_NAME = "afterchime-online-credentials.enc"
-    const val INITIALIZATION_FILE_NAME = "afterchime-online-credentials.initialized"
     val INITIALIZATION_MARKER = byteArrayOf(1)
   }
 }

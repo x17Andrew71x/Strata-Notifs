@@ -906,7 +906,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "18", hash: expect.any(String) });
+    expect(before).toEqual({ count: "19", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });

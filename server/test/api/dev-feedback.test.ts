@@ -202,7 +202,7 @@ describePostgres("development feedback API", () => {
       feedbackPayload("Recovered without another hand-off"),
     );
 
-    const repaired = await install(app, "127.0.2.14", "0.1.18-dev-debug");
+    const repaired = await install(app, "127.0.2.14", "0.1.19-dev-debug");
 
     expect((await list(app, prior.accessToken)).json().items).toEqual([]);
     expect((await list(app, repaired.accessToken)).json().items).toEqual([

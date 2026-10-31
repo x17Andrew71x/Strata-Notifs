@@ -127,6 +127,13 @@
       "when": 1793467398000,
       "tag": "0017_restore_feedback_after_registration",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793471711000,
+      "tag": "0018_restore_feedback_isolated_client",
+      "breakpoints": true
     }
   ]
 }
