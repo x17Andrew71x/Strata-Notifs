@@ -290,7 +290,8 @@ describe("full shell application", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Exhibits" }));
 
-    expect(screen.getByRole("heading", { name: "Exhibits" })).toBeTruthy();
+    const exhibitsHeading = screen.getByRole("heading", { name: "Exhibits" });
+    expect(exhibitsHeading.parentElement).toHaveClass("screen-heading");
     expect(
       screen.getByRole("img", { name: /The Returning Light, 56\.46% restored/i }),
     ).toBeTruthy();

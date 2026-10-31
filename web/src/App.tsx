@@ -1162,13 +1162,12 @@ function Community({
 
   return (
     <section className="screen exhibits-screen" aria-labelledby="exhibits-title">
-      <header className="exhibits-heading screen-heading">
-        <div>
-          <p className="eyebrow">Community excavation</p>
-          <h1 id="exhibits-title">Exhibits</h1>
-        </div>
-        <p>One shared restoration. Your contribution remains private.</p>
-      </header>
+      <PageHeading
+        eyebrow="Community excavation"
+        title="Exhibits"
+        titleId="exhibits-title"
+        description="One shared restoration. Your contribution remains private."
+      />
 
       {featured && (
         <article className="featured-exhibit" aria-labelledby="featured-exhibit-title">
