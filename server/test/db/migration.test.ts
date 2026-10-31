@@ -409,6 +409,9 @@ describePostgres("initial PostgreSQL schema migration", () => {
     const recovery = {
       acceptedItem: "00000000-0000-4000-8000-000000009022",
       acceptedRevision: "00000000-0000-4000-8000-000000009032",
+      activeItem: "00000000-0000-4000-8000-000000009025",
+      activeLease: "00000000-0000-4000-8000-000000009055",
+      activeRevision: "00000000-0000-4000-8000-000000009035",
       currentInstallation: "00000000-0000-4000-8000-000000009012",
       currentItem: "00000000-0000-4000-8000-000000009023",
       currentRevision: "00000000-0000-4000-8000-000000009033",
@@ -417,6 +420,9 @@ describePostgres("initial PostgreSQL schema migration", () => {
       oldUser: "00000000-0000-4000-8000-000000009001",
       readyItem: "00000000-0000-4000-8000-000000009021",
       readyRevision: "00000000-0000-4000-8000-000000009031",
+      staleItem: "00000000-0000-4000-8000-000000009024",
+      staleLease: "00000000-0000-4000-8000-000000009054",
+      staleRevision: "00000000-0000-4000-8000-000000009034",
     } as const;
 
     try {
@@ -434,19 +440,33 @@ describePostgres("initial PostgreSQL schema migration", () => {
       `;
       await admin`
         INSERT INTO dev_feedback_items (
-          id, installation_id, project_id, title, description, status, note, accepted_at
+          id, installation_id, project_id, title, description, status, note, accepted_at,
+          lease_id, lease_revision, lease_expires_at
         ) VALUES
           (
             ${recovery.readyItem}, ${recovery.oldInstallation}, 'afterchime',
-            'Ready review', 'Preserve this review.', 'ready_for_qa', 'Ready for QA.', NULL
+            'Ready review', 'Preserve this review.', 'ready_for_qa', 'Ready for QA.', NULL,
+            NULL, NULL, NULL
           ),
           (
             ${recovery.acceptedItem}, ${recovery.oldInstallation}, 'afterchime',
-            'Accepted review', 'Keep this accepted.', 'accepted', 'Accepted by Andrew.', now()
+            'Accepted review', 'Keep this accepted.', 'accepted', 'Accepted by Andrew.', now(),
+            NULL, NULL, NULL
+          ),
+          (
+            ${recovery.staleItem}, ${recovery.oldInstallation}, 'afterchime',
+            'Stale work', 'Restore expired work.', 'in_progress', 'Working on the requested change.', NULL,
+            ${recovery.staleLease}, 1, now() - interval '1 minute'
+          ),
+          (
+            ${recovery.activeItem}, ${recovery.oldInstallation}, 'afterchime',
+            'Active work', 'Do not move active work.', 'in_progress', 'Working on the requested change.', NULL,
+            ${recovery.activeLease}, 1, now() + interval '5 minutes'
           ),
           (
             ${recovery.currentItem}, ${recovery.currentInstallation}, 'afterchime',
-            'Current request', 'Newest installation request.', 'queued', 'Queued in submission order.', NULL
+            'Current request', 'Newest installation request.', 'queued', 'Queued in submission order.', NULL,
+            NULL, NULL, NULL
           )
       `;
       await admin`
@@ -468,6 +488,18 @@ describePostgres("initial PostgreSQL schema migration", () => {
             'image/webp', ${"4".repeat(64)}, 1, 1
           ),
           (
+            ${recovery.staleRevision}, ${recovery.staleItem}, ${recovery.oldInstallation}, 1,
+            '00000000-0000-4000-8000-000000009044', ${"7".repeat(64)},
+            'Stale work', 'Restore expired work.', '{}'::jsonb, decode('00', 'hex'),
+            'image/webp', ${"8".repeat(64)}, 1, 1
+          ),
+          (
+            ${recovery.activeRevision}, ${recovery.activeItem}, ${recovery.oldInstallation}, 1,
+            '00000000-0000-4000-8000-000000009045', ${"9".repeat(64)},
+            'Active work', 'Do not move active work.', '{}'::jsonb, decode('00', 'hex'),
+            'image/webp', ${"a".repeat(64)}, 1, 1
+          ),
+          (
             ${recovery.currentRevision}, ${recovery.currentItem}, ${recovery.currentInstallation}, 1,
             '00000000-0000-4000-8000-000000009043', ${"5".repeat(64)},
             'Current request', 'Newest installation request.', '{}'::jsonb, decode('00', 'hex'),
@@ -475,12 +507,17 @@ describePostgres("initial PostgreSQL schema migration", () => {
           )
       `;
 
-      const migrationSql = await readFile(
-        path.join(process.cwd(), "migrations/0013_restore_feedback_review_queue.sql"),
-        "utf8",
-      );
-      await admin.unsafe(migrationSql);
-      await admin.unsafe(migrationSql);
+      for (const migration of [
+        "0013_restore_feedback_review_queue.sql",
+        "0014_restore_stale_feedback_work.sql",
+      ]) {
+        const migrationSql = await readFile(
+          path.join(process.cwd(), "migrations", migration),
+          "utf8",
+        );
+        await admin.unsafe(migrationSql);
+        await admin.unsafe(migrationSql);
+      }
 
       const rows = await admin<
         Readonly<{
@@ -497,7 +534,13 @@ describePostgres("initial PostgreSQL schema migration", () => {
           item.status::text
         FROM dev_feedback_items AS item
         INNER JOIN dev_feedback_revisions AS revision ON revision.item_id = item.id
-        WHERE item.id IN (${recovery.readyItem}, ${recovery.acceptedItem}, ${recovery.currentItem})
+        WHERE item.id IN (
+          ${recovery.readyItem},
+          ${recovery.acceptedItem},
+          ${recovery.staleItem},
+          ${recovery.activeItem},
+          ${recovery.currentItem}
+        )
         ORDER BY item.id
       `;
 
@@ -520,11 +563,29 @@ describePostgres("initial PostgreSQL schema migration", () => {
           revision_installation_id: recovery.currentInstallation,
           status: "queued",
         },
+        {
+          id: recovery.staleItem,
+          installation_id: recovery.currentInstallation,
+          revision_installation_id: recovery.currentInstallation,
+          status: "in_progress",
+        },
+        {
+          id: recovery.activeItem,
+          installation_id: recovery.oldInstallation,
+          revision_installation_id: recovery.oldInstallation,
+          status: "in_progress",
+        },
       ]);
     } finally {
       await admin`
         DELETE FROM dev_feedback_items
-        WHERE id IN (${recovery.readyItem}, ${recovery.acceptedItem}, ${recovery.currentItem})
+        WHERE id IN (
+          ${recovery.readyItem},
+          ${recovery.acceptedItem},
+          ${recovery.staleItem},
+          ${recovery.activeItem},
+          ${recovery.currentItem}
+        )
       `;
       await admin`
         DELETE FROM installations
@@ -836,7 +897,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "14", hash: expect.any(String) });
+    expect(before).toEqual({ count: "15", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });
