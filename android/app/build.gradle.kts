@@ -35,8 +35,8 @@ android {
     applicationId = "com.techfullymade.afterchime"
     minSdk = 31
     targetSdk = 36
-    versionCode = 1017
-    versionName = "0.1.17"
+    versionCode = 1018
+    versionName = "0.1.18"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 

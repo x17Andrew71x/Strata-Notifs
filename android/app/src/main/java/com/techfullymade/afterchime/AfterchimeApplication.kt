@@ -211,18 +211,26 @@ class AfterchimeApplication : Application() {
       DevelopmentFeedbackTokenRecovery(
         currentSession = onlineIdentityRepository::currentSession,
         resetUnavailableCredentials = onlineIdentityRepository::resetUnavailableCredentials,
-        registerSession = ::registerDevelopmentFeedbackIdentity,
+        registerSession = { registerDevelopmentFeedbackIdentity() != null },
         tokenLookup = onlineTokenAuthenticator::accessToken,
       ).accessToken()
     }
   }
 
-  private fun registerDevelopmentFeedbackIdentity(): Boolean {
+  internal suspend fun recoverDevelopmentFeedbackTokenAfterUnauthorized(): String? {
+    if (!BuildConfig.DEV_FEEDBACK_ENABLED) return null
+    return withContext(Dispatchers.IO) {
+      if (!onlineIdentityRepository.resetRejectedDevelopmentFeedbackCredentials()) return@withContext null
+      registerDevelopmentFeedbackIdentity()?.accessToken
+    }
+  }
+
+  private fun registerDevelopmentFeedbackIdentity(): CredentialSession? {
     val preferences = getSharedPreferences(DEV_FEEDBACK_IDENTITY_STORE, MODE_PRIVATE)
     val idempotencyKey = preferences.getString(DEV_FEEDBACK_IDEMPOTENCY_KEY, null)
       ?: UUID.randomUUID().toString().also { generated ->
         if (!preferences.edit().putString(DEV_FEEDBACK_IDEMPOTENCY_KEY, generated).commit()) {
-          return false
+          return null
         }
       }
     val registered = onlineIdentityRepository.register(
@@ -233,9 +241,9 @@ class AfterchimeApplication : Application() {
       ),
       idempotencyKey,
     )
-    if (registered !is IdentityResult.Success) return false
+    val session = (registered as? IdentityResult.Success)?.value ?: return null
     preferences.edit().remove(DEV_FEEDBACK_IDEMPOTENCY_KEY).commit()
-    return true
+    return session
   }
 
   private suspend fun communityAccessToken(): String? = profileAccessToken()

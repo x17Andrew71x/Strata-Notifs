@@ -120,6 +120,13 @@
       "when": 1793416266985,
       "tag": "0016_restore_feedback_client_function",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793467398000,
+      "tag": "0017_restore_feedback_after_registration",
+      "breakpoints": true
     }
   ]
 }

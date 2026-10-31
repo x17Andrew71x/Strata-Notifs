@@ -124,6 +124,18 @@ class OnlineIdentityRepositoryTest {
   }
 
   @Test
+  fun `explicit API rejection repair clears an available credential boundary once`() {
+    val fixture = Fixture()
+    val repository = fixture.repository()
+    assertFalse(repository.resetRejectedDevelopmentFeedbackCredentials())
+
+    assertTrue(fixture.store.save(fixture.session("a1", "r1", fixture.clock.millis())))
+    assertTrue(repository.resetRejectedDevelopmentFeedbackCredentials())
+    assertEquals(CredentialRead.Missing, fixture.store.read())
+    assertFalse(repository.resetRejectedDevelopmentFeedbackCredentials())
+  }
+
+  @Test
   fun `initialization marker loss fails closed`() {
     val fixture = Fixture()
     assertTrue(fixture.store.save(fixture.session("a1", "r1", fixture.clock.millis())))

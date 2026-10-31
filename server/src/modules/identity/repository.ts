@@ -2,6 +2,7 @@ import type { DatabaseClient } from "../../db/client.js";
 import type { AccessTokenClaims } from "../../security/tokens.js";
 
 const refreshTokenLifetimeMilliseconds = 30 * 24 * 60 * 60 * 1000;
+const automaticFeedbackRestoreVersions = new Set(["0.1.18-dev-debug"]);
 
 export class IdempotencyConflictError extends Error {
   public constructor() {
@@ -92,11 +93,26 @@ export class IdentityRepository {
       if (!record) {
         throw new Error("registration_result_missing");
       }
-      return {
+      const result = {
         idempotent: record.idempotent,
         installationId: record.installation_id,
         userId: record.user_id,
       };
+      if (input.buildChannel === "dev" && automaticFeedbackRestoreVersions.has(input.appVersion)) {
+        const [restored] = await this.database<
+          Readonly<{ target_installation_id: string; moved_items: number }>[]
+        >`
+          SELECT *
+          FROM public.afterchime_restore_feedback_to_installation(
+            ${"afterchime"},
+            ${result.installationId}
+          )
+        `;
+        if (restored?.target_installation_id !== result.installationId) {
+          throw new Error("feedback_restore_result_missing");
+        }
+      }
+      return result;
     } catch (error) {
       if (isPostgresError(error, "P0001")) {
         throw new IdempotencyConflictError();

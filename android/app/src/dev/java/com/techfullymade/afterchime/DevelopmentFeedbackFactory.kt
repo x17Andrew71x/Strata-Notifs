@@ -79,35 +79,16 @@ private class AndroidDevelopmentFeedback(
       null
     }
     dependencies.activity.lifecycleScope.launch {
-      val token = dependencies.application.developmentFeedbackToken()
-      if (token == null) {
+      val result = withContext(Dispatchers.IO) {
+        executeDevelopmentFeedbackRequest(
+          tokenProvider = dependencies.application::developmentFeedbackToken,
+          unauthorizedTokenProvider = dependencies.application::recoverDevelopmentFeedbackTokenAfterUnauthorized,
+          request = { token -> executeRequest(request, draft, screenshot, token) },
+        )
+      }
+      if (result == null) {
         postState(request, proxy, error = "identity_unavailable")
         return@launch
-      }
-      val result = withContext(Dispatchers.IO) {
-        when (request.type) {
-          "devFeedback.items" -> api.list(token)
-          "devFeedback.submit" -> api.submit(
-            draft ?: return@withContext malformed(),
-            screenshot ?: return@withContext malformed(),
-            token,
-          )
-          "devFeedback.amend" -> api.amend(
-            request.payload?.getString("itemId") ?: "",
-            draft ?: return@withContext malformed(),
-            screenshot ?: return@withContext malformed(),
-            token,
-          )
-          "devFeedback.accept" -> api.accept(
-            request.payload?.getString("itemId") ?: "",
-            token,
-          )
-          "devFeedback.close" -> api.close(
-            request.payload?.getString("itemId") ?: "",
-            token,
-          )
-          else -> malformed()
-        }
       }
       val state = result.value
       if (state == null) {
@@ -117,6 +98,31 @@ private class AndroidDevelopmentFeedback(
       }
     }
     return true
+  }
+
+  private fun executeRequest(
+    request: BridgeRequest,
+    draft: com.techfullymade.afterchime.devfeedback.DevFeedbackDraft?,
+    screenshot: com.techfullymade.afterchime.devfeedback.DevFeedbackScreenshot?,
+    token: String,
+  ): ApiResult<DevFeedbackState> {
+    return when (request.type) {
+      "devFeedback.items" -> api.list(token)
+      "devFeedback.submit" -> {
+        val body = draft ?: return malformed()
+        val image = screenshot ?: return malformed()
+        api.submit(body, image, token)
+      }
+      "devFeedback.amend" -> {
+        val itemId = request.payload?.optString("itemId").orEmpty()
+        val body = draft ?: return malformed()
+        val image = screenshot ?: return malformed()
+        api.amend(itemId, body, image, token)
+      }
+      "devFeedback.accept" -> api.accept(request.payload?.optString("itemId").orEmpty(), token)
+      "devFeedback.close" -> api.close(request.payload?.optString("itemId").orEmpty(), token)
+      else -> malformed()
+    }
   }
 
   private fun malformed(): ApiResult<DevFeedbackState> = ApiResult.failure(ApiFailure.MalformedResponse)
@@ -163,6 +169,18 @@ private class AndroidDevelopmentFeedback(
         .toString(),
     )
   }
+}
+
+internal suspend fun <T> executeDevelopmentFeedbackRequest(
+  tokenProvider: suspend () -> String?,
+  unauthorizedTokenProvider: suspend () -> String?,
+  request: (String) -> ApiResult<T>,
+): ApiResult<T>? {
+  val token = tokenProvider() ?: return null
+  val first = request(token)
+  if (first.failure != ApiFailure.Unauthorized) return first
+  val replacement = unauthorizedTokenProvider() ?: return null
+  return request(replacement)
 }
 
 private fun validPayload(payload: JSONObject, amendment: Boolean): Boolean {

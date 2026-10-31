@@ -192,6 +192,28 @@ describePostgres("development feedback API", () => {
     });
   });
 
+  it("automatically restores open feedback when the repaired client registers", async () => {
+    const app = await appForDatabase();
+    const prior = await install(app, "127.0.2.13", "0.1.17-dev-debug");
+    const created = await submit(
+      app,
+      prior.accessToken,
+      randomUUID(),
+      feedbackPayload("Recovered without another hand-off"),
+    );
+
+    const repaired = await install(app, "127.0.2.14", "0.1.18-dev-debug");
+
+    expect((await list(app, prior.accessToken)).json().items).toEqual([]);
+    expect((await list(app, repaired.accessToken)).json().items).toEqual([
+      expect.objectContaining({
+        id: created.json().item.id,
+        status: "queued",
+        title: "Recovered without another hand-off",
+      }),
+    ]);
+  });
+
   it("keeps trusted Decree and PJS queues isolated under separate credentials", async () => {
     await seedTrustedIdentities();
     const app = await appForDatabase();
