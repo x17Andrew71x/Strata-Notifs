@@ -42,7 +42,9 @@ describe("Museum rarity card styling", () => {
     );
   });
 
-  it("keeps the existing card treatment without adding a second image border", () => {
+  it("gives every museum card a restrained outer border without adding a second image border", () => {
+    expect(declarationBlock(".specimen-card")).toContain("border: 1px solid #333");
+
     const frame = declarationBlock(".specimen-card .specimen-frame");
     expect(frame).toContain("border: 0");
     expect(frame).toContain("box-shadow: none");
