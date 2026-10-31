@@ -108,6 +108,8 @@ type RevisionDescriptionRow = Readonly<{
 }>;
 
 const MAX_COMPILED_DESCRIPTION_CHARS = 4_000;
+const NATIVE_FAILED_STATUS_PREFIX = "[failed] ";
+const MAX_OWNER_NOTE_CHARS = 600;
 
 export class DevFeedbackConflictError extends Error {
   public constructor(message = "dev_feedback_conflict") {
@@ -631,7 +633,7 @@ async function listOpen(
     ORDER BY item.queue_position
     LIMIT 200
   `;
-  return rows.map(mapItem);
+  return rows.map(mapOwnerItem);
 }
 
 function formatFeedbackHistory(revisions: readonly RevisionDescriptionRow[]): string {
@@ -655,6 +657,17 @@ function hasDatabaseCode(error: unknown, code: string): boolean {
     "code" in error &&
     (error as { code?: unknown }).code === code
   );
+}
+
+function mapOwnerItem(row: ItemRow): DevFeedbackItem {
+  const item = mapItem(row);
+  if (item.status !== "failed") return item;
+  const maximumNoteLength = MAX_OWNER_NOTE_CHARS - NATIVE_FAILED_STATUS_PREFIX.length;
+  return {
+    ...item,
+    status: "blocked",
+    note: `${NATIVE_FAILED_STATUS_PREFIX}${item.note.slice(0, maximumNoteLength)}`,
+  };
 }
 
 function mapItem(row: ItemRow): DevFeedbackItem {

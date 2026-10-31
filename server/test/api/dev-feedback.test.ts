@@ -386,7 +386,11 @@ describePostgres("development feedback API", () => {
 
     const visible = await list(app, owner.accessToken);
     expect(visible.json().items).toEqual([
-      expect.objectContaining({ id: claimed.item.id, status: "failed" }),
+      expect.objectContaining({
+        id: claimed.item.id,
+        status: "blocked",
+        note: "[failed] Provider retries were exhausted.",
+      }),
       expect.objectContaining({ id: laterItem.json().item.id, status: "queued" }),
     ]);
     const amendment = await app.inject({

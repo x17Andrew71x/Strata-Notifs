@@ -3,6 +3,8 @@ import type { DevFeedbackDraft, DevFeedbackItem, DevFeedbackTransport } from "./
 
 type NativeSender = (type: NativeAction, payload?: Record<string, unknown>) => string | null;
 
+const FAILED_STATUS_PREFIX = "[failed] ";
+
 type PendingRequest = Readonly<{
   resolve(response: NativeResponse): void;
   reject(error: Error): void;
@@ -43,7 +45,7 @@ export class NativeDevFeedbackTransport implements DevFeedbackTransport {
     if (response.type !== "devFeedback.state" || response.operation !== "list") {
       throw new Error("development_feedback_response_mismatch");
     }
-    return response.items;
+    return response.items.map(restoreFailedStatus);
   }
 
   public async submit(draft: DevFeedbackDraft): Promise<DevFeedbackItem> {
@@ -96,4 +98,13 @@ export class NativeDevFeedbackTransport implements DevFeedbackTransport {
       this.pending.set(id, { resolve, reject, timeout });
     });
   }
+}
+
+function restoreFailedStatus(item: DevFeedbackItem): DevFeedbackItem {
+  if (item.status !== "blocked" || !item.note.startsWith(FAILED_STATUS_PREFIX)) return item;
+  return {
+    ...item,
+    status: "failed",
+    note: item.note.slice(FAILED_STATUS_PREFIX.length),
+  };
 }

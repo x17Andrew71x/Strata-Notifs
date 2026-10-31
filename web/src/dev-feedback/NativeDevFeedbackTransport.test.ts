@@ -71,6 +71,27 @@ describe("native development-feedback transport", () => {
     await expect(amendment).resolves.toEqual(revised);
   });
 
+  it("restores failed work items from the native-compatible wire status", async () => {
+    const send = vi.fn(() => "request_1");
+    const transport = new NativeDevFeedbackTransport(send, 2_000);
+    const compatibleFailure: DevFeedbackItem = {
+      ...saved,
+      status: "blocked",
+      note: "[failed] Provider retries were exhausted.",
+    };
+
+    const listing = transport.listOpen();
+    transport.handleResponse(stateResponse("request_1", "list", null, [compatibleFailure]));
+
+    await expect(listing).resolves.toEqual([
+      {
+        ...saved,
+        status: "failed",
+        note: "Provider retries were exhausted.",
+      },
+    ]);
+  });
+
   it("rejects native failures and completes a verified shell refresh", async () => {
     let next = 0;
     const send = vi.fn(() => `request_${++next}`);
