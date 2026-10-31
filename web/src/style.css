@@ -407,7 +407,7 @@ p {
 
 .screen-heading > p:last-child {
   max-width: 590px;
-  margin-bottom: 0;
+  margin-bottom: 24px;
   font-size: 15px;
 }
 

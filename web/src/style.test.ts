@@ -51,6 +51,14 @@ describe("Museum rarity card styling", () => {
   });
 });
 
+describe("shared page headings", () => {
+  it("separates a subtitle from the page content beneath it", () => {
+    const subtitle = declarationBlock(".screen-heading > p:last-child");
+
+    expect(subtitle).toContain("margin-bottom: 24px");
+  });
+});
+
 describe("excavation motion", () => {
   it("gives the unlocked excavation preview the larger mobile stage without enlarging the locked formation", () => {
     const mobileExcavation = lastDeclarationBlock(".excavation");
