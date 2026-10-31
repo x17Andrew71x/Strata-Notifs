@@ -14,6 +14,13 @@ ANDROID_ASSETS = DEST.parent
 ASSET_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$")
 WORLD_ASSET_PATTERN = re.compile(r"^[a-z0-9-]{1,128}-[a-f0-9]{12}\.(?:jpg|webp)$")
 BRAND_ASSET_NAME = "afterchime-mark.webp"
+PRESERVED_ANDROID_EXHIBIT_ASSETS = {
+    "ember-flight-placeholder-06a33afcd216.webp",
+    "long-night-placeholder-65aa588c66bf.webp",
+    "monsoon-choir-placeholder-c754a2db5e27.webp",
+    "returning-light-placeholder-9b0223afcfc7.webp",
+    "tideglass-placeholder-38d7b8496d0c.webp",
+}
 CSP = (
     "default-src 'none'; script-src 'self'; style-src 'self'; "
     "style-src-attr 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; "
@@ -45,6 +52,11 @@ def main() -> None:
     exhibit_assets = sorted(exhibits_path.glob("*.webp"))
     if not exhibit_assets or any(not WORLD_ASSET_PATTERN.fullmatch(path.name) for path in exhibit_assets):
         raise SystemExit("web/dist/exhibits contains missing or non-content-addressed images")
+    missing_preserved_assets = sorted(
+        name for name in PRESERVED_ANDROID_EXHIBIT_ASSETS if not (ANDROID_ASSETS / name).is_file()
+    )
+    if missing_preserved_assets:
+        raise SystemExit(f"Android legacy Exhibit assets are missing: {missing_preserved_assets}")
 
     html = index_path.read_text(encoding="utf-8")
     html = html.replace('src="/assets/', 'src="/assets/web/assets/')
@@ -64,7 +76,11 @@ def main() -> None:
     for asset in assets:
         shutil.copyfile(asset, destination_assets / asset.name)
     for stale_world_asset in ANDROID_ASSETS.iterdir():
-        if stale_world_asset.is_file() and WORLD_ASSET_PATTERN.fullmatch(stale_world_asset.name):
+        if (
+            stale_world_asset.is_file()
+            and WORLD_ASSET_PATTERN.fullmatch(stale_world_asset.name)
+            and stale_world_asset.name not in PRESERVED_ANDROID_EXHIBIT_ASSETS
+        ):
             stale_world_asset.unlink()
     for world_asset in world_assets:
         shutil.copyfile(world_asset, ANDROID_ASSETS / world_asset.name)
