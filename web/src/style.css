@@ -1770,6 +1770,7 @@ p {
   display: grid;
   gap: 6px;
   min-width: 0;
+  border: 0;
   border-radius: 18px;
   padding: 12px;
   background: transparent;
