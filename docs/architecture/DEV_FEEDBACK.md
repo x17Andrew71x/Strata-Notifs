@@ -86,7 +86,7 @@ Alfred must additionally verify the live shell manifest and changed asset or beh
 
 ## Security
 
-- App routes require the existing short-lived pseudonymous installation bearer token and remain installation-scoped under forced RLS.
+- App routes require the existing short-lived pseudonymous installation bearer token and remain installation-scoped under forced RLS. In the development flavour only, disabling Online features revokes essential, analytics and notification-summary consent but retains that anonymous credential so the owner-only feedback queue remains reachable; no totals or analytics may upload while Online features are off. Production continues to log out and erase the credential after revocation.
 - The development-feedback module is disabled unless the development environment explicitly enables it.
 - Production builds and services fail closed: Vite tree-shakes the feedback chunk, the server prunes its compiled module and runtime migration bundle, and Android compiles the implementation only in `src/dev`; artifact scans reject feedback action, route and class markers in production outputs.
 - Controller credentials remain outside the client and are hashed server-side.

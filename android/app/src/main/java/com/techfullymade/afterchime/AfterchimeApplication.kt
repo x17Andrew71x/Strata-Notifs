@@ -166,6 +166,7 @@ class AfterchimeApplication : Application() {
           deviceClass = onlineDeviceClass(resources.configuration.smallestScreenWidthDp),
         )
       },
+      retainIdentityWhenOnlineFeaturesDisabled = BuildConfig.DEV_FEEDBACK_ENABLED,
     )
   }
 

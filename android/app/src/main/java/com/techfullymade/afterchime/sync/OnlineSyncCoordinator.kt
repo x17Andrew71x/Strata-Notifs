@@ -134,6 +134,7 @@ internal class OnlineSyncCoordinator(
   private val analyticsOutbox: AnalyticsOutboxSync,
   private val state: OnlineSyncStateStore,
   private val registrationRequest: () -> RegistrationRequest,
+  private val retainIdentityWhenOnlineFeaturesDisabled: Boolean = false,
   private val nowMillis: () -> Long = System::currentTimeMillis,
 ) : OnlineSyncRunner {
   override suspend fun sync(): OnlineSyncOutcome {
@@ -310,6 +311,7 @@ internal class OnlineSyncCoordinator(
       val outcome = syncConsent(scope, target, token)
       if (outcome != OnlineSyncOutcome.SUCCESS) return outcome
     }
+    if (retainIdentityWhenOnlineFeaturesDisabled) return OnlineSyncOutcome.SUCCESS
     return when (val result = identity.logout()) {
       is IdentityResult.Success -> if (state.clear()) OnlineSyncOutcome.SUCCESS else OnlineSyncOutcome.FAILURE
       is IdentityResult.Failure -> {

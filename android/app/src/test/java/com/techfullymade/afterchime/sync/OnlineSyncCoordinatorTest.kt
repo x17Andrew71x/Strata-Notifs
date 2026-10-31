@@ -199,6 +199,29 @@ class OnlineSyncCoordinatorTest {
   }
 
   @Test
+  fun `development feedback keeps the anonymous identity after consent revocation`() = runBlocking {
+    val fixture = Fixture(
+      UserPreferences(),
+      currentSession = SESSION,
+      retainIdentityWhenOnlineFeaturesDisabled = true,
+    )
+    fixture.acknowledgeAll(true)
+
+    assertEquals(OnlineSyncOutcome.SUCCESS, fixture.coordinator().sync())
+    assertEquals(
+      listOf(
+        OnlineConsentScope.PRODUCT_ANALYTICS.wireName,
+        OnlineConsentScope.NOTIFICATION_AGGREGATES.wireName,
+        OnlineConsentScope.ESSENTIAL_ONLINE.wireName,
+      ),
+      fixture.api.consentCalls.map { it.request.scope },
+    )
+    assertTrue(fixture.api.consentCalls.all { !it.request.granted })
+    assertEquals(0, fixture.identity.logoutCalls)
+    assertEquals(SESSION, fixture.identity.current)
+  }
+
+  @Test
   fun `uncertain logout preserves credentials and acknowledged revocations for retry`() = runBlocking {
     val fixture = Fixture(UserPreferences(), currentSession = SESSION)
     fixture.acknowledgeAll(true)
@@ -228,6 +251,7 @@ class OnlineSyncCoordinatorTest {
     private val preferences: UserPreferences,
     currentSession: CredentialSession? = null,
     summaries: MutableList<DailyNotificationSummaryEntity> = mutableListOf(),
+    private val retainIdentityWhenOnlineFeaturesDisabled: Boolean = false,
   ) {
     private val persistence = MemoryPersistence()
     private val ids = ArrayDeque(listOf(ID_ONE, ID_TWO, ID_THREE, ID_FOUR, ID_FIVE, ID_SIX, ID_SEVEN, ID_EIGHT))
@@ -247,6 +271,7 @@ class OnlineSyncCoordinatorTest {
       analyticsOutbox = analytics,
       state = state,
       registrationRequest = { RegistrationRequest("0.1.8-dev-debug", 35, "phone") },
+      retainIdentityWhenOnlineFeaturesDisabled = retainIdentityWhenOnlineFeaturesDisabled,
       nowMillis = { 99L },
     )
 
