@@ -3,7 +3,6 @@ package com.techfullymade.afterchime
 import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.provider.Settings
 import android.service.notification.NotificationListenerService
@@ -75,7 +74,7 @@ class MainActivityTest {
     assertFalse(webView.settings.allowContentAccess)
     assertFalse(webView.settings.javaScriptCanOpenWindowsAutomatically)
     assertTrue(webView.settings.domStorageEnabled)
-    assertEquals(Color.BLACK, (webView.background as ColorDrawable).color)
+    assertEquals(Color.BLACK, webView.solidColor)
     assertEquals(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW, webView.settings.mixedContentMode)
     val configuredShell = Uri.parse(BuildConfig.SHELL_URL)
     val expectedEntry = if (
