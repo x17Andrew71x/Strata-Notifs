@@ -412,6 +412,8 @@ describePostgres("initial PostgreSQL schema migration", () => {
       activeItem: "00000000-0000-4000-8000-000000009025",
       activeLease: "00000000-0000-4000-8000-000000009055",
       activeRevision: "00000000-0000-4000-8000-000000009035",
+      currentClientInstallation: "00000000-0000-4000-8000-000000009013",
+      currentClientUser: "00000000-0000-4000-8000-000000009003",
       currentInstallation: "00000000-0000-4000-8000-000000009012",
       currentItem: "00000000-0000-4000-8000-000000009023",
       currentRevision: "00000000-0000-4000-8000-000000009033",
@@ -430,13 +432,15 @@ describePostgres("initial PostgreSQL schema migration", () => {
         INSERT INTO users (id, build_channel, is_synthetic)
         VALUES
           (${recovery.oldUser}, 'dev', false),
-          (${recovery.currentUser}, 'dev', false)
+          (${recovery.currentUser}, 'dev', false),
+          (${recovery.currentClientUser}, 'dev', false)
       `;
       await admin`
         INSERT INTO installations (id, user_id, app_version, build_channel, is_synthetic)
         VALUES
           (${recovery.oldInstallation}, ${recovery.oldUser}, '0.1.14-dev', 'dev', false),
-          (${recovery.currentInstallation}, ${recovery.currentUser}, '0.1.15-dev', 'dev', false)
+          (${recovery.currentInstallation}, ${recovery.currentUser}, '0.1.15-dev-debug', 'dev', false),
+          (${recovery.currentClientInstallation}, ${recovery.currentClientUser}, '0.1.16-dev-debug', 'dev', false)
       `;
       await admin`
         INSERT INTO dev_feedback_items (
@@ -510,6 +514,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
       for (const migration of [
         "0013_restore_feedback_review_queue.sql",
         "0014_restore_stale_feedback_work.sql",
+        "0015_restore_current_feedback_client.sql",
       ]) {
         const migrationSql = await readFile(
           path.join(process.cwd(), "migrations", migration),
@@ -547,8 +552,8 @@ describePostgres("initial PostgreSQL schema migration", () => {
       expect(rows).toEqual([
         {
           id: recovery.readyItem,
-          installation_id: recovery.currentInstallation,
-          revision_installation_id: recovery.currentInstallation,
+          installation_id: recovery.currentClientInstallation,
+          revision_installation_id: recovery.currentClientInstallation,
           status: "ready_for_qa",
         },
         {
@@ -559,14 +564,14 @@ describePostgres("initial PostgreSQL schema migration", () => {
         },
         {
           id: recovery.currentItem,
-          installation_id: recovery.currentInstallation,
-          revision_installation_id: recovery.currentInstallation,
+          installation_id: recovery.currentClientInstallation,
+          revision_installation_id: recovery.currentClientInstallation,
           status: "queued",
         },
         {
           id: recovery.staleItem,
-          installation_id: recovery.currentInstallation,
-          revision_installation_id: recovery.currentInstallation,
+          installation_id: recovery.currentClientInstallation,
+          revision_installation_id: recovery.currentClientInstallation,
           status: "in_progress",
         },
         {
@@ -589,11 +594,15 @@ describePostgres("initial PostgreSQL schema migration", () => {
       `;
       await admin`
         DELETE FROM installations
-        WHERE id IN (${recovery.oldInstallation}, ${recovery.currentInstallation})
+        WHERE id IN (
+          ${recovery.oldInstallation},
+          ${recovery.currentInstallation},
+          ${recovery.currentClientInstallation}
+        )
       `;
       await admin`
         DELETE FROM users
-        WHERE id IN (${recovery.oldUser}, ${recovery.currentUser})
+        WHERE id IN (${recovery.oldUser}, ${recovery.currentUser}, ${recovery.currentClientUser})
       `;
     }
   });
@@ -897,7 +906,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "15", hash: expect.any(String) });
+    expect(before).toEqual({ count: "16", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });
