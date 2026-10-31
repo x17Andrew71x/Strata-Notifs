@@ -2589,14 +2589,14 @@ p {
     grid-row: 2;
   }
 
-  .formation,
-  .excavation {
+  .formation {
     max-width: min(88vw, 326px);
-    height: min(100%, 379px);
+    height: min(100%, 354px);
   }
 
-  .formation {
-    height: min(100%, 354px);
+  .excavation {
+    max-width: min(100%, 372px);
+    height: min(100%, 432px);
   }
 
   .specimen-grid {

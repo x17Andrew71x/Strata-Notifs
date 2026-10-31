@@ -52,6 +52,16 @@ describe("Museum rarity card styling", () => {
 });
 
 describe("excavation motion", () => {
+  it("gives the unlocked excavation preview the larger mobile stage without enlarging the locked formation", () => {
+    const mobileExcavation = lastDeclarationBlock(".excavation");
+    const mobileFormation = lastDeclarationBlock(".formation");
+
+    expect(mobileExcavation).toContain("max-width: min(100%, 372px)");
+    expect(mobileExcavation).toContain("height: min(100%, 432px)");
+    expect(mobileFormation).toContain("max-width: min(88vw, 326px)");
+    expect(mobileFormation).toContain("height: min(100%, 354px)");
+  });
+
   it("keeps dig statistics above and outside the excavation bed", () => {
     const excavation = declarationBlock(".excavation");
     const excavationBed = declarationBlock(".excavation-bed");
