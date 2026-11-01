@@ -294,6 +294,20 @@ describe("full shell application", () => {
     expectHeading("Series");
   });
 
+  it("uses the Collection empty-state layout for disabled Exhibits", () => {
+    const { container } = renderWithState(baseState);
+
+    fireEvent.click(screen.getByRole("button", { name: "Exhibits" }));
+
+    const emptyState = container.querySelector(".exhibit-empty-state");
+    expect(emptyState).toHaveClass("empty-state");
+    expect(emptyState?.querySelector(".exhibit-placeholder")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "The gallery is waiting." })).toBeTruthy();
+    expect(
+      screen.getByText("Enable online features in Settings to join shared restorations."),
+    ).toBeTruthy();
+  });
+
   it("renders the approved contribution-first Exhibits surface without exposing raw global counts", () => {
     renderWithState({
       ...baseState,

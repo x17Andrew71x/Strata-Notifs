@@ -1127,17 +1127,17 @@ function Community({
   if (exhibits?.status !== "READY") {
     const unavailable = exhibits?.status === "DISABLED" || !state.preferences.onlineFeaturesEnabled;
     return (
-      <section className="screen exhibits-screen exhibits-empty" aria-labelledby="exhibits-title">
-        <PageHeading
-          eyebrow="Community excavation"
-          title="Exhibits"
-          titleId="exhibits-title"
-          description={
-            unavailable
+      <section className="screen exhibits-screen" aria-labelledby="exhibits-title">
+        <PageHeading eyebrow="Community excavation" title="Exhibits" titleId="exhibits-title" />
+        <div className="empty-state exhibit-empty-state">
+          <ExhibitPlaceholder />
+          <h2>{unavailable ? "The gallery is waiting." : "The gallery is quiet."}</h2>
+          <p>
+            {unavailable
               ? "Enable online features in Settings to join shared restorations."
-              : "Exhibits are temporarily unavailable."
-          }
-        />
+              : "Exhibits are temporarily unavailable."}
+          </p>
+        </div>
       </section>
     );
   }
@@ -1773,6 +1773,18 @@ function SpecimenVisual({
       </div>
       {!compact && showCaption && <figcaption>{artifact.name}</figcaption>}
     </figure>
+  );
+}
+
+function ExhibitPlaceholder() {
+  return (
+    <svg className="exhibit-placeholder" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <title>Empty exhibit gallery</title>
+      <rect className="exhibit-placeholder-wall" x="8" y="8" width="84" height="84" rx="3" />
+      <path className="exhibit-placeholder-arch" d="M24 79V42c0-15 12-26 26-26s26 11 26 26v37" />
+      <path className="exhibit-placeholder-plinth" d="M17 79h66v7H17z" />
+      <circle className="exhibit-placeholder-light" cx="50" cy="42" r="12" />
+    </svg>
   );
 }
 

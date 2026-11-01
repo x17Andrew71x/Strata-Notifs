@@ -1856,11 +1856,39 @@ p {
   text-align: center;
 }
 
-.empty-state .specimen-visual {
+.empty-state .specimen-visual,
+.empty-state .exhibit-placeholder {
   width: 170px;
   margin-bottom: 24px;
   opacity: 0.45;
   filter: grayscale(0.4);
+}
+
+.exhibit-placeholder {
+  display: block;
+}
+
+.exhibit-placeholder-wall {
+  fill: var(--surface);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.exhibit-placeholder-arch,
+.exhibit-placeholder-plinth {
+  fill: none;
+  stroke: var(--mint);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+
+.exhibit-placeholder-plinth {
+  fill: color-mix(in srgb, var(--mint) 12%, var(--surface));
+}
+
+.exhibit-placeholder-light {
+  fill: color-mix(in srgb, var(--mint) 34%, transparent);
 }
 
 .empty-state p,
