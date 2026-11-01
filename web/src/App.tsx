@@ -734,17 +734,22 @@ function Excavation({
   const dugTiles = new Set(excavation.dugTiles);
   const tileCount = excavation.gridColumns * excavation.gridRows;
   const canAfford = excavation.energyAvailable >= excavation.tileEnergyCost;
+  const readyDigs = Math.floor(excavation.energyAvailable / excavation.tileEnergyCost);
+  const energyTowardNextDig = excavation.energyAvailable % excavation.tileEnergyCost;
   return (
     <fieldset
       className="excavation"
-      aria-label={`Excavate today’s concealed fossil. ${excavation.energyAvailable} energy available.`}
+      aria-label={`Excavate today’s concealed fossil. ${readyDigs} full digs available and ${energyTowardNextDig} of ${excavation.tileEnergyCost} energy toward the next dig.`}
     >
       <div className="excavation-hud">
         <div>
           <span>Dig energy</span>
-          <strong className={energyGained ? "energy-gained" : undefined}>
-            {excavation.energyAvailable}
-          </strong>
+          <div className="dig-energy-readout">
+            <small>
+              {energyTowardNextDig}/{excavation.tileEnergyCost}
+            </small>
+            <strong className={energyGained ? "energy-gained" : undefined}>{readyDigs}</strong>
+          </div>
         </div>
         <div>
           <span>Excavated</span>

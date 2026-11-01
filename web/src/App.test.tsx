@@ -688,7 +688,8 @@ describe("full shell application", () => {
   it("updates dig energy from a native push and requests a visible-state fallback refresh", () => {
     vi.useFakeTimers();
     renderWithState(excavationState());
-    expect(screen.getByText("3", { selector: ".excavation-hud strong" })).toBeTruthy();
+    expect(screen.getByText("1", { selector: ".excavation-hud strong" })).toBeTruthy();
+    expect(screen.getByText("0/3", { selector: ".dig-energy-readout small" })).toBeTruthy();
 
     sendState(
       excavationState({
@@ -698,15 +699,17 @@ describe("full shell application", () => {
         energyAvailable: 4,
       }),
     );
-    const gainedEnergy = screen.getByText("4", { selector: ".excavation-hud strong" });
+    const gainedEnergy = screen.getByText("1", { selector: ".excavation-hud strong" });
+    expect(screen.getByText("1/3", { selector: ".dig-energy-readout small" })).toBeTruthy();
     expect(gainedEnergy).toHaveClass("energy-gained");
 
     sendState(excavationState({ energySpent: 6, energyAvailable: 1 }));
-    expect(screen.getByText("1", { selector: ".excavation-hud strong" })).not.toHaveClass(
+    expect(screen.getByText("0", { selector: ".excavation-hud strong" })).not.toHaveClass(
       "energy-gained",
     );
     sendState(excavationState({ energySpent: 6, energyAvailable: 2 }));
-    const secondGain = screen.getByText("2", { selector: ".excavation-hud strong" });
+    const secondGain = screen.getByText("0", { selector: ".excavation-hud strong" });
+    expect(screen.getByText("2/3", { selector: ".dig-energy-readout small" })).toBeTruthy();
     expect(secondGain).toHaveClass("energy-gained");
 
     act(() => vi.advanceTimersByTime(ENERGY_GAIN_PULSE_MS));
