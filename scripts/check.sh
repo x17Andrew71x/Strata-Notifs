@@ -11,7 +11,8 @@ corepack pnpm privacy:test
 corepack pnpm privacy:check
 corepack pnpm format:check
 corepack pnpm lint
-corepack pnpm test
+corepack pnpm --filter @afterchime/web exec vitest run --pool=threads --maxWorkers=1 --no-file-parallelism
+corepack pnpm --filter @afterchime/server exec vitest run --pool=threads --maxWorkers=1 --no-file-parallelism
 corepack pnpm build
 (
   cd android
