@@ -57,6 +57,15 @@ describe("loadConfig", () => {
     expect(config.deployedRevision).toBe("a".repeat(40));
     expect(() => loadConfig({ ...validEnvironment, DEPLOYED_REVISION: "A".repeat(40) })).toThrow();
     expect(() => loadConfig({ ...validEnvironment, DEV_FEEDBACK_ENABLED: "yes" })).toThrow();
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        ADMIN_API_KEY_HASH: "d".repeat(64),
+        DEV_FEEDBACK_ENABLED: "true",
+        RAILWAY_GIT_COMMIT_SHA: "a".repeat(40),
+      }),
+    ).toThrow("development feedback is forbidden in production");
     expect(() => loadConfig({ ...validEnvironment, DEV_FEEDBACK_ENABLED: "true" })).toThrow(
       "development feedback requires an admin key digest",
     );

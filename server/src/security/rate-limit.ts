@@ -10,33 +10,6 @@ export function adminCredentialRateLimitKey(request: FastifyRequest): string {
   return typeof key === "string" && key.length <= 256 ? `admin:${digest(key)}` : `ip:${request.ip}`;
 }
 
-const feedbackProjects = new Set(["afterchime", "decree", "please-just-sleep"]);
-
-function feedbackProjectBucket(
-  value: string | string[] | undefined,
-  fallback?: string,
-): string | null {
-  const candidate = typeof value === "string" ? value : fallback;
-  return candidate && feedbackProjects.has(candidate) ? candidate : null;
-}
-
-export function feedbackAdminRateLimitKey(request: FastifyRequest): string {
-  const key =
-    request.headers["x-dev-feedback-admin-key"] ?? request.headers["x-afterchime-admin-key"];
-  const project = feedbackProjectBucket(request.headers["x-dev-feedback-project"], "afterchime");
-  return typeof key === "string" && key.length <= 256 && project
-    ? `feedback-admin:${project}:${digest(key)}`
-    : `ip:${request.ip}`;
-}
-
-export function feedbackClientRateLimitKey(request: FastifyRequest): string {
-  const key = request.headers["x-dev-feedback-client-key"];
-  const project = feedbackProjectBucket(request.headers["x-dev-feedback-project"]);
-  return typeof key === "string" && key.length <= 256 && project
-    ? `feedback-client:${project}:${digest(key)}`
-    : `ip:${request.ip}`;
-}
-
 export function authorizationRateLimitKey(request: FastifyRequest): string {
   const authorization = request.headers.authorization;
   return typeof authorization === "string" && authorization.length <= 4_096

@@ -67,7 +67,8 @@ describe("API security hardening", () => {
   });
 
   it("redacts every credential-bearing request and response field in serialized logs", () => {
-    expect(loggerRedaction.paths).toEqual(
+    const redaction = loggerRedaction(true);
+    expect(redaction.paths).toEqual(
       expect.arrayContaining([
         "req.headers.authorization",
         "req.headers.cookie",
@@ -91,7 +92,7 @@ describe("API security hardening", () => {
         callback();
       },
     });
-    const logger = pino({ redact: loggerRedaction }, destination);
+    const logger = pino({ redact: redaction }, destination);
     const secret = "must-not-appear";
     logger.info({
       payload: { accessToken: secret, refreshToken: secret },

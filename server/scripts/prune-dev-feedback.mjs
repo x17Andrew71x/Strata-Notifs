@@ -9,6 +9,18 @@ await cp(path.resolve("migrations"), runtimeMigrations, { recursive: true });
 
 if (!enabled) {
   await rm(path.resolve("dist/modules/dev-feedback"), { recursive: true, force: true });
+  const appPath = path.resolve("dist/app.js");
+  const developmentLoader = `        if (options.config.developmentModuleEnabled && options.config.buildChannel === "dev") {
+            const modulePath = "./modules/" + "dev-" + "feedback/routes.js";
+            const developmentModule = (await import(modulePath));
+            await developmentModule.registerDevelopmentModule(app, options.config, options.database);
+        }
+`;
+  const appSource = await readFile(appPath, "utf8");
+  if (appSource.split(developmentLoader).length !== 2) {
+    throw new Error("development-feedback runtime loader was not removed exactly once");
+  }
+  await writeFile(appPath, appSource.replace(developmentLoader, ""), "utf8");
   const developmentMigrations = [
     { tag: "0004_orange_human_fly", snapshot: "0004_snapshot.json" },
     { tag: "0005_magical_donald_blake", snapshot: "0005_snapshot.json" },

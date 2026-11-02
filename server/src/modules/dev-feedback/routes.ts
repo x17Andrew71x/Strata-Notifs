@@ -4,11 +4,7 @@ import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
 import { verifyAdminKey } from "../../security/admin-auth.js";
-import {
-  authorizationRateLimitKey,
-  feedbackAdminRateLimitKey,
-  feedbackClientRateLimitKey,
-} from "../../security/rate-limit.js";
+import { authorizationRateLimitKey } from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import {
   type DevFeedbackProject,
@@ -16,6 +12,7 @@ import {
   isDevFeedbackProject,
   trustedProjectIdentities,
 } from "./project.js";
+import { feedbackAdminRateLimitKey, feedbackClientRateLimitKey } from "./rate-limit.js";
 import {
   DevFeedbackConflictError,
   type DevFeedbackIdentity,

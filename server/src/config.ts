@@ -60,6 +60,9 @@ export type ServerConfig = Readonly<{
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ServerConfig {
   const value = configSchema.parse(environment);
+  if (value.NODE_ENV === "production" && value.DEV_FEEDBACK_ENABLED === "true") {
+    throw new Error("development feedback is forbidden in production");
+  }
   if (value.DEV_FEEDBACK_ENABLED === "true" && !/^[0-9a-f]{64}$/.test(value.ADMIN_API_KEY_HASH)) {
     throw new Error("development feedback requires an admin key digest");
   }

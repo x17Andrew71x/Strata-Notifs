@@ -305,7 +305,9 @@ function isExpectedResponse(response: NativeResponse): boolean {
       (response.type === "capabilities.state" && expectedAction === "capabilities.get") ||
       (response.type === "shell.state" && expectedAction === "state.get") ||
       (response.type === "action.result" && response.action === expectedAction) ||
-      (response.type === "devFeedback.state" && expectedAction.startsWith("devFeedback."));
+      (DEV_FEEDBACK_BUILD &&
+        response.type === "devFeedback.state" &&
+        expectedAction.startsWith("devFeedback."));
     if (matches) pendingNativeRequests.delete(response.id);
     return matches;
   }
