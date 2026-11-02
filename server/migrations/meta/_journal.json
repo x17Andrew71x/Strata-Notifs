@@ -134,6 +134,13 @@
       "when": 1793471711000,
       "tag": "0018_restore_feedback_isolated_client",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793640211932,
+      "tag": "0019_security_hardening",
+      "breakpoints": true
     }
   ]
 }

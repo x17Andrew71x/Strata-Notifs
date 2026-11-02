@@ -39,6 +39,12 @@ jobs:
       - name: Install locked dependencies
         run: corepack pnpm install --frozen-lockfile
 
+      - name: Audit production dependencies
+        run: corepack pnpm audit --prod --audit-level=moderate
+
+      - name: Audit development dependencies
+        run: corepack pnpm audit --audit-level=moderate
+
       - name: Run PostgreSQL role-attestation integration suite
         run: corepack pnpm --dir server test:db
 
@@ -53,6 +59,9 @@ jobs:
 
       - name: Run repository checks
         run: ./scripts/check.sh
+
+      - name: Assemble hardened internal-review APK
+        run: (cd android && ./gradlew --no-daemon :app:assembleDevReview)
 
       - name: Prove production excludes development feedback
         run: |
@@ -79,14 +88,14 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Upload development APK
+      - name: Upload hardened development APK
         if: >-
           success() &&
           (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: afterchime-dev-debug-apk
-          path: android/app/build/outputs/apk/dev/debug/*.apk
+          name: afterchime-dev-review-apk
+          path: android/app/build/outputs/apk/dev/review/*.apk
           if-no-files-found: error
           retention-days: 7
 

@@ -1,9 +1,9 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../../src/app.js";
 import { createSqlClient, type DatabaseClient } from "../../src/db/client.js";
 import { migrateDatabase } from "../../src/db/migrate.js";
-import { verifyAccessToken } from "../../src/security/tokens.js";
+import { hashRefreshSecret, verifyAccessToken } from "../../src/security/tokens.js";
 import { loadPostgresTestConfig, PostgresTestHarness } from "../support/postgres.js";
 import { testConfig } from "../test-config.js";
 
@@ -16,12 +16,15 @@ const registration = {
     deviceClass: "phone",
   },
 };
+const trustAdminKey = "installation-trust-admin-key-with-sufficient-entropy";
+const trustAdminKeyHash = createHash("sha256").update(trustAdminKey).digest("hex");
 
 describePostgres("installation registration API", () => {
   const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
   let admin: DatabaseClient;
   let harness: PostgresTestHarness;
   let runtime: DatabaseClient;
+  let runtimeB: DatabaseClient;
 
   beforeAll(async () => {
     if (!postgresConfig) {
@@ -33,6 +36,7 @@ describePostgres("installation registration API", () => {
     adminUrl.pathname = "/afterchime_test";
     admin = createSqlClient(adminUrl.toString());
     runtime = createSqlClient(harness.runtimeDatabaseUrl);
+    runtimeB = createSqlClient(harness.runtimeDatabaseUrl);
   }, 30_000);
 
   afterEach(async () => {
@@ -41,6 +45,7 @@ describePostgres("installation registration API", () => {
 
   afterAll(async () => {
     await runtime?.end({ timeout: 5 });
+    await runtimeB?.end({ timeout: 5 });
     await admin?.end({ timeout: 5 });
     await harness?.close();
   });
@@ -106,17 +111,77 @@ describePostgres("installation registration API", () => {
     });
     const [stored] = await admin<
       Readonly<{
-        installations: string;
+        trusted_installations: string;
+        unverified_installations: string;
         raw_secret_count: string;
         refresh_tokens: string;
       }>[]
     >`
       SELECT
-        (SELECT count(*)::text FROM installations WHERE is_synthetic = false) AS installations,
+        (SELECT count(*)::text FROM installations WHERE id = ${createdBody.installationId} AND is_trusted = true) AS trusted_installations,
+        (SELECT count(*)::text FROM installations WHERE id = ${createdBody.installationId} AND is_trusted = false) AS unverified_installations,
         (SELECT count(*)::text FROM auth_refresh_tokens) AS refresh_tokens,
         (SELECT count(*)::text FROM auth_refresh_tokens WHERE token_hash = ${createdBody.refreshToken}) AS raw_secret_count
     `;
-    expect(stored).toEqual({ installations: "1", raw_secret_count: "0", refresh_tokens: "1" });
+    expect(stored).toEqual({
+      trusted_installations: "0",
+      unverified_installations: "1",
+      raw_secret_count: "0",
+      refresh_tokens: "1",
+    });
+  });
+
+  it("keeps public registrations unverified until an audited admin trust grant", async () => {
+    const app = await buildApp({
+      config: {
+        ...testConfig,
+        adminApiKeyHash: trustAdminKeyHash,
+        databaseUrl: harness.runtimeDatabaseUrl,
+      },
+      database: runtime,
+    });
+    apps.push(app);
+    const created = await app.inject({
+      headers: { "idempotency-key": randomUUID() },
+      method: "POST",
+      payload: registration,
+      url: "/v1/installations",
+    });
+    const installationId = created.json().installationId as string;
+
+    const denied = await app.inject({
+      headers: { "x-admin-key": `${trustAdminKey}-wrong` },
+      method: "POST",
+      payload: { source: "owner_admin" },
+      url: `/v1/admin/installations/${installationId}/trust`,
+    });
+    expect(denied.statusCode).toBe(401);
+
+    const trusted = await app.inject({
+      headers: { "x-admin-key": trustAdminKey },
+      method: "POST",
+      payload: { source: "owner_admin" },
+      url: `/v1/admin/installations/${installationId}/trust`,
+    });
+    expect(trusted.statusCode).toBe(200);
+    expect(trusted.json()).toEqual({ installationId, trustStatus: "trusted" });
+
+    const [state] = await admin<
+      Readonly<{ grant_count: string; installation_trusted: boolean; user_trusted: boolean }>[]
+    >`
+      SELECT
+        installation.is_trusted AS installation_trusted,
+        profile.is_trusted AS user_trusted,
+        (SELECT count(*)::text FROM installation_trust_grants WHERE installation_id = installation.id) AS grant_count
+      FROM installations AS installation
+      INNER JOIN users AS profile ON profile.id = installation.user_id
+      WHERE installation.id = ${installationId}
+    `;
+    expect(state).toEqual({
+      grant_count: "1",
+      installation_trusted: true,
+      user_trusted: true,
+    });
   });
 
   it("records a server-authored general app open without requiring community consent", async () => {
@@ -252,5 +317,72 @@ describePostgres("installation registration API", () => {
       url: "/v1/auth/refresh",
     });
     expect(afterLogout.statusCode).toBe(401);
+  });
+
+  it("serializes rotation against rotation and logout across physical database connections", async () => {
+    const app = await appForDatabase();
+    const first = await app.inject({
+      headers: { "idempotency-key": randomUUID() },
+      method: "POST",
+      payload: registration,
+      url: "/v1/installations",
+    });
+    const firstSession = first.json() as Readonly<{ installationId: string; refreshToken: string }>;
+    const firstHash = hashRefreshSecret(firstSession.refreshToken, testConfig.refreshTokenPepper);
+    const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const firstReplacement = randomUUID();
+    const secondReplacement = randomUUID();
+
+    const [firstRotation, secondRotation] = await Promise.all([
+      runtime<Readonly<{ outcome: string }>[]>`
+        SELECT outcome FROM public.afterchime_rotate_refresh_token(
+          ${firstHash}, ${firstReplacement}, ${"a".repeat(64)}, ${expiry}
+        )
+      `,
+      runtimeB<Readonly<{ outcome: string }>[]>`
+        SELECT outcome FROM public.afterchime_rotate_refresh_token(
+          ${firstHash}, ${secondReplacement}, ${"b".repeat(64)}, ${expiry}
+        )
+      `,
+    ]);
+    expect([firstRotation[0]?.outcome, secondRotation[0]?.outcome].sort()).toEqual([
+      "replayed",
+      "rotated",
+    ]);
+    const [rotationState] = await admin<Readonly<{ active: string; children: string }>[]>`
+      SELECT
+        count(*) FILTER (WHERE revoked_at IS NULL)::text AS active,
+        count(*) FILTER (WHERE id IN (${firstReplacement}, ${secondReplacement}))::text AS children
+      FROM auth_refresh_tokens
+      WHERE installation_id = ${firstSession.installationId}
+    `;
+    expect(rotationState).toEqual({ active: "0", children: "1" });
+
+    const second = await app.inject({
+      headers: { "idempotency-key": randomUUID() },
+      method: "POST",
+      payload: registration,
+      url: "/v1/installations",
+    });
+    const secondSession = second.json() as Readonly<{
+      installationId: string;
+      refreshToken: string;
+    }>;
+    const secondHash = hashRefreshSecret(secondSession.refreshToken, testConfig.refreshTokenPepper);
+    const replacement = randomUUID();
+    await Promise.all([
+      runtime`
+        SELECT outcome FROM public.afterchime_rotate_refresh_token(
+          ${secondHash}, ${replacement}, ${"c".repeat(64)}, ${expiry}
+        )
+      `,
+      runtimeB`SELECT public.afterchime_revoke_refresh_token(${secondHash})`,
+    ]);
+    const [logoutState] = await admin<Readonly<{ active: string }>[]>`
+      SELECT count(*) FILTER (WHERE revoked_at IS NULL)::text AS active
+      FROM auth_refresh_tokens
+      WHERE installation_id = ${secondSession.installationId}
+    `;
+    expect(logoutState?.active).toBe("0");
   });
 });

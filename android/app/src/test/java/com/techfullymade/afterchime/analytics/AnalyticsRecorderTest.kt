@@ -54,7 +54,7 @@ class AnalyticsRecorderTest {
     assertEquals(AnalyticsRecordResult.UNAVAILABLE, broken.record(events[1], context, AnalyticsConsentPolicy { true }))
     val keyFailure = AnalyticsRecorder(writer, AnalyticsEnvelopeCipher { throw IllegalStateException() })
     assertEquals(AnalyticsRecordResult.UNAVAILABLE, keyFailure.record(events[1], context, AnalyticsConsentPolicy { true }))
-    assertTrue(captured!!.ciphertext.isNotEmpty())
+    assertTrue(captured.ciphertext.isNotEmpty())
   }
 
   private val context = AnalyticsContext(

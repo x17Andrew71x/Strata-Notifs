@@ -2,6 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
+import {
+  authorizationRateLimitKey,
+  refreshCredentialRateLimitKey,
+} from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import { IdempotencyConflictError, IdentityRepository } from "./repository.js";
 import { IdentityService } from "./service.js";
@@ -93,7 +97,9 @@ export async function registerIdentityRoutes(
   app.post(
     "/v1/profile/open",
     {
-      config: { rateLimit: { max: 30, timeWindow: "1 minute" } },
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 30, timeWindow: "1 minute" },
+      },
     },
     async (request, reply) => {
       const claims = authenticatedClaims(request.headers.authorization, config);
@@ -107,6 +113,9 @@ export async function registerIdentityRoutes(
   app.post(
     "/v1/auth/refresh",
     {
+      config: {
+        rateLimit: { keyGenerator: refreshCredentialRateLimitKey, max: 10, timeWindow: "1 minute" },
+      },
       schema: {
         body: refreshBody,
         response: {
@@ -128,6 +137,9 @@ export async function registerIdentityRoutes(
   app.post(
     "/v1/auth/logout",
     {
+      config: {
+        rateLimit: { keyGenerator: refreshCredentialRateLimitKey, max: 10, timeWindow: "1 minute" },
+      },
       schema: {
         body: refreshBody,
       },

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DatabaseClient } from "../../db/client.js";
+import { InstallationUntrustedError } from "../../security/installation-trust.js";
 import type { AccessTokenClaims } from "../../security/tokens.js";
 import { ConsentInactiveError } from "../consent/service.js";
 
@@ -45,6 +46,7 @@ export type IngestNotificationAggregate = AccessTokenClaims &
 type InstallationState = Readonly<{
   build_channel: "dev" | "prod";
   is_synthetic: boolean;
+  is_trusted: boolean;
 }>;
 
 type StoredAggregate = Readonly<{
@@ -87,7 +89,7 @@ export class NotificationAggregateRepository {
       await transaction`SELECT set_config('afterchime.installation_id', ${input.installationId}, true)`;
 
       const [installation] = await transaction<InstallationState[]>`
-        SELECT build_channel::text, is_synthetic
+        SELECT build_channel::text, is_synthetic, is_trusted
         FROM installations
         WHERE id = ${input.installationId}
           AND user_id = ${input.userId}
@@ -95,6 +97,7 @@ export class NotificationAggregateRepository {
       if (!installation || installation.build_channel !== input.buildChannel) {
         throw new NotificationAggregateRequestError();
       }
+      if (!installation.is_trusted) throw new InstallationUntrustedError();
       if (installation.is_synthetic && installation.build_channel === "prod") {
         throw new NotificationAggregateRequestError();
       }

@@ -2,6 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
+import { InstallationUntrustedError } from "../../security/installation-trust.js";
+import { authorizationRateLimitKey } from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import { ConsentInactiveError } from "../consent/service.js";
 import { analyticsBatch } from "./registry.js";
@@ -18,7 +20,7 @@ const batchResponse = z.object({
 });
 
 const errorResponse = z.object({
-  error: z.enum(["consent_inactive", "unauthorized"]),
+  error: z.enum(["consent_inactive", "installation_untrusted", "unauthorized"]),
 });
 
 export async function registerAnalyticsRoutes(
@@ -31,6 +33,9 @@ export async function registerAnalyticsRoutes(
   app.post(
     "/v1/analytics/events:batch",
     {
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 30, timeWindow: "1 minute" },
+      },
       schema: {
         body: analyticsBatch,
         response: {
@@ -57,6 +62,9 @@ export async function registerAnalyticsRoutes(
       } catch (error) {
         if (error instanceof ConsentInactiveError) {
           return reply.code(403).send({ error: "consent_inactive" });
+        }
+        if (error instanceof InstallationUntrustedError) {
+          return reply.code(403).send({ error: "installation_untrusted" });
         }
         throw error;
       }

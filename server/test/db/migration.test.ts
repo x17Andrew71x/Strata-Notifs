@@ -23,6 +23,7 @@ const requiredTables = [
   "exhibit_unlocks",
   "exhibits",
   "idempotency_records",
+  "installation_trust_grants",
   "installations",
   "job_runs",
   "outbox_jobs",
@@ -128,6 +129,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         "id",
         "build_channel",
         "is_synthetic",
+        "is_trusted",
         "last_opened",
         "created_at",
         "updated_at",
@@ -140,6 +142,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         "app_version",
         "build_channel",
         "is_synthetic",
+        "is_trusted",
         "created_at",
         "last_seen_at",
       ]),
@@ -643,6 +646,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
       "analytics_notification_volume",
       "analytics_release_health",
       "exhibit_cohort_snapshots",
+      "installation_trust_grants",
     ]);
     for (const table of requiredTables) {
       if (!tablesWithCompositePrimaryKeys.has(table)) {
@@ -656,6 +660,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
     expect(signatures).toContain("analytics_release_health:PRIMARY KEY:received_date");
     expect(signatures).toContain("exhibit_cohort_snapshots:PRIMARY KEY:build_channel");
     expect(signatures).toContain("exhibit_cohort_snapshots:PRIMARY KEY:snapshot_date");
+    expect(signatures).toContain("installation_trust_grants:PRIMARY KEY:installation_id");
     expect(signatures).toContain("installations:FOREIGN KEY:user_id");
     expect(signatures).toContain("auth_refresh_tokens:FOREIGN KEY:installation_id");
     expect(signatures).toContain("consent_records:FOREIGN KEY:installation_id");
@@ -724,6 +729,9 @@ describePostgres("initial PostgreSQL schema migration", () => {
     const indexNames = new Set(indexes.map((index) => `${index.tablename}:${index.indexname}`));
 
     expect(indexNames).toContain("auth_refresh_tokens:auth_refresh_tokens_family_id_idx");
+    expect(indexNames).toContain(
+      "auth_refresh_tokens:auth_refresh_tokens_one_active_leaf_per_family_idx",
+    );
     expect(indexNames).toContain("consent_records:consent_records_installation_scope_recorded_idx");
     expect(indexNames).toContain("analytics_events:analytics_events_installation_occurred_idx");
     expect(indexNames).toContain(
@@ -906,7 +914,7 @@ describePostgres("initial PostgreSQL schema migration", () => {
         (SELECT hash FROM drizzle.__drizzle_migrations ORDER BY created_at DESC LIMIT 1) AS hash
     `;
 
-    expect(before).toEqual({ count: "19", hash: expect.any(String) });
+    expect(before).toEqual({ count: "20", hash: expect.any(String) });
     expect(after).toEqual(before);
     expect(rerun.migrationHead).toBe(before?.hash);
   });

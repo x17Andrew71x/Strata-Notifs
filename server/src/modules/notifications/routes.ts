@@ -2,6 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
+import { InstallationUntrustedError } from "../../security/installation-trust.js";
+import { authorizationRateLimitKey } from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import { ConsentInactiveError } from "../consent/service.js";
 import {
@@ -51,6 +53,13 @@ const dailyNotificationAggregate = z
   })
   .strict()
   .superRefine((aggregate, context) => {
+    if (!isPlausibleAggregateDate(aggregate.local_date)) {
+      context.addIssue({
+        code: "custom",
+        message: "local date is outside the accepted window",
+        path: ["local_date"],
+      });
+    }
     const categoryTotal = Object.values(aggregate.category_counts).reduce<number>(
       (total, value) => total + (value ?? 0),
       0,
@@ -84,6 +93,16 @@ const dailyNotificationAggregate = z
     }
   });
 
+export function isPlausibleAggregateDate(localDate: string, now: Date = new Date()): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate) || !Number.isFinite(now.getTime())) return false;
+  const parsed = new Date(`${localDate}T00:00:00.000Z`);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== localDate) {
+    return false;
+  }
+  const currentUtcDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Math.abs(parsed.getTime() - currentUtcDay) <= 86_400_000;
+}
+
 const result = z.object({
   localDate: z.iso.date(),
   revision: z.number().int().positive(),
@@ -92,7 +111,9 @@ const result = z.object({
 
 const successResponse = z.object({ result });
 const conflictResponse = z.object({ error: z.literal("aggregate_revision_conflict") });
-const authorizationResponse = z.object({ error: z.enum(["consent_inactive", "unauthorized"]) });
+const authorizationResponse = z.object({
+  error: z.enum(["consent_inactive", "installation_untrusted", "unauthorized"]),
+});
 
 export async function registerNotificationAggregateRoutes(
   app: FastifyInstance,
@@ -104,6 +125,9 @@ export async function registerNotificationAggregateRoutes(
   app.put(
     "/v1/notification-aggregates/daily",
     {
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 12, timeWindow: "1 minute" },
+      },
       schema: {
         body: dailyNotificationAggregate,
         response: {
@@ -142,6 +166,9 @@ export async function registerNotificationAggregateRoutes(
       } catch (error) {
         if (error instanceof ConsentInactiveError) {
           return reply.code(403).send({ error: "consent_inactive" });
+        }
+        if (error instanceof InstallationUntrustedError) {
+          return reply.code(403).send({ error: "installation_untrusted" });
         }
         if (error instanceof NotificationAggregateRevisionConflictError) {
           return reply.code(409).send({ error: "aggregate_revision_conflict" });

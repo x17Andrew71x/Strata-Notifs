@@ -1,21 +1,10 @@
 import { buildAttestedApp } from "./app.js";
 import { loadConfig } from "./config.js";
+import { serverLogger } from "./logging.js";
 import { startupFailureCode } from "./startup-failure.js";
 
 const config = loadConfig();
-const logger = {
-  level: config.logLevel,
-  redact: {
-    paths: [
-      "req.headers.authorization",
-      "req.headers.cookie",
-      "req.headers.x-admin-key",
-      "refreshToken",
-      "accessToken",
-    ],
-    censor: "[REDACTED]",
-  },
-};
+const logger = serverLogger(config);
 
 let started: Awaited<ReturnType<typeof buildAttestedApp>> | undefined;
 

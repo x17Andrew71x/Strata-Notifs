@@ -1538,13 +1538,7 @@ function More({
             label="Online features"
             detail="Connect to online tools and turn on both data choices below; you can switch either one off"
             checked={preferences.onlineFeaturesEnabled}
-            onChange={(value) => {
-              onPreference("onlineFeaturesEnabled", value);
-              if (value) {
-                onPreference("productAnalyticsEnabled", true);
-                onPreference("notificationAggregateSharingEnabled", true);
-              }
-            }}
+            onChange={(value) => onPreference("onlineFeaturesEnabled", value)}
           />
         </div>
       </section>

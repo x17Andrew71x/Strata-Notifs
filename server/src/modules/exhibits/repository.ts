@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import type { DatabaseClient } from "../../db/client.js";
+import { InstallationUntrustedError } from "../../security/installation-trust.js";
 import type { AccessTokenClaims } from "../../security/tokens.js";
 import { ConsentInactiveError } from "../consent/service.js";
 
@@ -26,6 +27,7 @@ type ExhibitRow = Readonly<{
 
 type InstallationRow = Readonly<{
   build_channel: "dev" | "prod";
+  is_trusted: boolean;
 }>;
 
 type StoredContribution = Readonly<{
@@ -140,7 +142,8 @@ export class ExhibitsRepository {
     if (!isPlausibleLocalDate(input.localDate, input.now)) throw new ExhibitsInputError();
     return this.database.begin(async (transaction) => {
       await setActor(transaction, input);
-      await assertInstallationAndConsent(transaction, input);
+      const installation = await assertInstallationAndConsent(transaction, input);
+      if (!installation.is_trusted) throw new InstallationUntrustedError();
       await transaction`
         SELECT id
         FROM installations
@@ -354,9 +357,9 @@ async function setActor(
 async function assertInstallationAndConsent(
   transaction: postgres.TransactionSql,
   input: ExhibitsRequest,
-): Promise<void> {
+): Promise<InstallationRow> {
   const [installation] = await transaction<InstallationRow[]>`
-    SELECT build_channel::text
+    SELECT build_channel::text, is_trusted
     FROM installations
     WHERE id = ${input.installationId}
       AND user_id = ${input.userId}
@@ -375,6 +378,7 @@ async function assertInstallationAndConsent(
   if (consent?.granted !== true || consent.scope_version !== "1") {
     throw new ConsentInactiveError();
   }
+  return installation;
 }
 
 async function readState(

@@ -56,7 +56,7 @@ class AfterchimeApi(
       token = null,
       headers = emptyMap(),
       successCodes = intArrayOf(204),
-      parser = { Unit },
+      parser = ::discardResponse,
     )
 
   fun markOpened(bearerToken: String): ApiResult<Unit> =
@@ -67,7 +67,7 @@ class AfterchimeApi(
       token = bearerToken,
       headers = emptyMap(),
       successCodes = intArrayOf(204),
-      parser = { Unit },
+      parser = ::discardResponse,
     )
 
   fun updateConsent(
@@ -168,6 +168,8 @@ class AfterchimeApi(
       ApiModels.validateAnalyticsEnvelope(events.getJSONObject(index).toString())
     }
   }
+
+  private fun discardResponse(@Suppress("UNUSED_PARAMETER") response: String) {}
 
   private fun <T> execute(
     path: String,

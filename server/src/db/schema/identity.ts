@@ -7,6 +7,7 @@ import {
   pgTable,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -24,6 +25,7 @@ export const users = pgTable(
     id: uuid("id").primaryKey().notNull(),
     buildChannel: buildChannel("build_channel").notNull(),
     isSynthetic: boolean("is_synthetic").notNull().default(false),
+    isTrusted: boolean("is_trusted").notNull().default(false),
     lastOpened: timestamp("last_opened", { withTimezone: true }).notNull().defaultNow(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -47,6 +49,7 @@ export const installations = pgTable(
     appVersion: varchar("app_version", { length: 48 }).notNull(),
     buildChannel: buildChannel("build_channel").notNull(),
     isSynthetic: boolean("is_synthetic").notNull().default(false),
+    isTrusted: boolean("is_trusted").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -55,6 +58,24 @@ export const installations = pgTable(
     check(
       "installations_synthetic_build_check",
       sql`NOT ("is_synthetic" AND "build_channel" = 'prod'::build_channel)`,
+    ),
+  ],
+);
+
+export const installationTrustGrants = pgTable(
+  "installation_trust_grants",
+  {
+    installationId: uuid("installation_id")
+      .primaryKey()
+      .notNull()
+      .references(() => installations.id, { onDelete: "cascade" }),
+    source: varchar("source", { length: 32 }).notNull(),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      "installation_trust_grants_source_check",
+      sql`${table.source} IN ('owner_admin', 'play_integrity')`,
     ),
   ],
 );
@@ -76,6 +97,9 @@ export const authRefreshTokens = pgTable(
   },
   (table) => [
     unique("auth_refresh_tokens_token_hash_key").on(table.tokenHash),
+    uniqueIndex("auth_refresh_tokens_one_active_leaf_per_family_idx")
+      .on(table.installationId, table.familyId)
+      .where(sql`${table.revokedAt} IS NULL AND ${table.replacedById} IS NULL`),
     index("auth_refresh_tokens_family_id_idx").on(table.installationId, table.familyId),
     index("auth_refresh_tokens_expires_at_idx").on(table.expiresAt),
     check("auth_refresh_tokens_expiry_check", sql`"expires_at" > "issued_at"`),

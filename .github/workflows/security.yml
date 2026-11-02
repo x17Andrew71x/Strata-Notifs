@@ -1,0 +1,61 @@
+name: Security
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+  schedule:
+    - cron: "17 7 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, java-kotlin]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@5c8ea125689a2c5ae2672d1d914ac4bcd95d1b4b # v3
+        with:
+          languages: ${{ matrix.language }}
+      - name: Analyse
+        uses: github/codeql-action/analyze@5c8ea125689a2c5ae2672d1d914ac4bcd95d1b4b # v3
+
+  secrets:
+    name: Secret history scan
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Scan with Gitleaks
+        uses: gitleaks/gitleaks-action@f586c14365d4643c6aa59d472ae6e984bf47bb34 # v2.3.9
+
+  osv:
+    name: OSV dependency scan
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    with:
+      scan-args: |-
+        -r
+        ./
+      fail-on-vuln: true
+      runs-on: ubuntu-24.04

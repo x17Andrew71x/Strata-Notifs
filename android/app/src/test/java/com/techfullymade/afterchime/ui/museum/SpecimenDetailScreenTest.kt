@@ -50,7 +50,7 @@ class SpecimenDetailScreenTest {
         SpecimenDetailScreen(
           specimen = specimen(),
           onBack = { backCount += 1 },
-          onSetLocked = { locked -> lockRequests.add(locked); Unit },
+          onSetLocked = fun(locked: Boolean) { lockRequests.add(locked) },
           onBeginCombine = { combineCount += 1 },
           onShareSpecimen = { shareCount += 1 },
         )
@@ -94,7 +94,7 @@ class SpecimenDetailScreenTest {
         SpecimenDetailScreen(
           specimen = specimen().copy(isLocked = true),
           onBack = {},
-          onSetLocked = { locked -> lockRequests.add(locked); Unit },
+          onSetLocked = fun(locked: Boolean) { lockRequests.add(locked) },
           onBeginCombine = {},
         )
       }

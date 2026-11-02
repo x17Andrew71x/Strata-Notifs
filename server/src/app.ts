@@ -18,6 +18,7 @@ import type { ServerConfig } from "./config.js";
 import { createSqlClient, type DatabaseClient } from "./db/client.js";
 import { attestRuntimeRole, type RuntimeDatabaseAttestation } from "./db/runtime-attestation.js";
 import { registerAccountRoutes } from "./modules/account/routes.js";
+import { registerInstallationTrustRoutes } from "./modules/admin/installation-trust.js";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
 import { registerConsentRoutes } from "./modules/consent/routes.js";
 import { registerExhibitsRoutes } from "./modules/exhibits/routes.js";
@@ -46,13 +47,20 @@ export type AttestedApp = Readonly<{
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
   const app = Fastify({
     logger: options.logger ?? false,
-    trustProxy: true,
+    trustProxy: (_address, hop) => hop < options.config.trustedProxyHops,
     bodyLimit: 128 * 1024,
     requestIdHeader: "x-request-id",
   }).withTypeProvider<ZodTypeProvider>();
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
+
+  app.addHook("onRequest", async (request, reply) => {
+    if (request.url === "/v1" || request.url.startsWith("/v1/")) {
+      reply.header("Cache-Control", "private, no-store");
+      reply.header("Pragma", "no-cache");
+    }
+  });
 
   await app.register(helmet, {
     contentSecurityPolicy: false,
@@ -94,6 +102,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   await registerHealthRoutes(app, options.config);
   if (options.database) {
     await registerIdentityRoutes(app, options.config, options.database);
+    await registerInstallationTrustRoutes(app, options.config, options.database);
     await registerAccountRoutes(app, options.config, options.database);
     await registerConsentRoutes(app, options.config, options.database);
     await registerExhibitsRoutes(app, options.config, options.database);

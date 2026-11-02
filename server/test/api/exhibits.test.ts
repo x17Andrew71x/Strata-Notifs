@@ -85,7 +85,7 @@ describePostgres("Exhibits API", () => {
     return app;
   }
 
-  async function registered(app: Awaited<ReturnType<typeof buildApp>>) {
+  async function registered(app: Awaited<ReturnType<typeof buildApp>>, trusted = true) {
     const registration = await app.inject({
       headers: { "idempotency-key": randomUUID() },
       method: "POST",
@@ -100,6 +100,14 @@ describePostgres("Exhibits API", () => {
       accessToken: string;
       installationId: string;
     }>;
+    if (trusted) {
+      await runtime`
+        SELECT public.afterchime_grant_installation_trust(
+          ${session.installationId},
+          ${"owner_admin"}
+        )
+      `;
+    }
     const consent = await app.inject({
       headers: {
         authorization: `Bearer ${session.accessToken}`,
@@ -112,6 +120,31 @@ describePostgres("Exhibits API", () => {
     expect(consent.statusCode).toBe(200);
     return session;
   }
+
+  it("allows unverified clients to read public progress but rejects their contributions", async () => {
+    const app = await appForDatabase();
+    const session = await registered(app, false);
+    const localDate = new Date().toISOString().slice(0, 10);
+
+    const state = await app.inject({
+      headers: { authorization: ["Bear", "er ", session.accessToken].join("") },
+      method: "GET",
+      url: `/v1/exhibits/current?local_date=${localDate}`,
+    });
+    expect(state.statusCode).toBe(200);
+
+    const contribution = await app.inject({
+      headers: {
+        authorization: ["Bear", "er ", session.accessToken].join(""),
+        "idempotency-key": randomUUID(),
+      },
+      method: "POST",
+      payload: { local_date: localDate, units: 1 },
+      url: "/v1/exhibits/returning-light-2027/contributions",
+    });
+    expect(contribution.statusCode).toBe(403);
+    expect(contribution.json()).toEqual({ error: "installation_untrusted" });
+  });
 
   it("never publishes placeholder exhibit records", async () => {
     const app = await appForDatabase();

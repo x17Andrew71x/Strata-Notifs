@@ -170,11 +170,6 @@ export type ShellState = {
     specimen: ShellSpecimen | null;
     excavation?: {
       artifactId: string;
-      capturedNotificationCount: number;
-      eligibleNotificationCount: number;
-      energyPerNotification: number;
-      energyEarned: number;
-      energySpent: number;
       energyAvailable: number;
       tileEnergyCost: number;
       gridColumns: number;
@@ -228,6 +223,8 @@ export type NativeResponse =
       items: DevFeedbackItem[];
     };
 
+const pendingNativeRequests = new Map<string, NativeAction>();
+
 declare global {
   interface Window {
     AfterchimeBridge?: {
@@ -263,31 +260,59 @@ export function sendNativeRequest(
     ? { version: BRIDGE_VERSION, id, type, payload }
     : { version: BRIDGE_VERSION, id, type };
   if (!parseNativeRequest(request)) return null;
-  bridge.postMessage(JSON.stringify(request));
+  pendingNativeRequests.set(id, type);
+  try {
+    bridge.postMessage(JSON.stringify(request));
+  } catch {
+    pendingNativeRequests.delete(id);
+    return null;
+  }
   return id;
 }
 
 export function installResponseListener(
   onResponse: (response: NativeResponse) => void,
 ): () => void {
-  const listener = (event: MessageEvent<string>) => {
-    if (typeof event.data !== "string" || event.data.length > 2 * 1024 * 1024) return;
+  const accept = (data: unknown) => {
+    if (typeof data !== "string" || data.length > 2 * 1024 * 1024) return;
     try {
-      const parsed: unknown = JSON.parse(event.data);
+      const parsed: unknown = JSON.parse(data);
       const response = parseNativeResponse(parsed);
-      if (response) onResponse(response);
+      if (response && isExpectedResponse(response)) onResponse(response);
     } catch {
       // Malformed native messages never become shell state.
     }
   };
+  const bridgeListener = (event: MessageEvent<string>) => accept(event.data);
+  const windowListener = (event: MessageEvent<string>) => {
+    if (event.source !== window || event.origin !== window.location.origin) return;
+    accept(event.data);
+  };
   const bridge = window.AfterchimeBridge;
   const previousBridgeListener = bridge?.onmessage ?? null;
-  if (bridge) bridge.onmessage = listener;
-  window.addEventListener("message", listener);
+  if (bridge) bridge.onmessage = bridgeListener;
+  window.addEventListener("message", windowListener);
   return () => {
-    window.removeEventListener("message", listener);
-    if (bridge?.onmessage === listener) bridge.onmessage = previousBridgeListener;
+    window.removeEventListener("message", windowListener);
+    if (bridge?.onmessage === bridgeListener) bridge.onmessage = previousBridgeListener;
   };
+}
+
+function isExpectedResponse(response: NativeResponse): boolean {
+  const expectedAction = pendingNativeRequests.get(response.id);
+  if (expectedAction) {
+    const matches =
+      (response.type === "capabilities.state" && expectedAction === "capabilities.get") ||
+      (response.type === "shell.state" && expectedAction === "state.get") ||
+      (response.type === "action.result" && response.action === expectedAction) ||
+      (response.type === "devFeedback.state" && expectedAction.startsWith("devFeedback."));
+    if (matches) pendingNativeRequests.delete(response.id);
+    return matches;
+  }
+  return (
+    (response.type === "shell.state" && ["state", "resume_state"].includes(response.id)) ||
+    (response.type === "capabilities.state" && response.id === "resume")
+  );
 }
 
 function parseNativeResponse(value: unknown): NativeResponse | null {
@@ -576,11 +601,6 @@ function isExcavation(value: unknown): boolean {
     !isRecord(value) ||
     !hasExactKeys(value, [
       "artifactId",
-      "capturedNotificationCount",
-      "eligibleNotificationCount",
-      "energyPerNotification",
-      "energyEarned",
-      "energySpent",
       "energyAvailable",
       "tileEnergyCost",
       "gridColumns",
@@ -597,11 +617,6 @@ function isExcavation(value: unknown): boolean {
   return (
     typeof value.artifactId === "string" &&
     /^[a-z0-9-]{1,64}$/.test(value.artifactId) &&
-    isInteger(value.capturedNotificationCount, 0) &&
-    isInteger(value.eligibleNotificationCount, 0, value.capturedNotificationCount as number) &&
-    isInteger(value.energyPerNotification, 1) &&
-    isInteger(value.energyEarned, 0) &&
-    isInteger(value.energySpent, 0) &&
     isInteger(value.energyAvailable, 0) &&
     isInteger(value.tileEnergyCost, 1) &&
     Array.isArray(value.dugTiles) &&

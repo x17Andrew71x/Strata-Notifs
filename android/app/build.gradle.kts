@@ -35,8 +35,8 @@ android {
     applicationId = "com.techfullymade.afterchime"
     minSdk = 31
     targetSdk = 36
-    versionCode = 1019
-    versionName = "0.1.19"
+    versionCode = 1020
+    versionName = "0.1.20"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -66,6 +66,13 @@ android {
     debug {
       applicationIdSuffix = ".debug"
       versionNameSuffix = "-debug"
+    }
+    create("review") {
+      initWith(getByName("release"))
+      isDebuggable = false
+      signingConfig = signingConfigs.getByName("debug")
+      versionNameSuffix = "-review"
+      matchingFallbacks += listOf("release")
     }
     release {
       isMinifyEnabled = true

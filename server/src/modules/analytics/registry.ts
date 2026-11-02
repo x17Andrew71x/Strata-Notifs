@@ -240,11 +240,21 @@ export class AnalyticsRequestError extends Error {
   }
 }
 
-export function assertPlausibleEventTimes(events: readonly AnalyticsEvent[]): void {
-  const latestPermitted = Date.now() + 15 * 60 * 1000;
+const MAX_EVENT_AGE_MILLISECONDS = 31 * 24 * 60 * 60 * 1000;
+
+export function assertPlausibleEventTimes(
+  events: readonly AnalyticsEvent[],
+  nowMilliseconds: number = Date.now(),
+): void {
+  const earliestPermitted = nowMilliseconds - MAX_EVENT_AGE_MILLISECONDS;
+  const latestPermitted = nowMilliseconds + 15 * 60 * 1000;
   for (const event of events) {
     const occurredAt = Date.parse(event.occurred_at);
-    if (!Number.isFinite(occurredAt) || occurredAt > latestPermitted) {
+    if (
+      !Number.isFinite(occurredAt) ||
+      occurredAt < earliestPermitted ||
+      occurredAt > latestPermitted
+    ) {
       throw new AnalyticsRequestError();
     }
     const localDate = new Date(occurredAt + event.timezone_offset_minutes * 60 * 1000)

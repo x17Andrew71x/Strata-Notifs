@@ -19,6 +19,7 @@ export const testConfig: ServerConfig = {
   developmentModuleEnabled: false,
   deployedRevision: "0000000000000000000000000000000000000000",
   corsOrigins: [],
+  trustedProxyHops: 0,
   allowDevAuth: true,
   billingProvider: "fake",
   analyticsRawRetentionDays: 730,

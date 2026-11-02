@@ -20,6 +20,7 @@ describe("loadConfig", () => {
     expect(config.tokenAudience).toBe("afterchime-dev");
     expect(config.allowDevAuth).toBe(false);
     expect(config.developmentModuleEnabled).toBe(false);
+    expect(config.trustedProxyHops).toBe(0);
     expect(config.deployedRevision).toBe("0".repeat(40));
     expect(config.corsOrigins).toEqual(["https://one.example", "https://two.example"]);
   });
@@ -38,6 +39,11 @@ describe("loadConfig", () => {
         ACCESS_TOKEN_SECRET: "short",
       }),
     ).toThrow();
+  });
+
+  it("accepts only a bounded explicit proxy-hop count", () => {
+    expect(loadConfig({ ...validEnvironment, TRUSTED_PROXY_HOPS: "1" }).trustedProxyHops).toBe(1);
+    expect(() => loadConfig({ ...validEnvironment, TRUSTED_PROXY_HOPS: "3" })).toThrow();
   });
 
   it("accepts only an explicit development feedback flag and lowercase deployed revision", () => {

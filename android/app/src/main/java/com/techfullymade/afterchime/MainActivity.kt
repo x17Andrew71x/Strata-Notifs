@@ -1,6 +1,7 @@
 package com.techfullymade.afterchime
 
 import android.app.DownloadManager
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
@@ -237,6 +238,7 @@ class MainActivity : ComponentActivity() {
   private var latestSpecimens: List<MuseumSpecimen> = emptyList()
   private var usingLocalShell = false
   private var remoteShellReady = false
+  private var nativeConfirmationInFlight = false
   private val remoteUri by lazy { Uri.parse(BuildConfig.SHELL_URL) }
   private val remoteReadyWatchdog = Runnable {
     if (!usingLocalShell && !remoteShellReady) loadBundledShell()
@@ -350,7 +352,7 @@ class MainActivity : ComponentActivity() {
       cacheMode = WebSettings.LOAD_DEFAULT
       safeBrowsingEnabled = true
     }
-    shell.setDownloadListener { _, _, _, _, _ -> Unit }
+    shell.setDownloadListener { _, _, _, _, _ -> }
     shell.webChromeClient = object : WebChromeClient() {
       override fun onCreateWindow(
         view: WebView?,
@@ -514,16 +516,22 @@ class MainActivity : ComponentActivity() {
       postActionResult(request, false, proxy)
       return
     }
-    lifecycleScope.launch {
-      postActionResult(
-        request,
-        applicationState.exhibitsRepository.contribute(
-          exhibitId = payload.getString("exhibitId"),
-          localDate = localDate,
-          surplusEnergy = today.exhibitSurplusEnergy(),
-        ),
-        proxy,
-      )
+    confirmNativeAction(
+      kind = requireNotNull(actionConfirmation(request.type)),
+      request = request,
+      proxy = proxy,
+    ) {
+      lifecycleScope.launch {
+        postActionResult(
+          request,
+          applicationState.exhibitsRepository.contribute(
+            exhibitId = payload.getString("exhibitId"),
+            localDate = localDate,
+            surplusEnergy = today.exhibitSurplusEnergy(),
+          ),
+          proxy,
+        )
+      }
     }
   }
 
@@ -552,18 +560,22 @@ class MainActivity : ComponentActivity() {
     val payload = request.payload ?: return
     val key = payload.getString("key")
     val value = payload.getBoolean("value")
-    lifecycleScope.launch {
-      userPreferences.update { current -> current.withPreference(key, value) }
-      if (key in onlinePreferenceKeys) applicationState.scheduleOnlineSync()
-      val event = when (key) {
-        "productAnalyticsEnabled" -> AnalyticsEvent.AnalyticsConsentChanged(value, 1)
-        "notificationAggregateSharingEnabled" ->
-          AnalyticsEvent.NotificationAggregateConsentChanged(value, 1)
-        else -> AnalyticsEvent.SettingChanged
+    val apply: () -> Unit = fun() {
+      lifecycleScope.launch {
+        userPreferences.update { current -> current.withPreference(key, value) }
+        if (key in onlinePreferenceKeys) applicationState.scheduleOnlineSync()
+        val event = when (key) {
+          "productAnalyticsEnabled" -> AnalyticsEvent.AnalyticsConsentChanged(value, 1)
+          "notificationAggregateSharingEnabled" ->
+            AnalyticsEvent.NotificationAggregateConsentChanged(value, 1)
+          else -> AnalyticsEvent.SettingChanged
+        }
+        applicationState.recordProductUse(event, "settings")
+        postActionResult(request, true, proxy)
       }
-      applicationState.recordProductUse(event, "settings")
-      postActionResult(request, true, proxy)
     }
+    val confirmation = preferenceConfirmation(key, value)
+    if (confirmation == null) apply() else confirmNativeAction(confirmation, request, proxy, apply)
   }
 
   private fun updateSpecimenLock(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
@@ -607,19 +619,66 @@ class MainActivity : ComponentActivity() {
   private fun combineSpecimens(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
     val ids = request.payload?.getJSONArray("specimenIds") ?: return
     val inputIds = (0 until ids.length()).map(ids::getString)
-    lifecycleScope.launch {
-      val result = applicationState.museumRepository.combine(
-        CombineRequest(
-          mutationId = UUID.randomUUID().toString(),
-          outputItemId = UUID.randomUUID().toString(),
-          inputItemIds = inputIds,
-          createdAtEpochMillis = System.currentTimeMillis(),
-        ),
-      )
-      val accepted = result is CombineResult.Combined || result is CombineResult.AlreadyCombined
-      if (accepted) applicationState.recordProductUse(AnalyticsEvent.CombineCompleted, "museum")
-      postActionResult(request, accepted, proxy)
+    confirmNativeAction(
+      kind = requireNotNull(actionConfirmation(request.type)),
+      request = request,
+      proxy = proxy,
+    ) {
+      lifecycleScope.launch {
+        val result = applicationState.museumRepository.combine(
+          CombineRequest(
+            mutationId = UUID.randomUUID().toString(),
+            outputItemId = UUID.randomUUID().toString(),
+            inputItemIds = inputIds,
+            createdAtEpochMillis = System.currentTimeMillis(),
+          ),
+        )
+        val accepted = result is CombineResult.Combined || result is CombineResult.AlreadyCombined
+        if (accepted) applicationState.recordProductUse(AnalyticsEvent.CombineCompleted, "museum")
+        postActionResult(request, accepted, proxy)
+      }
     }
+  }
+
+  private fun confirmNativeAction(
+    kind: NativeConfirmationKind,
+    request: BridgeRequest,
+    proxy: JavaScriptReplyProxy,
+    onConfirmed: () -> Unit,
+  ) {
+    if (nativeConfirmationInFlight) {
+      postActionResult(request, false, proxy)
+      return
+    }
+    nativeConfirmationInFlight = true
+    val (title, message) = confirmationCopy(kind)
+    val decline = {
+      nativeConfirmationInFlight = false
+      postActionResult(request, false, proxy)
+    }
+    AlertDialog.Builder(this)
+      .setTitle(title)
+      .setMessage(message)
+      .setPositiveButton("Confirm") { _, _ ->
+        nativeConfirmationInFlight = false
+        onConfirmed()
+      }
+      .setNegativeButton("Cancel") { _, _ -> decline() }
+      .setOnCancelListener { decline() }
+      .show()
+  }
+
+  private fun confirmationCopy(kind: NativeConfirmationKind): Pair<String, String> = when (kind) {
+    NativeConfirmationKind.ENABLE_ONLINE_FEATURES ->
+      "Enable online features?" to "This creates a pseudonymous online identity and enables sync."
+    NativeConfirmationKind.ENABLE_PRODUCT_ANALYTICS ->
+      "Share product analytics?" to "This sends approved app-use events without notification content."
+    NativeConfirmationKind.ENABLE_NOTIFICATION_AGGREGATES ->
+      "Share notification totals?" to "This sends approved daily counts, never notification text."
+    NativeConfirmationKind.COMBINE_SPECIMENS ->
+      "Combine these specimens?" to "This permanently exchanges three specimens for one result."
+    NativeConfirmationKind.CONTRIBUTE_EXHIBIT_ENERGY ->
+      "Contribute this energy?" to "This permanently sends today’s banked surplus to the Exhibit."
   }
 
   private fun selectWorld(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
@@ -774,11 +833,11 @@ class MainActivity : ComponentActivity() {
   }
 }
 
-private fun UserPreferences.withPreference(key: String, value: Boolean): UserPreferences = when (key) {
+internal fun UserPreferences.withPreference(key: String, value: Boolean): UserPreferences = when (key) {
   "onlineFeaturesEnabled" -> copy(
     onlineFeaturesEnabled = value,
-    productAnalyticsEnabled = if (value) productAnalyticsEnabled else false,
-    notificationAggregateSharingEnabled = if (value) notificationAggregateSharingEnabled else false,
+    productAnalyticsEnabled = value,
+    notificationAggregateSharingEnabled = value,
   )
   "productAnalyticsEnabled" -> copy(productAnalyticsEnabled = onlineFeaturesEnabled && value)
   "notificationAggregateSharingEnabled" -> copy(
@@ -877,11 +936,6 @@ private fun MuseumSpecimen.toJson(): JSONObject = JSONObject()
 private fun com.techfullymade.afterchime.domain.DailyExcavationSnapshot.toJson(): JSONObject =
   JSONObject()
     .put("artifactId", artifactId)
-    .put("capturedNotificationCount", capturedNotificationCount)
-    .put("eligibleNotificationCount", eligibleNotificationCount)
-    .put("energyPerNotification", energyPerNotification)
-    .put("energyEarned", energyEarned)
-    .put("energySpent", energySpent)
     .put("energyAvailable", energyAvailable)
     .put("tileEnergyCost", tileEnergyCost)
     .put("gridColumns", gridColumns)

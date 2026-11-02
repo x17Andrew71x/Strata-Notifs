@@ -2,6 +2,8 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
+import { InstallationUntrustedError } from "../../security/installation-trust.js";
+import { authorizationRateLimitKey } from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import { ConsentInactiveError } from "../consent/service.js";
 import {
@@ -66,6 +68,7 @@ const errorResponse = z.object({
     "daily_cap_exceeded",
     "exhibit_closed",
     "exhibit_unavailable",
+    "installation_untrusted",
     "request_invalid",
     "unauthorized",
   ]),
@@ -81,6 +84,9 @@ export async function registerExhibitsRoutes(
   app.get(
     "/v1/exhibits/current",
     {
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 30, timeWindow: "1 minute" },
+      },
       schema: {
         querystring: localDateQuery,
         response: {
@@ -121,7 +127,9 @@ export async function registerExhibitsRoutes(
   app.post(
     "/v1/exhibits/:exhibitId/contributions",
     {
-      config: { rateLimit: { max: 12, timeWindow: "1 minute" } },
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 12, timeWindow: "1 minute" },
+      },
       schema: {
         body: contributionBody,
         headers: contributionHeaders,
@@ -156,6 +164,9 @@ export async function registerExhibitsRoutes(
       } catch (error) {
         if (error instanceof ConsentInactiveError) {
           return reply.code(403).send({ error: "consent_inactive" });
+        }
+        if (error instanceof InstallationUntrustedError) {
+          return reply.code(403).send({ error: "installation_untrusted" });
         }
         if (error instanceof ExhibitsConflictError) {
           return reply.code(409).send({ error: error.code });

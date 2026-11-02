@@ -31,6 +31,7 @@ const configSchema = z.object({
     .regex(/^[0-9a-f]{40}$/)
     .optional(),
   CORS_ORIGINS: z.string().default(""),
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(2).default(0),
   ALLOW_DEV_AUTH: z.enum(["true", "false"]).default("false"),
   BILLING_PROVIDER: z.enum(["fake", "google-play"]).default("fake"),
   ANALYTICS_RAW_RETENTION_DAYS: z.coerce.number().int().min(30).max(3650).default(730),
@@ -51,6 +52,7 @@ export type ServerConfig = Readonly<{
   developmentModuleEnabled: boolean;
   deployedRevision: string;
   corsOrigins: readonly string[];
+  trustedProxyHops: number;
   allowDevAuth: boolean;
   billingProvider: "fake" | "google-play";
   analyticsRawRetentionDays: number;
@@ -118,6 +120,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     corsOrigins: value.CORS_ORIGINS.split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
+    trustedProxyHops: value.TRUSTED_PROXY_HOPS,
     allowDevAuth: value.ALLOW_DEV_AUTH === "true",
     billingProvider: value.BILLING_PROVIDER,
     analyticsRawRetentionDays: value.ANALYTICS_RAW_RETENTION_DAYS,

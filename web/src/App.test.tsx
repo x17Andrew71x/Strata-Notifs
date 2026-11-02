@@ -15,7 +15,7 @@ import App, {
   TOAST_DURATION_MS,
   TOAST_FADE_START_MS,
 } from "./App";
-import type { ShellState } from "./bridge";
+import { type ShellState, sendNativeRequest } from "./bridge";
 import { RELIC_VAULT_CATALOG_REVISION, WORLD_ASSET_PATHS, WORLD_DEFINITIONS } from "./worlds";
 
 const native = {
@@ -166,7 +166,7 @@ describe("full shell application", () => {
         new MessageEvent("message", {
           data: JSON.stringify({
             version: 2,
-            id: "capabilities",
+            id: requestId("capabilities.get"),
             type: "capabilities.state",
             bridgeVersion: 2,
             notificationAccess: true,
@@ -218,7 +218,7 @@ describe("full shell application", () => {
         new MessageEvent("message", {
           data: JSON.stringify({
             version: 2,
-            id: "capabilities",
+            id: requestId("capabilities.get"),
             type: "capabilities.state",
             bridgeVersion: 2,
             notificationAccess: true,
@@ -380,7 +380,7 @@ describe("full shell application", () => {
         new MessageEvent("message", {
           data: JSON.stringify({
             version: 2,
-            id: "capabilities",
+            id: requestId("capabilities.get"),
             type: "capabilities.state",
             bridgeVersion: 2,
             notificationAccess: true,
@@ -588,11 +588,6 @@ describe("full shell application", () => {
         ...baseState.today,
         excavation: {
           artifactId: "relic-dactylioceras-ammonite",
-          capturedNotificationCount: 8,
-          eligibleNotificationCount: 6,
-          energyPerNotification: 1,
-          energyEarned: 6,
-          energySpent: 3,
           energyAvailable: 3,
           tileEnergyCost: 3,
           gridColumns: 5,
@@ -686,7 +681,6 @@ describe("full shell application", () => {
 
     sendState(
       excavationState({
-        energySpent: 6,
         energyAvailable: 0,
         dugTiles: [12, 13],
       }),
@@ -707,9 +701,6 @@ describe("full shell application", () => {
 
     sendState(
       excavationState({
-        capturedNotificationCount: 9,
-        eligibleNotificationCount: 7,
-        energyEarned: 7,
         energyAvailable: 4,
       }),
     );
@@ -717,11 +708,11 @@ describe("full shell application", () => {
     expect(screen.getByText("1/3", { selector: ".dig-energy-readout small" })).toBeTruthy();
     expect(gainedEnergy).toHaveClass("energy-gained");
 
-    sendState(excavationState({ energySpent: 6, energyAvailable: 1 }));
+    sendState(excavationState({ energyAvailable: 1 }));
     expect(screen.getByText("0", { selector: ".excavation-hud strong" })).not.toHaveClass(
       "energy-gained",
     );
-    sendState(excavationState({ energySpent: 6, energyAvailable: 2 }));
+    sendState(excavationState({ energyAvailable: 2 }));
     const secondGain = screen.getByText("0", { selector: ".excavation-hud strong" });
     expect(screen.getByText("2/3", { selector: ".dig-energy-readout small" })).toBeTruthy();
     expect(secondGain).toHaveClass("energy-gained");
@@ -747,11 +738,6 @@ describe("full shell application", () => {
         },
         excavation: {
           artifactId: "relic-dinosaur-embryo-egg",
-          capturedNotificationCount: 80,
-          eligibleNotificationCount: 75,
-          energyPerNotification: 1,
-          energyEarned: 75,
-          energySpent: 75,
           energyAvailable: 0,
           tileEnergyCost: 3,
           gridColumns: 5,
@@ -927,12 +913,10 @@ describe("full shell application", () => {
     fireEvent.click(online);
 
     const preferenceUpdates = requests().filter(({ type }) => type === "preferences.update");
-    expect(preferenceUpdates).toHaveLength(3);
-    expect(preferenceUpdates.map(({ payload }) => payload)).toEqual([
-      { key: "onlineFeaturesEnabled", value: true },
-      { key: "productAnalyticsEnabled", value: true },
-      { key: "notificationAggregateSharingEnabled", value: true },
-    ]);
+    expect(preferenceUpdates).toHaveLength(1);
+    expect(preferenceUpdates[0]).toMatchObject({
+      payload: { key: "onlineFeaturesEnabled", value: true },
+    });
   });
 
   it("lets either defaulted data choice be switched off independently", () => {
@@ -1110,12 +1094,17 @@ describe("full shell application", () => {
   it("dismisses action feedback after the visible toast period", () => {
     vi.useFakeTimers();
     renderWithState(baseState);
+    const id = sendNativeRequest("preferences.update", {
+      key: "reduceMotionEnabled",
+      value: true,
+    });
+    expect(id).not.toBeNull();
     act(() => {
-      window.dispatchEvent(
+      native.onmessage?.(
         new MessageEvent("message", {
           data: JSON.stringify({
             version: 2,
-            id: "save_result",
+            id,
             type: "action.result",
             action: "preferences.update",
             ok: true,
@@ -1143,7 +1132,7 @@ function renderWithState(state: ShellState) {
 function sendState(state: ShellState | { preferences: ShellState["preferences"] }) {
   const message = "type" in state ? state : { ...baseState, ...state };
   act(() => {
-    window.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(message) }));
+    native.onmessage?.(new MessageEvent("message", { data: JSON.stringify(message) }));
   });
 }
 
@@ -1157,6 +1146,12 @@ function lastRequest(): Record<string, unknown> {
   return requests().at(-1) ?? {};
 }
 
+function requestId(type: string): string {
+  const id = requests().find((request) => request.type === type)?.id;
+  if (typeof id !== "string") throw new Error(`missing request id for ${type}`);
+  return id;
+}
+
 function excavationState(
   excavation: Partial<NonNullable<ShellState["today"]["excavation"]>> = {},
 ): ShellState {
@@ -1166,11 +1161,6 @@ function excavationState(
       ...baseState.today,
       excavation: {
         artifactId: "relic-dactylioceras-ammonite",
-        capturedNotificationCount: 8,
-        eligibleNotificationCount: 6,
-        energyPerNotification: 1,
-        energyEarned: 6,
-        energySpent: 3,
         energyAvailable: 3,
         tileEnergyCost: 3,
         gridColumns: 5,

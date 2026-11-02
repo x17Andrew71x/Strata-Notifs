@@ -1,6 +1,37 @@
 import { describe, expect, it } from "vitest";
-import { installResponseListener, parseNativeRequest, type ShellState } from "./bridge";
+import {
+  installResponseListener,
+  parseNativeRequest,
+  type ShellState,
+  sendNativeRequest,
+} from "./bridge";
 import { relicVaultCatalogUpdate } from "./worlds";
+
+function installTestBridge() {
+  const bridge = {
+    postMessage: () => undefined,
+    onmessage: null as ((event: MessageEvent<string>) => void) | null,
+  };
+  window.AfterchimeBridge = bridge;
+  return bridge;
+}
+
+function emitBridge(
+  bridge: ReturnType<typeof installTestBridge>,
+  value: Record<string, unknown>,
+): void {
+  bridge.onmessage?.(new MessageEvent("message", { data: JSON.stringify(value) }));
+}
+
+function emitTrustedWindow(value: Record<string, unknown>): void {
+  window.dispatchEvent(
+    new MessageEvent("message", {
+      data: JSON.stringify(value),
+      origin: window.location.origin,
+      source: window,
+    }),
+  );
+}
 
 describe("versioned native bridge requests", () => {
   it("accepts only exact bounded v2 actions", () => {
@@ -209,10 +240,15 @@ describe("versioned native bridge requests", () => {
 
   it("accepts strict development-feedback state responses and an additive capability", () => {
     const responses: unknown[] = [];
+    const bridge = installTestBridge();
     const stop = installResponseListener((response) => responses.push(response));
+    const feedbackId = sendNativeRequest("devFeedback.items");
+    const capabilityId = sendNativeRequest("capabilities.get");
+    expect(feedbackId).not.toBeNull();
+    expect(capabilityId).not.toBeNull();
     const feedback = {
       version: 2,
-      id: "feedback_list",
+      id: feedbackId as string,
       type: "devFeedback.state",
       operation: "list",
       ok: true,
@@ -232,29 +268,22 @@ describe("versioned native bridge requests", () => {
         },
       ],
     };
-    window.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(feedback) }));
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        data: JSON.stringify({
-          version: 2,
-          id: "caps",
-          type: "capabilities.state",
-          bridgeVersion: 2,
-          notificationAccess: true,
-          appDetailsAction: true,
-          catalogUpdates: true,
-          exhibitDownloads: true,
-          devFeedback: true,
-          appVersion: "0.1.10-dev-debug",
-        }),
-      }),
-    );
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        data: JSON.stringify({ ...feedback, leaseId: "forbidden" }),
-      }),
-    );
+    emitBridge(bridge, feedback);
+    emitBridge(bridge, {
+      version: 2,
+      id: capabilityId as string,
+      type: "capabilities.state",
+      bridgeVersion: 2,
+      notificationAccess: true,
+      appDetailsAction: true,
+      catalogUpdates: true,
+      exhibitDownloads: true,
+      devFeedback: true,
+      appVersion: "0.1.10-dev-debug",
+    });
+    emitBridge(bridge, { ...feedback, leaseId: "forbidden" });
     stop();
+    delete window.AfterchimeBridge;
 
     expect(responses).toHaveLength(2);
     expect(responses[0]).toEqual(feedback);
@@ -267,10 +296,13 @@ describe("versioned native bridge requests", () => {
 
   it("accepts failed development-feedback items while rejecting unknown statuses", () => {
     const responses: unknown[] = [];
+    const bridge = installTestBridge();
     const stop = installResponseListener((response) => responses.push(response));
+    const feedbackId = sendNativeRequest("devFeedback.items");
+    expect(feedbackId).not.toBeNull();
     const feedback = {
       version: 2,
-      id: "feedback_failed",
+      id: feedbackId as string,
       type: "devFeedback.state",
       operation: "list",
       ok: true,
@@ -290,17 +322,14 @@ describe("versioned native bridge requests", () => {
         },
       ],
     };
-    window.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(feedback) }));
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        data: JSON.stringify({
-          ...feedback,
-          id: "feedback_unknown",
-          items: [{ ...feedback.items[0], status: "automation_failed" }],
-        }),
-      }),
-    );
+    emitBridge(bridge, feedback);
+    emitBridge(bridge, {
+      ...feedback,
+      id: "feedback_unknown",
+      items: [{ ...feedback.items[0], status: "automation_failed" }],
+    });
     stop();
+    delete window.AfterchimeBridge;
 
     expect(responses).toEqual([feedback]);
   });
@@ -328,15 +357,64 @@ describe("versioned native bridge requests", () => {
     expect(parseNativeRequest(message)).toBeNull();
   });
 
+  it("rejects cross-origin, wrong-source, unknown, mismatched, and duplicate responses", () => {
+    const responses: unknown[] = [];
+    const bridge = installTestBridge();
+    const stop = installResponseListener((response) => responses.push(response));
+    const id = sendNativeRequest("preferences.update", {
+      key: "reduceMotionEnabled",
+      value: true,
+    });
+    expect(id).not.toBeNull();
+
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: JSON.stringify(state),
+        origin: "https://attacker.example",
+        source: window,
+      }),
+    );
+    window.dispatchEvent(
+      new MessageEvent("message", {
+        data: JSON.stringify(state),
+        origin: window.location.origin,
+        source: null,
+      }),
+    );
+    emitBridge(bridge, {
+      version: 2,
+      id: id as string,
+      type: "action.result",
+      action: "museum.combine",
+      ok: true,
+    });
+    emitBridge(bridge, {
+      version: 2,
+      id: "unknown",
+      type: "action.result",
+      action: "preferences.update",
+      ok: true,
+    });
+    const accepted = {
+      version: 2,
+      id: id as string,
+      type: "action.result",
+      action: "preferences.update",
+      ok: true,
+    };
+    emitBridge(bridge, accepted);
+    emitBridge(bridge, accepted);
+    stop();
+    delete window.AfterchimeBridge;
+
+    expect(responses).toEqual([accepted]);
+  });
+
   it("accepts a strict privacy-reduced state and rejects added fields", () => {
     const responses: unknown[] = [];
     const stop = installResponseListener((response) => responses.push(response));
-    window.dispatchEvent(new MessageEvent("message", { data: JSON.stringify(state) }));
-    window.dispatchEvent(
-      new MessageEvent("message", {
-        data: JSON.stringify({ ...state, notificationText: "private" }),
-      }),
-    );
+    emitTrustedWindow(state);
+    emitTrustedWindow({ ...state, notificationText: "private" });
     stop();
 
     expect(responses).toEqual([state]);

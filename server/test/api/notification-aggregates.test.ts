@@ -89,7 +89,7 @@ describePostgres("notification aggregate API", () => {
     return app;
   }
 
-  async function register(app: Awaited<ReturnType<typeof buildApp>>) {
+  async function register(app: Awaited<ReturnType<typeof buildApp>>, trusted = true) {
     const response = await app.inject({
       headers: { "idempotency-key": randomUUID() },
       method: "POST",
@@ -97,7 +97,16 @@ describePostgres("notification aggregate API", () => {
       url: "/v1/installations",
     });
     expect(response.statusCode).toBe(201);
-    return response.json() as Readonly<{ accessToken: string; installationId: string }>;
+    const session = response.json() as Readonly<{ accessToken: string; installationId: string }>;
+    if (trusted) {
+      await runtime`
+        SELECT public.afterchime_grant_installation_trust(
+          ${session.installationId},
+          ${"owner_admin"}
+        )
+      `;
+    }
+    return session;
   }
 
   async function grantNotificationAggregateConsent(
@@ -124,7 +133,7 @@ describePostgres("notification aggregate API", () => {
       eligible_count: 3,
       game_pressure: 2,
       hourly_buckets: [{ count: 3, hour: 9 }],
-      local_date: "2026-10-02",
+      local_date: new Date().toISOString().slice(0, 10),
       observation_completeness: 100,
       revision: 1,
       rules_version: 1,
@@ -145,6 +154,16 @@ describePostgres("notification aggregate API", () => {
       url: "/v1/notification-aggregates/daily",
     });
   }
+
+  it("rejects notification aggregates from an unverified public installation", async () => {
+    const app = await appForDatabase();
+    const session = await register(app, false);
+    await grantNotificationAggregateConsent(app, session.accessToken);
+
+    const response = await upsert(app, session.accessToken, aggregateFor());
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "installation_untrusted" });
+  });
 
   it("persists one server-owned daily aggregate, replays an exact revision, and replaces it only with a newer revision", async () => {
     const app = await appForDatabase();
@@ -267,6 +286,7 @@ describePostgres("notification aggregate API", () => {
       { ...aggregate, content: "not-retained" },
       { ...aggregate, build_channel: "prod" },
       { ...aggregate, is_synthetic: true },
+      aggregateFor({ local_date: "2020-01-01" }),
     ];
 
     for (const payload of rejectedPayloads) {

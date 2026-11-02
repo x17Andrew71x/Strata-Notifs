@@ -4,6 +4,11 @@ import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
 import { verifyAdminKey } from "../../security/admin-auth.js";
+import {
+  authorizationRateLimitKey,
+  feedbackAdminRateLimitKey,
+  feedbackClientRateLimitKey,
+} from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import {
   type DevFeedbackProject,
@@ -178,7 +183,12 @@ export async function registerDevelopmentModule(
 
   app.get(
     "/v1/dev-feedback/items",
-    { schema: { response: { 200: stateResponse, 401: authorizationError } } },
+    {
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 30, timeWindow: "1 minute" },
+      },
+      schema: { response: { 200: stateResponse, 401: authorizationError } },
+    },
     async (request, reply) => {
       const identity = authenticatedIdentity(request.headers.authorization, config);
       if (!identity) return reply.code(401).send({ error: "unauthorized" });
@@ -190,6 +200,9 @@ export async function registerDevelopmentModule(
     "/v1/dev-feedback/items",
     {
       bodyLimit: 1_100 * 1_024,
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 5, timeWindow: "1 minute" },
+      },
       schema: {
         body: feedbackBody,
         headers: idempotencyHeaders,
@@ -228,6 +241,9 @@ export async function registerDevelopmentModule(
     "/v1/dev-feedback/items/:itemId/amendments",
     {
       bodyLimit: 1_100 * 1_024,
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 5, timeWindow: "1 minute" },
+      },
       schema: {
         params: z.object({ itemId: uuid }),
         body: feedbackBody,
@@ -269,6 +285,9 @@ export async function registerDevelopmentModule(
   app.post<{ Params: { itemId: string } }>(
     "/v1/dev-feedback/items/:itemId/accept",
     {
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 10, timeWindow: "1 minute" },
+      },
       schema: {
         params: z.object({ itemId: uuid }),
         body: z.object({}).strict(),
@@ -291,6 +310,9 @@ export async function registerDevelopmentModule(
   app.post<{ Params: { itemId: string } }>(
     "/v1/dev-feedback/items/:itemId/close",
     {
+      config: {
+        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 10, timeWindow: "1 minute" },
+      },
       schema: {
         params: z.object({ itemId: uuid }),
         body: z.object({}).strict(),
@@ -313,6 +335,9 @@ export async function registerDevelopmentModule(
   app.get(
     "/v1/dev-feedback/trusted/items",
     {
+      config: {
+        rateLimit: { keyGenerator: feedbackClientRateLimitKey, max: 30, timeWindow: "1 minute" },
+      },
       schema: {
         headers: trustedHeaders,
         response: { 200: stateResponse, 401: authorizationError },
@@ -329,6 +354,9 @@ export async function registerDevelopmentModule(
     "/v1/dev-feedback/trusted/items",
     {
       bodyLimit: 1_100 * 1_024,
+      config: {
+        rateLimit: { keyGenerator: feedbackClientRateLimitKey, max: 3, timeWindow: "1 minute" },
+      },
       schema: {
         headers: trustedHeaders.merge(idempotencyHeaders),
         body: feedbackBody,
@@ -362,6 +390,9 @@ export async function registerDevelopmentModule(
     "/v1/dev-feedback/trusted/items/:itemId/amendments",
     {
       bodyLimit: 1_100 * 1_024,
+      config: {
+        rateLimit: { keyGenerator: feedbackClientRateLimitKey, max: 3, timeWindow: "1 minute" },
+      },
       schema: {
         params: z.object({ itemId: uuid }),
         headers: trustedHeaders.merge(idempotencyHeaders),
@@ -399,6 +430,9 @@ export async function registerDevelopmentModule(
     app.post<{ Params: { itemId: string } }>(
       `/v1/dev-feedback/trusted/items/:itemId/${operation}`,
       {
+        config: {
+          rateLimit: { keyGenerator: feedbackClientRateLimitKey, max: 10, timeWindow: "1 minute" },
+        },
         schema: {
           params: z.object({ itemId: uuid }),
           headers: trustedHeaders,
@@ -424,6 +458,9 @@ export async function registerDevelopmentModule(
   app.post(
     "/v1/dev-feedback/admin/restore-latest-client",
     {
+      config: {
+        rateLimit: { keyGenerator: feedbackAdminRateLimitKey, max: 3, timeWindow: "1 minute" },
+      },
       schema: {
         headers: adminHeaders,
         body: z.object({}).strict(),
@@ -447,6 +484,9 @@ export async function registerDevelopmentModule(
   app.post(
     "/v1/dev-feedback/admin/claim",
     {
+      config: {
+        rateLimit: { keyGenerator: feedbackAdminRateLimitKey, max: 10, timeWindow: "1 minute" },
+      },
       schema: {
         headers: adminHeaders,
         body: claimBody,
@@ -464,6 +504,9 @@ export async function registerDevelopmentModule(
   app.get<{ Params: { itemId: string } }>(
     "/v1/dev-feedback/admin/items/:itemId",
     {
+      config: {
+        rateLimit: { keyGenerator: feedbackAdminRateLimitKey, max: 30, timeWindow: "1 minute" },
+      },
       schema: {
         params: z.object({ itemId: uuid }),
         headers: adminHeaders,
@@ -559,6 +602,9 @@ export async function registerDevelopmentModule(
     app.post<{ Params: { itemId: string } }>(
       `/v1/dev-feedback/admin/items/:itemId/${operation}`,
       {
+        config: {
+          rateLimit: { keyGenerator: feedbackAdminRateLimitKey, max: 30, timeWindow: "1 minute" },
+        },
         schema: {
           params: z.object({ itemId: uuid }),
           headers: adminHeaders,

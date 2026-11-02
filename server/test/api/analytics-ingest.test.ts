@@ -81,7 +81,7 @@ describePostgres("analytics ingestion API", () => {
     return app;
   }
 
-  async function register(app: Awaited<ReturnType<typeof buildApp>>) {
+  async function register(app: Awaited<ReturnType<typeof buildApp>>, trusted = true) {
     const response = await app.inject({
       headers: { "idempotency-key": randomUUID() },
       method: "POST",
@@ -89,7 +89,16 @@ describePostgres("analytics ingestion API", () => {
       url: "/v1/installations",
     });
     expect(response.statusCode).toBe(201);
-    return response.json() as Readonly<{ accessToken: string; installationId: string }>;
+    const session = response.json() as Readonly<{ accessToken: string; installationId: string }>;
+    if (trusted) {
+      await runtime`
+        SELECT public.afterchime_grant_installation_trust(
+          ${session.installationId},
+          ${"owner_admin"}
+        )
+      `;
+    }
+    return session;
   }
 
   async function grantAnalyticsConsent(
@@ -147,6 +156,16 @@ describePostgres("analytics ingestion API", () => {
       url: "/v1/analytics/events:batch",
     });
   }
+
+  it("rejects analytics from an unverified public installation", async () => {
+    const app = await appForDatabase();
+    const session = await register(app, false);
+    await grantAnalyticsConsent(app, session.accessToken);
+
+    const response = await ingest(app, session.accessToken, [eventFor(session.installationId)]);
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toEqual({ error: "installation_untrusted" });
+  });
 
   it("accepts a bounded consented batch, replays exact event identities, and atomically accepts mixed duplicate/new retries", async () => {
     const app = await appForDatabase();
@@ -243,6 +262,12 @@ describePostgres("analytics ingestion API", () => {
       [
         eventFor(session.installationId, {
           occurred_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        }),
+      ],
+      [
+        eventFor(session.installationId, {
+          occurred_at: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000).toISOString(),
+          local_date: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
         }),
       ],
       Array.from({ length: 51 }, () => eventFor(session.installationId)),
