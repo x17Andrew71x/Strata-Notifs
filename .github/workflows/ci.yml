@@ -57,8 +57,17 @@ jobs:
       - name: Write server test report
         run: corepack pnpm --dir server test:ci
 
-      - name: Run repository checks
-        run: ./scripts/check.sh
+      - name: Run repository static checks
+        run: |
+          corepack pnpm privacy:test
+          corepack pnpm privacy:check
+          corepack pnpm format:check
+          corepack pnpm lint
+
+      - name: Verify debug Android lane
+        run: >-
+          (cd android && ./gradlew --no-daemon --no-configuration-cache
+          :app:testDevDebugUnitTest :app:lintDevDebug :app:assembleDevDebug)
 
       - name: Assemble hardened internal-review APK
         run: (cd android && ./gradlew --no-daemon :app:assembleDevReview)
