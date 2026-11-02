@@ -60,13 +60,17 @@ describe("shared page headings", () => {
 });
 
 describe("excavation motion", () => {
-  it("lets the unlocked excavation fill the mobile content width without enlarging the locked formation", () => {
+  it("lets the unlocked excavation fill its container without enlarging the locked formation", () => {
+    const excavation = declarationBlock(".excavation");
     const mobileExcavation = lastDeclarationBlock(".excavation");
     const mobileFormation = lastDeclarationBlock(".formation");
 
+    expect(excavation).toContain("width: 100%");
+    expect(excavation).toContain("max-width: none");
+    expect(excavation).toContain("height: auto");
     expect(mobileExcavation).toContain("width: 100%");
-    expect(mobileExcavation).toContain("max-width: min(100%, 402px)");
-    expect(mobileExcavation).toContain("height: min(100%, 468px)");
+    expect(mobileExcavation).toContain("max-width: none");
+    expect(mobileExcavation).toContain("height: auto");
     expect(mobileFormation).toContain("max-width: min(88vw, 326px)");
     expect(mobileFormation).toContain("height: min(100%, 354px)");
   });
