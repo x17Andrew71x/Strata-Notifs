@@ -41,8 +41,8 @@ describe("loadConfig", () => {
     ).toThrow();
   });
 
-  it("accepts only a bounded explicit proxy-hop count", () => {
-    expect(loadConfig({ ...validEnvironment, TRUSTED_PROXY_HOPS: "1" }).trustedProxyHops).toBe(1);
+  it("keeps proxy trust disabled even when a stale provider override requests it", () => {
+    expect(loadConfig({ ...validEnvironment, TRUSTED_PROXY_HOPS: "1" }).trustedProxyHops).toBe(0);
     expect(() => loadConfig({ ...validEnvironment, TRUSTED_PROXY_HOPS: "3" })).toThrow();
   });
 

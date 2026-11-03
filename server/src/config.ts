@@ -123,7 +123,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     corsOrigins: value.CORS_ORIGINS.split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
-    trustedProxyHops: value.TRUSTED_PROXY_HOPS,
+    // Railway currently preserves attacker-supplied forwarding values; do not trust them.
+    trustedProxyHops: 0,
     allowDevAuth: value.ALLOW_DEV_AUTH === "true",
     billingProvider: value.BILLING_PROVIDER,
     analyticsRawRetentionDays: value.ANALYTICS_RAW_RETENTION_DAYS,
