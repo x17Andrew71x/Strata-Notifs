@@ -1,0 +1,4 @@
+# Historical test-fixture false positives verified during the production-readiness review.
+798e15073cb6a2f09b7736dd5a094841c4d31dc1:android/app/src/test/java/com/techfullymade/afterchime/network/ContractTest.kt:generic-api-key:207
+e262f99980499124a29cf33afe3423be971605f5:android/app/src/test/java/com/techfullymade/afterchime/network/ContractTest.kt:generic-api-key:145
+eb680378d23919dea65021daef00677a5a46ddb7:android/app/src/test/java/com/techfullymade/afterchime/identity/OnlineIdentityRepositoryTest.kt:generic-api-key:26
