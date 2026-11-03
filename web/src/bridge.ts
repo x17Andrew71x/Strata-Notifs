@@ -1,6 +1,8 @@
 import type { DevFeedbackItem } from "./dev-feedback/model";
 
 export const BRIDGE_VERSION = 2 as const;
+export const MAX_PENDING_NATIVE_REQUESTS = 64;
+export const NATIVE_REQUEST_TIMEOUT_MS = 5 * 60 * 1_000;
 const DEV_FEEDBACK_BUILD = import.meta.env.VITE_DEV_FEEDBACK_ENABLED === "true";
 
 const CORE_NO_PAYLOAD_ACTIONS = [
@@ -223,7 +225,14 @@ export type NativeResponse =
       items: DevFeedbackItem[];
     };
 
-const pendingNativeRequests = new Map<string, NativeAction>();
+type PendingNativeRequest = Readonly<{ action: NativeAction; expiresAt: number }>;
+const pendingNativeRequests = new Map<string, PendingNativeRequest>();
+const COALESCED_READ_ACTIONS: ReadonlySet<NativeAction> = new Set([
+  "capabilities.get",
+  "state.get",
+  "exhibits.refresh",
+  ...(DEV_FEEDBACK_BUILD ? (["devFeedback.items", "devFeedback.refresh"] as const) : []),
+]);
 
 declare global {
   interface Window {
@@ -255,12 +264,19 @@ export function sendNativeRequest(
 ): string | null {
   const bridge = window.AfterchimeBridge;
   if (!bridge) return null;
-  const id = `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  const now = Date.now();
+  prunePendingNativeRequests(now);
+  if (COALESCED_READ_ACTIONS.has(type)) {
+    const existing = [...pendingNativeRequests].find(([, pending]) => pending.action === type);
+    if (existing) return existing[0];
+  }
+  if (pendingNativeRequests.size >= MAX_PENDING_NATIVE_REQUESTS) return null;
+  const id = `${now.toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
   const request = payload
     ? { version: BRIDGE_VERSION, id, type, payload }
     : { version: BRIDGE_VERSION, id, type };
   if (!parseNativeRequest(request)) return null;
-  pendingNativeRequests.set(id, type);
+  pendingNativeRequests.set(id, { action: type, expiresAt: now + NATIVE_REQUEST_TIMEOUT_MS });
   try {
     bridge.postMessage(JSON.stringify(request));
   } catch {
@@ -295,12 +311,15 @@ export function installResponseListener(
   return () => {
     window.removeEventListener("message", windowListener);
     if (bridge?.onmessage === bridgeListener) bridge.onmessage = previousBridgeListener;
+    pendingNativeRequests.clear();
   };
 }
 
 function isExpectedResponse(response: NativeResponse): boolean {
-  const expectedAction = pendingNativeRequests.get(response.id);
-  if (expectedAction) {
+  prunePendingNativeRequests(Date.now());
+  const pending = pendingNativeRequests.get(response.id);
+  if (pending) {
+    const expectedAction = pending.action;
     const matches =
       (response.type === "capabilities.state" && expectedAction === "capabilities.get") ||
       (response.type === "shell.state" && expectedAction === "state.get") ||
@@ -311,10 +330,24 @@ function isExpectedResponse(response: NativeResponse): boolean {
     if (matches) pendingNativeRequests.delete(response.id);
     return matches;
   }
-  return (
-    (response.type === "shell.state" && ["state", "resume_state"].includes(response.id)) ||
-    (response.type === "capabilities.state" && response.id === "resume")
-  );
+  const isStatePush =
+    response.type === "shell.state" && ["state", "resume_state"].includes(response.id);
+  const isCapabilityPush = response.type === "capabilities.state" && response.id === "resume";
+  if (isStatePush) clearPendingAction("state.get");
+  if (isCapabilityPush) clearPendingAction("capabilities.get");
+  return isStatePush || isCapabilityPush;
+}
+
+function clearPendingAction(action: NativeAction): void {
+  for (const [id, pending] of pendingNativeRequests) {
+    if (pending.action === action) pendingNativeRequests.delete(id);
+  }
+}
+
+function prunePendingNativeRequests(now: number): void {
+  for (const [id, pending] of pendingNativeRequests) {
+    if (pending.expiresAt <= now) pendingNativeRequests.delete(id);
+  }
 }
 
 function parseNativeResponse(value: unknown): NativeResponse | null {

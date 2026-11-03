@@ -11,6 +11,7 @@ sealed interface ApiFailure {
   data object MalformedResponse : ApiFailure
   data object Unauthorized : ApiFailure
   data object ConsentInactive : ApiFailure
+  data object InstallationUntrusted : ApiFailure
   data object Conflict : ApiFailure
   data object Network : ApiFailure
   data object Http : ApiFailure

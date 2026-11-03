@@ -4,8 +4,10 @@ import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
 import {
   authorizationRateLimitKey,
+  layeredRateLimitHandlers,
   refreshCredentialRateLimitKey,
   registrationRateLimitKey,
+  routeRateLimitHandlers,
 } from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import { IdempotencyConflictError, IdentityRepository } from "./repository.js";
@@ -61,13 +63,13 @@ export async function registerIdentityRoutes(
   app.post(
     "/v1/installations",
     {
-      config: {
-        rateLimit: {
-          keyGenerator: registrationRateLimitKey,
-          max: 10,
-          timeWindow: "1 minute",
-        },
-      },
+      preHandler: layeredRateLimitHandlers(app, {
+        circuitMax: 300,
+        clientMax: 30,
+        credentialKey: registrationRateLimitKey,
+        credentialMax: 3,
+        group: "registration",
+      }),
       schema: {
         body: registrationBody,
         headers: idempotencyHeaders,
@@ -99,9 +101,7 @@ export async function registerIdentityRoutes(
   app.post(
     "/v1/profile/open",
     {
-      config: {
-        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 30, timeWindow: "1 minute" },
-      },
+      preHandler: routeRateLimitHandlers(app, "profile-open", authorizationRateLimitKey, 30),
     },
     async (request, reply) => {
       const claims = authenticatedClaims(request.headers.authorization, config);
@@ -115,9 +115,7 @@ export async function registerIdentityRoutes(
   app.post(
     "/v1/auth/refresh",
     {
-      config: {
-        rateLimit: { keyGenerator: refreshCredentialRateLimitKey, max: 10, timeWindow: "1 minute" },
-      },
+      preHandler: routeRateLimitHandlers(app, "auth-refresh", refreshCredentialRateLimitKey, 10),
       schema: {
         body: refreshBody,
         response: {
@@ -139,9 +137,7 @@ export async function registerIdentityRoutes(
   app.post(
     "/v1/auth/logout",
     {
-      config: {
-        rateLimit: { keyGenerator: refreshCredentialRateLimitKey, max: 10, timeWindow: "1 minute" },
-      },
+      preHandler: routeRateLimitHandlers(app, "auth-logout", refreshCredentialRateLimitKey, 10),
       schema: {
         body: refreshBody,
       },

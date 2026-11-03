@@ -508,9 +508,10 @@ class MainActivity : ComponentActivity() {
     val today = todayViewModel.uiState.value
     val localDate = today.snapshot.localDate.toString()
     val snapshot = applicationState.exhibitsRepository.state.value
+    val expectedUnits = payload.getInt("units")
     val accepted =
       payload.getString("localDate") == localDate &&
-        payload.getInt("units") == snapshot.bankedEnergy &&
+        expectedUnits == snapshot.bankedEnergy &&
         snapshot.bankedEnergy > 0
     if (!accepted) {
       postActionResult(request, false, proxy)
@@ -520,6 +521,7 @@ class MainActivity : ComponentActivity() {
       kind = requireNotNull(actionConfirmation(request.type)),
       request = request,
       proxy = proxy,
+      copy = exhibitContributionConfirmationCopy(expectedUnits),
     ) {
       lifecycleScope.launch {
         postActionResult(
@@ -527,6 +529,7 @@ class MainActivity : ComponentActivity() {
           applicationState.exhibitsRepository.contribute(
             exhibitId = payload.getString("exhibitId"),
             localDate = localDate,
+            expectedUnits = expectedUnits,
             surplusEnergy = today.exhibitSurplusEnergy(),
           ),
           proxy,
@@ -575,7 +578,12 @@ class MainActivity : ComponentActivity() {
       }
     }
     val confirmation = preferenceConfirmation(key, value)
-    if (confirmation == null) apply() else confirmNativeAction(confirmation, request, proxy, apply)
+    if (confirmation == null) apply() else confirmNativeAction(
+      kind = confirmation,
+      request = request,
+      proxy = proxy,
+      onConfirmed = apply,
+    )
   }
 
   private fun updateSpecimenLock(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
@@ -644,6 +652,7 @@ class MainActivity : ComponentActivity() {
     kind: NativeConfirmationKind,
     request: BridgeRequest,
     proxy: JavaScriptReplyProxy,
+    copy: Pair<String, String>? = null,
     onConfirmed: () -> Unit,
   ) {
     if (nativeConfirmationInFlight) {
@@ -651,7 +660,7 @@ class MainActivity : ComponentActivity() {
       return
     }
     nativeConfirmationInFlight = true
-    val (title, message) = confirmationCopy(kind)
+    val (title, message) = copy ?: confirmationCopy(kind)
     val decline = {
       nativeConfirmationInFlight = false
       postActionResult(request, false, proxy)

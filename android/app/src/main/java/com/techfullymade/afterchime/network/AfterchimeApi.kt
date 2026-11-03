@@ -1,6 +1,7 @@
 package com.techfullymade.afterchime.network
 
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
@@ -223,7 +224,7 @@ class AfterchimeApi(
       } else {
         when (status) {
           401 -> ApiResult.failure(ApiFailure.Unauthorized)
-          403 -> ApiResult.failure(ApiFailure.ConsentInactive)
+          403 -> ApiResult.failure(forbiddenFailure(connection))
           409 -> ApiResult.failure(ApiFailure.Conflict)
           else -> ApiResult.failure(ApiFailure.Http)
         }
@@ -236,11 +237,33 @@ class AfterchimeApi(
   }
 
   private fun readBoundedResponse(connection: HttpURLConnection): String {
+    return readBoundedStream(connection.inputStream)
+  }
+
+  private fun forbiddenFailure(connection: HttpURLConnection): ApiFailure {
+    val response = try {
+      connection.errorStream?.let(::readBoundedStream) ?: return ApiFailure.Http
+    } catch (_: Exception) {
+      return ApiFailure.Http
+    }
+    val error = try {
+      ApiModels.parseError(response, setOf("consent_inactive", "installation_untrusted")).error
+    } catch (_: Exception) {
+      return ApiFailure.Http
+    }
+    return when (error) {
+      "consent_inactive" -> ApiFailure.ConsentInactive
+      "installation_untrusted" -> ApiFailure.InstallationUntrusted
+      else -> ApiFailure.Http
+    }
+  }
+
+  private fun readBoundedStream(input: InputStream): String {
     val output = ByteArrayOutputStream()
     val buffer = ByteArray(8_192)
-    connection.inputStream.use { input ->
+    input.use {
       while (true) {
-        val count = input.read(buffer)
+        val count = it.read(buffer)
         if (count < 0) break
         require(output.size() + count <= MAX_BODY_BYTES)
         output.write(buffer, 0, count)

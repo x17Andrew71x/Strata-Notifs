@@ -193,6 +193,24 @@ class ContractTest {
     assertFalse(rendered.contains("Bearer"))
   }
 
+  @Test
+  fun `forbidden responses preserve installation trust separately from consent`() {
+    fun result(error: String) = AfterchimeApi(
+      "https://example.test",
+      false,
+      ConnectionFactory { FakeConnection(it, 403, """{"error":"$error"}""") },
+    ).contributeExhibit(
+      exhibitId = "returning-light-2027",
+      localDate = "2026-10-26",
+      units = 18,
+      bearerToken = "sample-token",
+      idempotencyKey = "123e4567-e89b-42d3-a456-426614174000",
+    )
+
+    assertEquals(ApiFailure.InstallationUntrusted, result("installation_untrusted").failure)
+    assertEquals(ApiFailure.ConsentInactive, result("consent_inactive").failure)
+  }
+
   private fun event(version: Int = 1): String =
     """{"event_id":"123e4567-e89b-42d3-a456-426614174000","event_name":"app_opened","schema_version":$version,"installation_id":"123e4567-e89b-42d3-a456-426614174000","occurred_at":"2026-01-01T00:00:00Z","local_date":"2026-01-01","timezone_offset_minutes":0,"app_version":"1.0.0","version_code":1,"build_channel":"dev","android_api_level":35,"device_class":"phone","locale":"en-US","consent_scope_version":1,"properties":{"launch_type":"cold"}}"""
 
@@ -245,6 +263,8 @@ class ContractTest {
     override fun getResponseCode(): Int = status
 
     override fun getInputStream(): ByteArrayInputStream = ByteArrayInputStream(response.toByteArray())
+
+    override fun getErrorStream(): ByteArrayInputStream = ByteArrayInputStream(response.toByteArray())
 
     override fun getOutputStream(): OutputStream = output
 

@@ -62,7 +62,14 @@ class ExhibitsRepositoryTest {
     assertTrue(repository.refresh("2026-10-26", surplusEnergy = 18, onlineEnabled = true))
 
     api.results.add(ApiResult.failure(ApiFailure.Network))
-    assertFalse(repository.contribute("returning-light-2027", "2026-10-26", surplusEnergy = 18))
+    assertFalse(
+      repository.contribute(
+        "returning-light-2027",
+        "2026-10-26",
+        expectedUnits = 18,
+        surplusEnergy = 18,
+      ),
+    )
     assertEquals(key, store.pending()?.idempotencyKey)
 
     api.state = api.state.copy(todayContributedUnits = 18, version = 2)
@@ -74,6 +81,68 @@ class ExhibitsRepositoryTest {
     assertEquals(key, api.contributions.last().idempotencyKey)
     assertNull(store.pending())
     assertEquals(0, repository.state.value.bankedEnergy)
+  }
+
+  @Test
+  fun `untrusted contribution remains pending until a later trusted replay succeeds`() = runBlocking {
+    val key = "11111111-1111-4111-8111-111111111111"
+    val store = SharedPreferencesExhibitContributionAttemptStore(context, newIdempotencyKey = { key })
+    val api = FakeExhibitsApi()
+    val repository = ExhibitsRepository(api, CommunityTokenProvider { "token" }, store)
+    assertTrue(repository.refresh("2026-10-26", surplusEnergy = 18, onlineEnabled = true))
+
+    api.results.add(ApiResult.failure(ApiFailure.InstallationUntrusted))
+    assertFalse(
+      repository.contribute(
+        "returning-light-2027",
+        "2026-10-26",
+        expectedUnits = 18,
+        surplusEnergy = 18,
+      ),
+    )
+    assertEquals(key, store.pending()?.idempotencyKey)
+
+    api.state = api.state.copy(todayContributedUnits = 18, version = 2)
+    api.results.add(ApiResult.success(ExhibitContributionResponse("duplicate", api.state)))
+    assertTrue(repository.refresh("2026-10-26", surplusEnergy = 18, onlineEnabled = true))
+    assertNull(store.pending())
+    assertEquals(2, api.contributions.size)
+  }
+
+  @Test
+  fun `contribution rejects a confirmed amount after refresh changes the available energy`() = runBlocking {
+    val store = SharedPreferencesExhibitContributionAttemptStore(context)
+    val api = FakeExhibitsApi()
+    val repository = ExhibitsRepository(api, CommunityTokenProvider { "token" }, store)
+    assertTrue(repository.refresh("2026-10-26", surplusEnergy = 5, onlineEnabled = true))
+    assertEquals(5, repository.state.value.bankedEnergy)
+
+    api.state = api.state.copy(version = 2)
+    assertTrue(repository.refresh("2026-10-26", surplusEnergy = 30, onlineEnabled = true))
+    assertEquals(30, repository.state.value.bankedEnergy)
+
+    assertFalse(
+      repository.contribute(
+        "returning-light-2027",
+        "2026-10-26",
+        expectedUnits = 5,
+        surplusEnergy = 30,
+      ),
+    )
+    assertTrue(api.contributions.isEmpty())
+    assertNull(store.pending())
+
+    api.state = api.state.copy(todayContributedUnits = 30, version = 3)
+    api.results.add(ApiResult.success(ExhibitContributionResponse("accepted", api.state)))
+    assertTrue(
+      repository.contribute(
+        "returning-light-2027",
+        "2026-10-26",
+        expectedUnits = 30,
+        surplusEnergy = 30,
+      ),
+    )
+    assertEquals(30, api.contributions.single().units)
   }
 
   @Test

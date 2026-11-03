@@ -9,6 +9,7 @@ cd "$ROOT"
 corepack pnpm install --frozen-lockfile
 corepack pnpm privacy:test
 corepack pnpm privacy:check
+python3 -m unittest scripts/test_check_dev_feedback_exclusion.py
 corepack pnpm format:check
 corepack pnpm lint
 corepack pnpm --filter @afterchime/web exec vitest run --pool=threads --maxWorkers=1 --no-file-parallelism

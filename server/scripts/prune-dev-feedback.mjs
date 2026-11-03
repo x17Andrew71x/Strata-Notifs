@@ -1,4 +1,4 @@
-import { cp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 const enabled =
@@ -21,22 +21,35 @@ if (!enabled) {
     throw new Error("development-feedback runtime loader was not removed exactly once");
   }
   await writeFile(appPath, appSource.replace(developmentLoader, ""), "utf8");
-  const developmentMigrations = [
-    { tag: "0004_orange_human_fly", snapshot: "0004_snapshot.json" },
-    { tag: "0005_magical_donald_blake", snapshot: "0005_snapshot.json" },
-    { tag: "0006_marvelous_randall_flagg", snapshot: "0006_snapshot.json" },
+  const developmentMigrationTags = [
+    "0004_orange_human_fly",
+    "0005_magical_donald_blake",
+    "0006_marvelous_randall_flagg",
+    "0007_little_zodiak",
+    "0008_classify_legacy_feedback_failure",
+    "0013_restore_feedback_review_queue",
+    "0014_restore_stale_feedback_work",
+    "0015_restore_current_feedback_client",
+    "0016_restore_feedback_client_function",
+    "0017_restore_feedback_after_registration",
+    "0018_restore_feedback_isolated_client",
   ];
-  for (const migration of developmentMigrations) {
-    await rm(path.join(runtimeMigrations, `${migration.tag}.sql`), { force: true });
-    await rm(path.join(runtimeMigrations, "meta", migration.snapshot), { force: true });
+  for (const tag of developmentMigrationTags) {
+    await rm(path.join(runtimeMigrations, `${tag}.sql`), { force: true });
   }
-  const journalPath = path.join(runtimeMigrations, "meta", "_journal.json");
+  const metadataDirectory = path.join(runtimeMigrations, "meta");
+  for (const name of await readdir(metadataDirectory)) {
+    if (name.endsWith("_snapshot.json")) {
+      await rm(path.join(metadataDirectory, name), { force: true });
+    }
+  }
+  const journalPath = path.join(metadataDirectory, "_journal.json");
   const journal = JSON.parse(await readFile(journalPath, "utf8"));
   const priorEntries = journal.entries;
   if (!Array.isArray(priorEntries)) throw new Error("migration journal entries are invalid");
-  const developmentTags = new Set(developmentMigrations.map(({ tag }) => tag));
+  const developmentTags = new Set(developmentMigrationTags);
   journal.entries = priorEntries.filter((entry) => !developmentTags.has(entry?.tag));
-  if (journal.entries.length !== priorEntries.length - developmentMigrations.length) {
+  if (journal.entries.length !== priorEntries.length - developmentMigrationTags.length) {
     throw new Error("development-feedback migrations were not removed exactly once");
   }
   await writeFile(journalPath, `${JSON.stringify(journal, null, 2)}\n`, "utf8");

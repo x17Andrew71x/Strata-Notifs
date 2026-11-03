@@ -1,15 +1,24 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   installResponseListener,
+  MAX_PENDING_NATIVE_REQUESTS,
+  NATIVE_REQUEST_TIMEOUT_MS,
   parseNativeRequest,
   type ShellState,
   sendNativeRequest,
 } from "./bridge";
 import { relicVaultCatalogUpdate } from "./worlds";
 
+afterEach(() => {
+  vi.useRealTimers();
+  delete window.AfterchimeBridge;
+});
+
 function installTestBridge() {
+  const messages: string[] = [];
   const bridge = {
-    postMessage: () => undefined,
+    messages,
+    postMessage: (message: string) => messages.push(message),
     onmessage: null as ((event: MessageEvent<string>) => void) | null,
   };
   window.AfterchimeBridge = bridge;
@@ -408,6 +417,73 @@ describe("versioned native bridge requests", () => {
     delete window.AfterchimeBridge;
 
     expect(responses).toEqual([accepted]);
+  });
+
+  it("expires a lost native request and rejects its late response", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-03T00:00:00.000Z"));
+    const responses: unknown[] = [];
+    const bridge = installTestBridge();
+    const stop = installResponseListener((response) => responses.push(response));
+    const id = sendNativeRequest("preferences.update", {
+      key: "reduceMotionEnabled",
+      value: true,
+    });
+    expect(id).not.toBeNull();
+
+    vi.advanceTimersByTime(NATIVE_REQUEST_TIMEOUT_MS + 1);
+    emitBridge(bridge, {
+      version: 2,
+      id: id as string,
+      type: "action.result",
+      action: "preferences.update",
+      ok: true,
+    });
+
+    expect(responses).toEqual([]);
+    stop();
+    vi.useRealTimers();
+  });
+
+  it("coalesces recurring state reads and clears correlation state on teardown", () => {
+    const bridge = installTestBridge();
+    const stop = installResponseListener(() => undefined);
+
+    const first = sendNativeRequest("state.get");
+    const repeated = sendNativeRequest("state.get");
+    expect(repeated).toBe(first);
+    expect(bridge.messages).toHaveLength(1);
+
+    stop();
+    const stopAgain = installResponseListener(() => undefined);
+    const afterTeardown = sendNativeRequest("state.get");
+    expect(afterTeardown).not.toBe(first);
+    expect(bridge.messages).toHaveLength(2);
+    stopAgain();
+    delete window.AfterchimeBridge;
+  });
+
+  it("rejects new requests when the bounded correlation map is full", () => {
+    const bridge = installTestBridge();
+    const stop = installResponseListener(() => undefined);
+    for (let index = 0; index < MAX_PENDING_NATIVE_REQUESTS; index += 1) {
+      expect(
+        sendNativeRequest("preferences.update", {
+          key: "reduceMotionEnabled",
+          value: index % 2 === 0,
+        }),
+      ).not.toBeNull();
+    }
+
+    expect(
+      sendNativeRequest("preferences.update", {
+        key: "reduceMotionEnabled",
+        value: true,
+      }),
+    ).toBeNull();
+    expect(bridge.messages).toHaveLength(MAX_PENDING_NATIVE_REQUESTS);
+    stop();
+    delete window.AfterchimeBridge;
   });
 
   it("accepts a strict privacy-reduced state and rejects added fields", () => {

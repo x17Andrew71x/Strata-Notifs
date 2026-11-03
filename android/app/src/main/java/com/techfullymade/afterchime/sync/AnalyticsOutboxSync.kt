@@ -137,6 +137,7 @@ internal class AnalyticsOutboxUploader(
       ApiFailure.InvalidUrl,
       ApiFailure.UnsupportedSchemaVersion,
       ApiFailure.MalformedResponse,
+      ApiFailure.InstallationUntrusted,
       ApiFailure.Conflict,
       -> OnlineSyncOutcome.FAILURE
     }

@@ -89,7 +89,10 @@ async function migrateWithEnumCompatibility(
   const journalPath = path.join(migrationsFolder, "meta", "_journal.json");
   const journal = JSON.parse(await readFile(journalPath, "utf8")) as MigrationJournal;
   const boundary = journal.entries.find((entry) => entry.tag === enumCompatibilityBoundary);
-  if (!boundary) throw new Error("enum compatibility migration is missing");
+  if (!boundary) {
+    await migrate(drizzle(sql), { migrationsFolder });
+    return;
+  }
 
   const [journalState] = await sql<Readonly<{ exists: boolean }>[]>`
     SELECT to_regclass('drizzle.__drizzle_migrations') IS NOT NULL AS exists

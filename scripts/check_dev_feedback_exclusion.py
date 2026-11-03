@@ -11,6 +11,7 @@ MARKERS = (
     b"devFeedback",
     b"dev-feedback",
     b"DevFeedback",
+    b"dev_feedback",
     b"development_feedback_identity",
     b"/v1/dev-feedback",
 )

@@ -35,8 +35,8 @@ android {
     applicationId = "com.techfullymade.afterchime"
     minSdk = 31
     targetSdk = 36
-    versionCode = 1020
-    versionName = "0.1.20"
+    versionCode = 1021
+    versionName = "0.1.21"
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
@@ -67,13 +67,6 @@ android {
       applicationIdSuffix = ".debug"
       versionNameSuffix = "-debug"
     }
-    create("review") {
-      initWith(getByName("release"))
-      isDebuggable = false
-      signingConfig = signingConfigs.getByName("debug")
-      versionNameSuffix = "-review"
-      matchingFallbacks += listOf("release")
-    }
     release {
       isMinifyEnabled = true
       isShrinkResources = true
@@ -81,6 +74,13 @@ android {
         getDefaultProguardFile("proguard-android-optimize.txt"),
         "proguard-rules.pro",
       )
+    }
+    create("review") {
+      initWith(getByName("release"))
+      isDebuggable = false
+      signingConfig = signingConfigs.getByName("debug")
+      versionNameSuffix = "-review"
+      matchingFallbacks += listOf("release")
     }
   }
 
@@ -105,6 +105,34 @@ android {
       it.systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
     }
   }
+}
+
+val reviewBuildType = android.buildTypes.getByName("review")
+val releaseBuildType = android.buildTypes.getByName("release")
+val verifyReviewBuildTypeParity = tasks.register("verifyReviewBuildTypeParity") {
+  group = "verification"
+  description = "Verifies that the internal review build retains release shrinking policy."
+  inputs.property("reviewMinify", reviewBuildType.isMinifyEnabled)
+  inputs.property("releaseMinify", releaseBuildType.isMinifyEnabled)
+  inputs.property("reviewShrink", reviewBuildType.isShrinkResources)
+  inputs.property("releaseShrink", releaseBuildType.isShrinkResources)
+  inputs.property("reviewProguard", reviewBuildType.proguardFiles.map { it.name })
+  inputs.property("releaseProguard", releaseBuildType.proguardFiles.map { it.name })
+  doLast {
+    check(inputs.properties["reviewMinify"] == inputs.properties["releaseMinify"]) {
+      "review minification must match release"
+    }
+    check(inputs.properties["reviewShrink"] == inputs.properties["releaseShrink"]) {
+      "review resource shrinking must match release"
+    }
+    check(inputs.properties["reviewProguard"] == inputs.properties["releaseProguard"]) {
+      "review ProGuard inputs must match release"
+    }
+  }
+}
+
+tasks.matching { it.name == "assembleDevReview" }.configureEach {
+  dependsOn(verifyReviewBuildTypeParity)
 }
 
 kotlin {

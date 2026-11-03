@@ -363,6 +363,7 @@ internal class OnlineSyncCoordinator(
       ApiFailure.InvalidUrl,
       ApiFailure.UnsupportedSchemaVersion,
       ApiFailure.MalformedResponse,
+      ApiFailure.InstallationUntrusted,
       ApiFailure.Conflict,
       -> OnlineSyncOutcome.FAILURE
     }

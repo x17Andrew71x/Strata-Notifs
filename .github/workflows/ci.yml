@@ -75,16 +75,17 @@ jobs:
       - name: Verify committed development package
         run: |
           python3 scripts/check_review_package.py \
-            --zip Afterchime-0.1.20-dev.zip \
+            --zip Afterchime-0.1.21-dev.zip \
             --package com.techfullymade.afterchime.dev \
-            --version-code 1020 \
-            --version-name 0.1.20-dev-review \
+            --version-code 1021 \
+            --version-name 0.1.21-dev-review \
             --signer-sha256 ef6855e1ff75767d165d927ed30052cfc67ab630387bedb958b4511c789c43e9 \
             --api-base https://afterchime-api-dev-development.up.railway.app \
             --shell-url https://afterchime-api-dev-development.up.railway.app/
 
       - name: Prove production excludes development feedback
         run: |
+          python3 -m unittest scripts/test_check_dev_feedback_exclusion.py
           corepack pnpm --filter @afterchime/web build
           NODE_ENV=production DEV_FEEDBACK_ENABLED=false corepack pnpm --filter @afterchime/server build
           (cd android && ./gradlew --no-daemon :app:assembleProdRelease)
@@ -114,8 +115,8 @@ jobs:
           (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
-          name: afterchime-0.1.20-dev-review
-          path: Afterchime-0.1.20-dev.zip
+          name: afterchime-0.1.21-dev-review
+          path: Afterchime-0.1.21-dev.zip
           if-no-files-found: error
           retention-days: 7
 

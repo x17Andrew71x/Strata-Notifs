@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
 import { InstallationUntrustedError } from "../../security/installation-trust.js";
-import { authorizationRateLimitKey } from "../../security/rate-limit.js";
+import { authorizationRateLimitKey, routeRateLimitHandlers } from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import { ConsentInactiveError } from "../consent/service.js";
 import {
@@ -84,9 +84,7 @@ export async function registerExhibitsRoutes(
   app.get(
     "/v1/exhibits/current",
     {
-      config: {
-        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 30, timeWindow: "1 minute" },
-      },
+      preHandler: routeRateLimitHandlers(app, "exhibits-current", authorizationRateLimitKey, 30),
       schema: {
         querystring: localDateQuery,
         response: {
@@ -127,9 +125,7 @@ export async function registerExhibitsRoutes(
   app.post(
     "/v1/exhibits/:exhibitId/contributions",
     {
-      config: {
-        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 12, timeWindow: "1 minute" },
-      },
+      preHandler: routeRateLimitHandlers(app, "exhibits-contribute", authorizationRateLimitKey, 12),
       schema: {
         body: contributionBody,
         headers: contributionHeaders,

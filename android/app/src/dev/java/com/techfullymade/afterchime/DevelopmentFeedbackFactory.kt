@@ -292,7 +292,7 @@ private fun DevFeedbackItem.toJson(): JSONObject = JSONObject()
 
 private fun ApiFailure?.toFeedbackError(): String = when (this) {
   ApiFailure.Unauthorized -> "unauthorized"
-  ApiFailure.ConsentInactive -> "forbidden"
+  ApiFailure.ConsentInactive, ApiFailure.InstallationUntrusted -> "forbidden"
   ApiFailure.Conflict -> "conflict"
   ApiFailure.InvalidUrl -> "development_unavailable"
   ApiFailure.Network -> "network"

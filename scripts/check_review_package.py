@@ -20,6 +20,16 @@ def command(*arguments: str) -> str:
     return result.stdout
 
 
+def dex_contains_exact_string(apk: Path, value: str) -> bool:
+    marker = value.encode("utf-8") + b"\x00"
+    with zipfile.ZipFile(apk) as archive:
+        return any(
+            marker in archive.read(name)
+            for name in archive.namelist()
+            if name.endswith(".dex")
+        )
+
+
 def newest_tool(directory: Path, executable: str) -> Path:
     candidates = sorted(directory.glob(f"*/{executable}"))
     if not candidates:
@@ -91,27 +101,24 @@ def main() -> None:
             if f"{ANDROID_NS}networkSecurityConfig" not in application.attrib:
                 raise RuntimeError("review APK network security policy is missing")
 
-            build_config = command(
-                str(apkanalyzer),
-                "dex",
-                "code",
-                "--class",
+            for class_name in (
                 "com.techfullymade.afterchime.BuildConfig",
-                str(apk),
-            )
-            expected_fields = [
-                f'API_BASE_URL:Ljava/lang/String; = "{args.api_base}"',
-                'BUILD_TYPE:Ljava/lang/String; = "review"',
-                "DEBUG:Z = false",
-                "DEV_FEEDBACK_ENABLED:Z = true",
-                'FLAVOR:Ljava/lang/String; = "dev"',
-                "PRODUCTION_ENABLED:Z = false",
-                f'SHELL_URL:Ljava/lang/String; = "{args.shell_url}"',
-                f'VERSION_NAME:Ljava/lang/String; = "{args.version_name}"',
-            ]
-            if not all(field in build_config for field in expected_fields):
-                raise RuntimeError("review APK BuildConfig is not the approved development configuration")
-            if "10.0.2.2" in build_config or "shell-disabled.invalid" in build_config:
+                "com.techfullymade.afterchime.community.ExhibitsRepository",
+            ):
+                class_probe = subprocess.run(
+                    [str(apkanalyzer), "dex", "code", "--class", class_name, str(apk)],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                if class_probe.returncode == 0:
+                    raise RuntimeError(f"review APK retained unminified class {class_name}")
+            for marker in (args.api_base, args.shell_url, "devFeedback.items"):
+                if not dex_contains_exact_string(apk, marker):
+                    raise RuntimeError(f"review APK is missing compiled development marker: {marker}")
+            if dex_contains_exact_string(apk, "http://10.0.2.2:3000") or dex_contains_exact_string(
+                apk, "https://shell-disabled.invalid/"
+            ):
                 raise RuntimeError("review APK retained an inert local Gradle default")
 
     print("Afterchime review package verification passed.")

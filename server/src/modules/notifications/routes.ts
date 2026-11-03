@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
 import { InstallationUntrustedError } from "../../security/installation-trust.js";
-import { authorizationRateLimitKey } from "../../security/rate-limit.js";
+import { authorizationRateLimitKey, routeRateLimitHandlers } from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import { ConsentInactiveError } from "../consent/service.js";
 import {
@@ -125,9 +125,12 @@ export async function registerNotificationAggregateRoutes(
   app.put(
     "/v1/notification-aggregates/daily",
     {
-      config: {
-        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 12, timeWindow: "1 minute" },
-      },
+      preHandler: routeRateLimitHandlers(
+        app,
+        "notification-aggregates",
+        authorizationRateLimitKey,
+        12,
+      ),
       schema: {
         body: dailyNotificationAggregate,
         response: {

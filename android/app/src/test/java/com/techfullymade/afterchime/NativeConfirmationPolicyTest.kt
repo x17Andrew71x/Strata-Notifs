@@ -38,6 +38,14 @@ class NativeConfirmationPolicyTest {
   }
 
   @Test
+  fun `exhibit confirmation copy binds the exact permanent amount`() {
+    assertEquals(
+      "Contribute 18 energy?" to "This permanently sends exactly 18 energy to the Exhibit.",
+      exhibitContributionConfirmationCopy(18),
+    )
+  }
+
+  @Test
   fun `one confirmed online preference atomically enables or disables all online choices`() {
     val enabled = UserPreferences().withPreference("onlineFeaturesEnabled", true)
     assertTrue(enabled.onlineFeaturesEnabled)

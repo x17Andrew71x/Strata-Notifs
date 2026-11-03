@@ -219,14 +219,20 @@ internal class ExhibitsRepository(
   suspend fun contribute(
     exhibitId: String,
     localDate: String,
+    expectedUnits: Int,
     surplusEnergy: Int,
   ): Boolean = withContext(Dispatchers.IO) {
     mutationMutex.withLock {
       val current = mutableState.value
-      if (current.status != ExhibitsStatus.READY || current.bankedEnergy <= 0 || current.contributionInFlight) {
+      if (
+        current.status != ExhibitsStatus.READY ||
+        expectedUnits !in 1..100_000 ||
+        current.bankedEnergy != expectedUnits ||
+        current.contributionInFlight
+      ) {
         return@withLock false
       }
-      val attempt = attempts.begin(exhibitId, localDate, current.bankedEnergy) ?: return@withLock false
+      val attempt = attempts.begin(exhibitId, localDate, expectedUnits) ?: return@withLock false
       mutableState.value = current.copy(contributionInFlight = true)
       val token = tokenProvider.accessToken()
       if (token == null) {

@@ -269,11 +269,11 @@ describePostgres("installation registration API", () => {
     }
   });
 
-  it("rate limits registration attempts before they can create unbounded identities", async () => {
+  it("rate limits one registration key without consuming a distinct client's allowance", async () => {
     const app = await appForDatabase();
     const idempotencyKey = randomUUID();
 
-    for (let attempt = 0; attempt < 10; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       const response = await app.inject({
         headers: {
           "idempotency-key": idempotencyKey,
@@ -297,6 +297,18 @@ describePostgres("installation registration API", () => {
       url: "/v1/installations",
     });
     expect(limited.statusCode).toBe(429);
+
+    const victim = await app.inject({
+      headers: {
+        "idempotency-key": randomUUID(),
+        "x-forwarded-for": "198.51.100.201",
+      },
+      method: "POST",
+      payload: registration,
+      remoteAddress: "127.0.1.201",
+      url: "/v1/installations",
+    });
+    expect(victim.statusCode).toBe(201);
   });
 
   it("rotates refresh-token families, detects replay, and revokes the family at logout", async () => {

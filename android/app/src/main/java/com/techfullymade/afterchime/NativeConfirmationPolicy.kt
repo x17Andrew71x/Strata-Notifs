@@ -23,3 +23,8 @@ internal fun actionConfirmation(type: String): NativeConfirmationKind? = when (t
   "exhibits.contribute" -> NativeConfirmationKind.CONTRIBUTE_EXHIBIT_ENERGY
   else -> null
 }
+
+internal fun exhibitContributionConfirmationCopy(units: Int): Pair<String, String> {
+  require(units in 1..100_000)
+  return "Contribute $units energy?" to "This permanently sends exactly $units energy to the Exhibit."
+}

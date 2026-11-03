@@ -4,7 +4,11 @@ import { describe, expect, it } from "vitest";
 import { buildApp } from "../../src/app.js";
 import { loggerRedaction } from "../../src/logging.js";
 import { isPlausibleAggregateDate } from "../../src/modules/notifications/routes.js";
-import { authorizationRateLimitKey } from "../../src/security/rate-limit.js";
+import {
+  authorizationRateLimitKey,
+  layeredRateLimitHandlers,
+  registrationRateLimitKey,
+} from "../../src/security/rate-limit.js";
 import { testConfig } from "../test-config.js";
 
 describe("API security hardening", () => {
@@ -54,6 +58,72 @@ describe("API security hardening", () => {
 
     expect(first.statusCode).toBe(200);
     expect(second.statusCode).toBe(429);
+    await app.close();
+  });
+
+  it("limits rotating invalid credentials at the pre-authentication client boundary", async () => {
+    const app = await buildApp({ config: testConfig });
+    app.get(
+      "/test/layered-auth",
+      {
+        preHandler: layeredRateLimitHandlers(app, {
+          circuitMax: 10,
+          clientMax: 1,
+          credentialKey: authorizationRateLimitKey,
+          credentialMax: 10,
+          group: "test-layered-auth",
+        }),
+      },
+      async () => ({ ok: true }),
+    );
+
+    const first = await app.inject({
+      headers: { authorization: "Bearer attacker-a" },
+      method: "GET",
+      remoteAddress: "127.0.0.40",
+      url: "/test/layered-auth",
+    });
+    const rotated = await app.inject({
+      headers: { authorization: "Bearer attacker-b" },
+      method: "GET",
+      remoteAddress: "127.0.0.40",
+      url: "/test/layered-auth",
+    });
+
+    expect(first.statusCode).toBe(200);
+    expect(rotated.statusCode).toBe(429);
+    await app.close();
+  });
+
+  it("keeps a distinct registration client available after one idempotency key is exhausted", async () => {
+    const app = await buildApp({ config: testConfig });
+    app.get(
+      "/test/layered-registration",
+      {
+        preHandler: layeredRateLimitHandlers(app, {
+          circuitMax: 100,
+          clientMax: 10,
+          credentialKey: registrationRateLimitKey,
+          credentialMax: 2,
+          group: "test-layered-registration",
+        }),
+      },
+      async () => ({ ok: true }),
+    );
+    const attackerKey = "11111111-1111-4111-8111-111111111111";
+    const victimKey = "22222222-2222-4222-8222-222222222222";
+    const request = (idempotencyKey: string, remoteAddress: string) =>
+      app.inject({
+        headers: { "idempotency-key": idempotencyKey },
+        method: "GET",
+        remoteAddress,
+        url: "/test/layered-registration",
+      });
+
+    expect((await request(attackerKey, "127.0.0.41")).statusCode).toBe(200);
+    expect((await request(attackerKey, "127.0.0.42")).statusCode).toBe(200);
+    expect((await request(attackerKey, "127.0.0.43")).statusCode).toBe(429);
+    expect((await request(victimKey, "127.0.0.44")).statusCode).toBe(200);
     await app.close();
   });
 

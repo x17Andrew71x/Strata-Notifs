@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
 import { verifyAdminKey } from "../../security/admin-auth.js";
-import { adminCredentialRateLimitKey } from "../../security/rate-limit.js";
+import { adminCredentialRateLimitKey, routeRateLimitHandlers } from "../../security/rate-limit.js";
 
 const headers = z.object({ "x-admin-key": z.string().min(1).max(256) });
 const params = z.object({ installationId: z.string().uuid() });
@@ -29,9 +29,12 @@ export async function registerInstallationTrustRoutes(
   app.get(
     "/v1/admin/installations/:installationId/trust",
     {
-      config: {
-        rateLimit: { keyGenerator: adminCredentialRateLimitKey, max: 10, timeWindow: "1 minute" },
-      },
+      preHandler: routeRateLimitHandlers(
+        app,
+        "admin-installation-trust-read",
+        adminCredentialRateLimitKey,
+        10,
+      ),
       schema: {
         headers,
         params,
@@ -70,9 +73,12 @@ export async function registerInstallationTrustRoutes(
   app.post(
     "/v1/admin/installations/:installationId/trust",
     {
-      config: {
-        rateLimit: { keyGenerator: adminCredentialRateLimitKey, max: 5, timeWindow: "1 minute" },
-      },
+      preHandler: routeRateLimitHandlers(
+        app,
+        "admin-installation-trust-write",
+        adminCredentialRateLimitKey,
+        5,
+      ),
       schema: {
         body,
         headers,

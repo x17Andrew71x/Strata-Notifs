@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { ServerConfig } from "../../config.js";
 import type { DatabaseClient } from "../../db/client.js";
 import { InstallationUntrustedError } from "../../security/installation-trust.js";
-import { authorizationRateLimitKey } from "../../security/rate-limit.js";
+import { authorizationRateLimitKey, routeRateLimitHandlers } from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import { ConsentInactiveError } from "../consent/service.js";
 import { analyticsBatch } from "./registry.js";
@@ -33,9 +33,7 @@ export async function registerAnalyticsRoutes(
   app.post(
     "/v1/analytics/events:batch",
     {
-      config: {
-        rateLimit: { keyGenerator: authorizationRateLimitKey, max: 30, timeWindow: "1 minute" },
-      },
+      preHandler: routeRateLimitHandlers(app, "analytics-batch", authorizationRateLimitKey, 30),
       schema: {
         body: analyticsBatch,
         response: {

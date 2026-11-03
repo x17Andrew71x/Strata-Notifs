@@ -51,6 +51,14 @@ class AnalyticsOutboxSyncTest {
     val networkApi = FakeApi().apply { analyticsFailure = ApiFailure.Network }
     assertEquals(OnlineSyncOutcome.RETRY, uploader(networkStore, networkApi).upload(INSTALLATION_ID, "token"))
     assertTrue(networkStore.deleted.isEmpty())
+
+    val untrustedStore = FakeStore(mutableListOf(row(ID_ONE)))
+    val untrustedApi = FakeApi().apply { analyticsFailure = ApiFailure.InstallationUntrusted }
+    assertEquals(
+      OnlineSyncOutcome.FAILURE,
+      uploader(untrustedStore, untrustedApi).upload(INSTALLATION_ID, "token"),
+    )
+    assertTrue(untrustedStore.deleted.isEmpty())
   }
 
   @Test
