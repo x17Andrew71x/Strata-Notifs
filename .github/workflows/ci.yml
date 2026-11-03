@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, main]
   pull_request:
 
 permissions:
@@ -67,7 +67,8 @@ jobs:
       - name: Verify debug Android lane
         run: >-
           (cd android && ./gradlew --no-daemon --no-configuration-cache
-          :app:testDevDebugUnitTest :app:lintDevDebug :app:assembleDevDebug)
+          :app:testDevDebugUnitTest :app:testProdDebugUnitTest
+          :app:lintDevDebug :app:assembleDevDebug)
 
       - name: Assemble hardened internal-review APK
         run: (cd android && ./gradlew --no-daemon :app:assembleDevReview)
@@ -75,15 +76,20 @@ jobs:
       - name: Prove application artifacts exclude the retired feedback wrapper
         run: |
           python3 -m unittest scripts/test_check_dev_feedback_exclusion.py
+          python3 -m unittest scripts/test_check_android_production_release.py
           corepack pnpm --filter @afterchime/web build
           NODE_ENV=production DEV_FEEDBACK_ENABLED=false corepack pnpm --filter @afterchime/server build
-          (cd android && ./gradlew --no-daemon :app:assembleProdRelease)
+          if (cd android && ./gradlew --no-daemon --no-configuration-cache :app:verifyProductionReleaseConfiguration); then
+            echo "Production release configuration unexpectedly accepted inert defaults." >&2
+            exit 1
+          fi
+          (cd android && ./gradlew --no-daemon --no-configuration-cache :app:assembleProdReview)
           python3 scripts/check_dev_feedback_exclusion.py \
             --web web/dist \
             --server server/dist \
             --migrations server/runtime-migrations \
             --apk android/app/build/outputs/apk/dev/review/app-dev-review.apk \
-            --apk android/app/build/outputs/apk/prod/release/app-prod-release-unsigned.apk
+            --apk android/app/build/outputs/apk/prod/review/app-prod-review.apk
 
       - name: Upload test reports
         if: >-

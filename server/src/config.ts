@@ -61,8 +61,33 @@ export type ServerConfig = Readonly<{
 
 export function loadConfig(environment: NodeJS.ProcessEnv = process.env): ServerConfig {
   const value = configSchema.parse(environment);
+  const corsOrigins = value.CORS_ORIGINS.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
   if (value.NODE_ENV === "production" && value.DEV_FEEDBACK_ENABLED === "true") {
     throw new Error("development feedback is forbidden in production");
+  }
+  if (value.NODE_ENV === "production" && value.ALLOW_DEV_AUTH === "true") {
+    throw new Error("development authentication is forbidden in production");
+  }
+  if (value.NODE_ENV === "production" && value.BILLING_PROVIDER === "fake") {
+    throw new Error("fake billing is forbidden in production");
+  }
+  if (value.NODE_ENV === "production" && corsOrigins.some((origin) => !exactHttpsOrigin(origin))) {
+    throw new Error("production CORS origins must be exact HTTPS origins");
+  }
+  if (
+    value.NODE_ENV === "production" &&
+    [
+      value.DEV_FEEDBACK_DECREE_ADMIN_KEY_HASH,
+      value.DEV_FEEDBACK_DECREE_CLIENT_KEY_HASH,
+      value.DEV_FEEDBACK_DECREE_DEPLOYMENT_URL,
+      value.DEV_FEEDBACK_PJS_ADMIN_KEY_HASH,
+      value.DEV_FEEDBACK_PJS_CLIENT_KEY_HASH,
+      value.DEV_FEEDBACK_PJS_DEPLOYMENT_URL,
+    ].some(Boolean)
+  ) {
+    throw new Error("development feedback project credentials are forbidden in production");
   }
   if (value.DEV_FEEDBACK_ENABLED === "true" && !/^[0-9a-f]{64}$/.test(value.ADMIN_API_KEY_HASH)) {
     throw new Error("development feedback requires an admin key digest");
@@ -122,9 +147,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     afterchimeFeedbackClientEnabled: false,
     developmentModuleEnabled: value.DEV_FEEDBACK_ENABLED === "true",
     deployedRevision,
-    corsOrigins: value.CORS_ORIGINS.split(",")
-      .map((origin) => origin.trim())
-      .filter(Boolean),
+    corsOrigins,
     // Railway currently preserves attacker-supplied forwarding values; do not trust them.
     trustedProxyHops: 0,
     allowDevAuth: value.ALLOW_DEV_AUTH === "true",
@@ -163,6 +186,23 @@ function exactDevelopmentUrl(value: string): boolean {
       !url.search &&
       !url.hash &&
       url.pathname !== ""
+    );
+  } catch {
+    return false;
+  }
+}
+
+function exactHttpsOrigin(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash &&
+      url.pathname === "/" &&
+      url.origin === value
     );
   } catch {
     return false;

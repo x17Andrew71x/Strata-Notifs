@@ -2,7 +2,7 @@ name: Security
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, main]
   pull_request:
   schedule:
     - cron: "17 7 * * 1"
@@ -47,7 +47,7 @@ jobs:
         if: matrix.language == 'java-kotlin'
         run: >-
           (cd android && ./gradlew --no-daemon --no-configuration-cache --no-build-cache
-          clean :app:assembleDevDebug -x lint)
+          clean :app:assembleDevDebug :app:assembleProdDebug -x lint)
       - name: Analyse
         uses: github/codeql-action/analyze@793b778da9c9275a0f276522b27cb5fc14bba279 # v4
 

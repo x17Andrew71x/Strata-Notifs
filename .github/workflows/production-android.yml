@@ -1,0 +1,126 @@
+name: Production Android candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: afterchime-production-android
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Signed production APK and App Bundle
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - name: Require the reviewed production branch
+        run: test "$GITHUB_REF" = "refs/heads/main"
+
+      - name: Check out source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Bind release to checked-out source
+        run: |
+          test "$GITHUB_SHA" = "$(git rev-parse HEAD)"
+          test -z "$(git status --short)"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
+        with:
+          version: 12.8.1
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Set up Java
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install locked dependencies
+        run: corepack pnpm install --frozen-lockfile
+
+      - name: Build and verify committed web fallback
+        run: |
+          corepack pnpm shell:fallback
+          test -z "$(git status --short)"
+
+      - name: Build production server artifact
+        run: NODE_ENV=production DEV_FEEDBACK_ENABLED=false corepack pnpm --filter @afterchime/server build
+
+      - name: Materialise protected upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.AFTERCHIME_UPLOAD_KEYSTORE_BASE64 }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$KEYSTORE_BASE64"
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/afterchime-upload.jks"
+          test -s "$RUNNER_TEMP/afterchime-upload.jks"
+
+      - name: Build signed production artifacts
+        env:
+          AFTERCHIME_PROD_API_BASE_URL: ${{ vars.AFTERCHIME_PROD_API_BASE_URL }}
+          AFTERCHIME_PROD_KEY_ALIAS: ${{ secrets.AFTERCHIME_UPLOAD_KEY_ALIAS }}
+          AFTERCHIME_PROD_KEY_PASSWORD: ${{ secrets.AFTERCHIME_UPLOAD_KEY_PASSWORD }}
+          AFTERCHIME_PROD_SHELL_URL: ${{ vars.AFTERCHIME_PROD_SHELL_URL }}
+          AFTERCHIME_PROD_STORE_FILE: ${{ runner.temp }}/afterchime-upload.jks
+          AFTERCHIME_PROD_STORE_PASSWORD: ${{ secrets.AFTERCHIME_UPLOAD_STORE_PASSWORD }}
+        run: >-
+          (cd android && ./gradlew --no-daemon --no-configuration-cache
+          :app:assembleProdRelease :app:bundleProdRelease)
+
+      - name: Verify signed production artifacts
+        env:
+          AFTERCHIME_PROD_API_BASE_URL: ${{ vars.AFTERCHIME_PROD_API_BASE_URL }}
+          AFTERCHIME_PROD_SHELL_URL: ${{ vars.AFTERCHIME_PROD_SHELL_URL }}
+          EXPECTED_CERT_SHA256: ${{ secrets.AFTERCHIME_UPLOAD_CERT_SHA256 }}
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest scripts/test_check_android_production_release.py
+          apk=android/app/build/outputs/apk/prod/release/app-prod-release.apk
+          bundle=android/app/build/outputs/bundle/prodRelease/app-prod-release.aab
+          build_tools=$(python3 -c 'import glob, os; print(sorted(glob.glob(os.environ["ANDROID_HOME"] + "/build-tools/*"))[-1])')
+          apkanalyzer=$(python3 -c 'import glob, os; print(sorted(glob.glob(os.environ["ANDROID_HOME"] + "/cmdline-tools/*/bin/apkanalyzer"))[-1])')
+          python3 scripts/check_android_production_release.py \
+            --apk "$apk" \
+            --bundle "$bundle" \
+            --api-base-url "$AFTERCHIME_PROD_API_BASE_URL" \
+            --shell-url "$AFTERCHIME_PROD_SHELL_URL" \
+            --expected-cert-sha256 "$EXPECTED_CERT_SHA256" \
+            --apkanalyzer "$apkanalyzer" \
+            --apksigner "$build_tools/apksigner" \
+            --zipalign "$build_tools/zipalign" \
+            > release-receipt.json
+          python3 scripts/check_dev_feedback_exclusion.py \
+            --web web/dist \
+            --server server/dist \
+            --migrations server/runtime-migrations \
+            --apk "$apk"
+          sha256sum "$apk" "$bundle" > SHA256SUMS
+
+      - name: Upload immutable production candidate
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: afterchime-production-${{ github.sha }}
+          path: |
+            android/app/build/outputs/apk/prod/release/app-prod-release.apk
+            android/app/build/outputs/bundle/prodRelease/app-prod-release.aab
+            release-receipt.json
+            SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Remove upload keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/afterchime-upload.jks"

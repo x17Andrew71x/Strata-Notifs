@@ -27,10 +27,46 @@ describe("loadConfig", () => {
   });
 
   it("derives the token audience from server environment rather than client input", () => {
-    const config = loadConfig({ ...validEnvironment, NODE_ENV: "production" });
+    const config = loadConfig({
+      ...validEnvironment,
+      NODE_ENV: "production",
+      BILLING_PROVIDER: "google-play",
+    });
 
     expect(config.buildChannel).toBe("prod");
     expect(config.tokenAudience).toBe("afterchime-prod");
+  });
+
+  it("fails closed on every development-only production setting", () => {
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        ALLOW_DEV_AUTH: "true",
+        BILLING_PROVIDER: "google-play",
+      }),
+    ).toThrow("development authentication is forbidden in production");
+    expect(() => loadConfig({ ...validEnvironment, NODE_ENV: "production" })).toThrow(
+      "fake billing is forbidden in production",
+    );
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        BILLING_PROVIDER: "google-play",
+        DEV_FEEDBACK_DECREE_ADMIN_KEY_HASH: "a".repeat(64),
+        DEV_FEEDBACK_DECREE_CLIENT_KEY_HASH: "b".repeat(64),
+        DEV_FEEDBACK_DECREE_DEPLOYMENT_URL: "https://decree.example/version.json",
+      }),
+    ).toThrow("development feedback project credentials are forbidden in production");
+    expect(() =>
+      loadConfig({
+        ...validEnvironment,
+        NODE_ENV: "production",
+        BILLING_PROVIDER: "google-play",
+        CORS_ORIGINS: "http://insecure.example",
+      }),
+    ).toThrow("production CORS origins must be exact HTTPS origins");
   });
 
   it("rejects weak secrets", () => {

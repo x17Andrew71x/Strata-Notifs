@@ -11,16 +11,44 @@ fun interface ConnectionFactory {
   fun open(url: URL): HttpURLConnection
 }
 
+internal fun validateAfterchimeBaseUrl(
+  value: String,
+  allowHttpHost: (String) -> Boolean,
+): URL? {
+  if (value.isEmpty() || value != value.trim() || value.any { it <= '\u001f' || it == '\u007f' }) return null
+  return try {
+    val url = URL(value)
+    val protocol = url.protocol.lowercase()
+    val host = url.host.lowercase()
+    val port = url.port
+    if (
+      protocol !in setOf("http", "https") ||
+      host.isBlank() ||
+      url.userInfo != null ||
+      url.query != null ||
+      url.ref != null ||
+      url.path !in setOf("", "/") ||
+      (port != -1 && port !in 1..65_535)
+    ) {
+      null
+    } else {
+      val permitted = protocol == "https" || (protocol == "http" && allowHttpHost(host))
+      if (permitted) URL(value.trimEnd('/') + "/") else null
+    }
+  } catch (_: Exception) {
+    null
+  }
+}
+
 class AfterchimeApi(
   baseUrl: String,
-  private val devFlavor: Boolean,
   private val connectionFactory: ConnectionFactory = ConnectionFactory { url ->
     url.openConnection() as HttpURLConnection
   },
   private val connectTimeoutMillis: Int = 10_000,
   private val readTimeoutMillis: Int = 10_000,
 ) {
-  private val base: URL? = validatedBaseUrl(baseUrl, devFlavor)
+  private val base: URL? = NetworkOriginPolicy.validatedBaseUrl(baseUrl)
 
   init {
     require(connectTimeoutMillis in 1..15_000)
@@ -279,32 +307,5 @@ class AfterchimeApi(
     private const val MAX_BODY_BYTES = 128 * 1_024
     private val IDEMPOTENCY =
       Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")
-    private val LOOPBACK_HOSTS = setOf("10.0.2.2", "127.0.0.1", "localhost", "[::1]", "::1")
-
-    fun validatedBaseUrl(value: String, devFlavor: Boolean): URL? {
-      if (value.isEmpty() || value != value.trim() || value.any { it <= '\u001f' || it == '\u007f' }) return null
-      return try {
-        val url = URL(value)
-        val protocol = url.protocol.lowercase()
-        val host = url.host.lowercase()
-        val port = url.port
-        if (
-          protocol !in setOf("http", "https") ||
-          host.isBlank() ||
-          url.userInfo != null ||
-          url.query != null ||
-          url.ref != null ||
-          url.path !in setOf("", "/") ||
-          (port != -1 && port !in 1..65_535)
-        ) {
-          null
-        } else {
-          val permitted = protocol == "https" || (protocol == "http" && devFlavor && host in LOOPBACK_HOSTS)
-          if (permitted) URL(value.trimEnd('/') + "/") else null
-        }
-      } catch (_: Exception) {
-        null
-      }
-    }
   }
 }

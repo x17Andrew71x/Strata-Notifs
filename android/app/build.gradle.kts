@@ -16,6 +16,49 @@ require(shellUrl.scheme == "https" && !shellUrl.host.isNullOrBlank() && shellUrl
   "afterchime.devShellUrl must be an HTTPS URL without userinfo"
 }
 
+val disabledProductionApiUrl = "https://production-disabled.invalid"
+val disabledProductionShellUrl = "https://production-disabled.invalid/"
+val prodApiBaseUrl = providers.gradleProperty("afterchime.prodApiBaseUrl")
+  .orElse(providers.environmentVariable("AFTERCHIME_PROD_API_BASE_URL"))
+  .orElse(disabledProductionApiUrl)
+val prodShellUrl = providers.gradleProperty("afterchime.prodShellUrl")
+  .orElse(providers.environmentVariable("AFTERCHIME_PROD_SHELL_URL"))
+  .orElse(disabledProductionShellUrl)
+
+fun exactProductionOrigin(value: String, property: String, trailingSlash: Boolean): URI {
+  val origin = URI(value)
+  val expectedPath = if (trailingSlash) "/" else ""
+  require(
+    origin.scheme == "https" &&
+      !origin.host.isNullOrBlank() &&
+      origin.userInfo == null &&
+      origin.port == -1 &&
+      origin.path == expectedPath &&
+      origin.query == null &&
+      origin.fragment == null
+  ) {
+    "$property must be an exact HTTPS origin${if (trailingSlash) " ending in /" else ""}"
+  }
+  return origin
+}
+
+val prodApiOrigin = exactProductionOrigin(prodApiBaseUrl.get(), "afterchime.prodApiBaseUrl", false)
+val prodShellOrigin = exactProductionOrigin(prodShellUrl.get(), "afterchime.prodShellUrl", true)
+val prodStoreFile = providers.gradleProperty("afterchime.prodStoreFile")
+  .orElse(providers.environmentVariable("AFTERCHIME_PROD_STORE_FILE"))
+val prodStorePassword = providers.gradleProperty("afterchime.prodStorePassword")
+  .orElse(providers.environmentVariable("AFTERCHIME_PROD_STORE_PASSWORD"))
+val prodKeyAlias = providers.gradleProperty("afterchime.prodKeyAlias")
+  .orElse(providers.environmentVariable("AFTERCHIME_PROD_KEY_ALIAS"))
+val prodKeyPassword = providers.gradleProperty("afterchime.prodKeyPassword")
+  .orElse(providers.environmentVariable("AFTERCHIME_PROD_KEY_PASSWORD"))
+val productionSigningConfigured = listOf(
+  prodStoreFile.orNull,
+  prodStorePassword.orNull,
+  prodKeyAlias.orNull,
+  prodKeyPassword.orNull,
+).all { !it.isNullOrBlank() }
+
 android {
   namespace = "com.techfullymade.afterchime"
   compileSdk {
@@ -48,15 +91,24 @@ android {
       versionNameSuffix = "-dev"
       buildConfigField("String", "API_BASE_URL", "\"${devApiBaseUrl.get()}\"")
       buildConfigField("String", "SHELL_URL", "\"${shellUrl}\"")
-      buildConfigField("boolean", "PRODUCTION_ENABLED", "false")
       resValue("string", "app_name", "Afterchime Dev")
     }
     create("prod") {
       dimension = "environment"
-      buildConfigField("String", "API_BASE_URL", "\"https://production-disabled.invalid\"")
-      buildConfigField("String", "SHELL_URL", "\"https://production-disabled.invalid/\"")
-      buildConfigField("boolean", "PRODUCTION_ENABLED", "false")
+      buildConfigField("String", "API_BASE_URL", "\"${prodApiOrigin}\"")
+      buildConfigField("String", "SHELL_URL", "\"${prodShellOrigin}\"")
       resValue("string", "app_name", "Afterchime")
+    }
+  }
+
+  signingConfigs {
+    if (productionSigningConfigured) {
+      create("productionRelease") {
+        storeFile = file(requireNotNull(prodStoreFile.orNull))
+        storePassword = requireNotNull(prodStorePassword.orNull)
+        keyAlias = requireNotNull(prodKeyAlias.orNull)
+        keyPassword = requireNotNull(prodKeyPassword.orNull)
+      }
     }
   }
 
@@ -68,6 +120,7 @@ android {
     release {
       isMinifyEnabled = true
       isShrinkResources = true
+      signingConfig = signingConfigs.findByName("productionRelease")
       proguardFiles(
         getDefaultProguardFile("proguard-android-optimize.txt"),
         "proguard-rules.pro",
@@ -131,6 +184,30 @@ val verifyReviewBuildTypeParity = tasks.register("verifyReviewBuildTypeParity") 
 
 tasks.matching { it.name == "assembleDevReview" }.configureEach {
   dependsOn(verifyReviewBuildTypeParity)
+}
+
+val verifyProductionReleaseConfiguration = tasks.register("verifyProductionReleaseConfiguration") {
+  group = "verification"
+  description = "Fails closed unless a production release has exact HTTPS origins and signing custody."
+  outputs.upToDateWhen { false }
+  doLast {
+    check(prodApiOrigin.toString() != disabledProductionApiUrl) {
+      "afterchime.prodApiBaseUrl is required for a production release"
+    }
+    check(prodShellOrigin.toString() != disabledProductionShellUrl) {
+      "afterchime.prodShellUrl is required for a production release"
+    }
+    check(productionSigningConfigured) {
+      "afterchime production signing properties are incomplete"
+    }
+    check(file(requireNotNull(prodStoreFile.orNull)).isFile) {
+      "afterchime.prodStoreFile does not exist"
+    }
+  }
+}
+
+tasks.matching { it.name == "preProdReleaseBuild" }.configureEach {
+  dependsOn(verifyProductionReleaseConfiguration)
 }
 
 kotlin {

@@ -179,6 +179,14 @@ internal fun shouldFallbackFromHttpError(
 
 internal fun isDevelopmentWorldsEnabled(flavor: String): Boolean = flavor == "dev"
 
+internal fun isExactHttpsShellOrigin(remoteUri: Uri): Boolean =
+  remoteUri.scheme == "https" &&
+    !remoteUri.host.isNullOrBlank() &&
+    remoteUri.userInfo == null &&
+    remoteUri.port == -1 &&
+    remoteUri.path == "/" &&
+    remoteUri.query == null &&
+    remoteUri.fragment == null
 
 internal fun enqueueExhibitDownload(
   imagePath: String,
@@ -186,24 +194,14 @@ internal fun enqueueExhibitDownload(
   enqueue: (uri: Uri, filename: String) -> Long,
 ): Boolean {
   if (!exhibitImagePathPattern.matches(imagePath)) return false
-  if (
-    remoteUri.scheme != "https" ||
-      remoteUri.host.isNullOrBlank() ||
-      remoteUri.userInfo != null ||
-      remoteUri.host in setOf("shell-disabled.invalid", "production-disabled.invalid")
-  ) return false
+  if (!ShellOriginPolicy.isAllowed(remoteUri)) return false
   val target = remoteUri.buildUpon().encodedPath(imagePath).clearQuery().fragment(null).build()
   val filename = imagePath.substringAfterLast('/')
   return runCatching { enqueue(target, filename) > 0L }.getOrDefault(false)
 }
 
 internal fun isRemoteShellEnabled(remoteUri: Uri, bridgeSupported: Boolean): Boolean =
-  bridgeSupported &&
-    remoteUri.host != "shell-disabled.invalid" &&
-    remoteUri.host != "production-disabled.invalid" &&
-    remoteUri.scheme == "https" &&
-    !remoteUri.host.isNullOrBlank() &&
-    remoteUri.userInfo == null
+  bridgeSupported && ShellOriginPolicy.isAllowed(remoteUri)
 
 class MainActivity : ComponentActivity() {
   private val applicationState get() = application as AfterchimeApplication

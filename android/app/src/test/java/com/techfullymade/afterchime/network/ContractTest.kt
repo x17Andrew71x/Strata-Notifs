@@ -95,7 +95,7 @@ class ContractTest {
       // Expected.
     }
 
-    val api = AfterchimeApi("https://example.test", false)
+    val api = AfterchimeApi("https://example.test")
     assertEquals(
       ApiFailure.UnsupportedSchemaVersion,
       api.submitAnalyticsBatch("""{"events":[${event(version = 2)}]}""", "sample-token").failure,
@@ -112,20 +112,24 @@ class ContractTest {
 
   @Test
   fun `base URL policy permits only secure or development loopback origins`() {
-    assertNotNull(AfterchimeApi.validatedBaseUrl("https://api.example.com", false))
-    assertNotNull(AfterchimeApi.validatedBaseUrl("http://10.0.2.2:3000", true))
-    assertNotNull(AfterchimeApi.validatedBaseUrl("http://127.0.0.1:3000", true))
-    assertNotNull(AfterchimeApi.validatedBaseUrl("http://localhost:3000", true))
-    assertNotNull(AfterchimeApi.validatedBaseUrl("http://[::1]:3000", true))
+    val loopbacks = setOf("10.0.2.2", "127.0.0.1", "localhost", "[::1]", "::1")
+    fun development(value: String) = validateAfterchimeBaseUrl(value) { it in loopbacks }
+    fun production(value: String) = validateAfterchimeBaseUrl(value) { false }
 
-    assertNull(AfterchimeApi.validatedBaseUrl("http://example.com", true))
-    assertNull(AfterchimeApi.validatedBaseUrl("http://localhost", false))
-    assertNull(AfterchimeApi.validatedBaseUrl("https://user:pass@example.com", false))
-    assertNull(AfterchimeApi.validatedBaseUrl("https://example.com/path", false))
-    assertNull(AfterchimeApi.validatedBaseUrl("https://example.com?query=value", false))
-    assertNull(AfterchimeApi.validatedBaseUrl("https://example.com/#fragment", false))
-    assertNull(AfterchimeApi.validatedBaseUrl("https://:443", false))
-    assertNull(AfterchimeApi.validatedBaseUrl("https://example.com:0", false))
+    assertNotNull(production("https://api.example.com"))
+    assertNotNull(development("http://10.0.2.2:3000"))
+    assertNotNull(development("http://127.0.0.1:3000"))
+    assertNotNull(development("http://localhost:3000"))
+    assertNotNull(development("http://[::1]:3000"))
+
+    assertNull(development("http://example.com"))
+    assertNull(production("http://localhost"))
+    assertNull(production("https://user:pass@example.com"))
+    assertNull(production("https://example.com/path"))
+    assertNull(production("https://example.com?query=value"))
+    assertNull(production("https://example.com/#fragment"))
+    assertNull(production("https://:443"))
+    assertNull(production("https://example.com:0"))
   }
 
   @Test
@@ -134,7 +138,6 @@ class ContractTest {
     lateinit var connection: FakeConnection
     val api = AfterchimeApi(
       "https://example.test",
-      false,
       ConnectionFactory { url ->
         opens += 1
         FakeConnection(url).also { connection = it }
@@ -142,7 +145,7 @@ class ContractTest {
     )
     assertEquals(0, opens)
 
-    val idempotencyKey = "123e4567-e89b-42d3-a456-426614174000"
+    val idempotencyKey = "123e4567-e89b-42d3-a456-426614174000" // gitleaks:allow — fixed UUID test fixture
     val result = api.register(RegistrationRequest("1.0.0", 35, "phone"), idempotencyKey)
 
     assertEquals(ApiFailure.Http, result.failure)
@@ -178,7 +181,6 @@ class ContractTest {
     val baseUrl = "https://sensitive-origin.invalid"
     val api = AfterchimeApi(
       baseUrl,
-      false,
       ConnectionFactory { FakeConnection(it, 500, responseText) },
     )
 
@@ -198,7 +200,6 @@ class ContractTest {
     val replayIdentifier = listOf("123e4567", "e89b", "42d3", "a456", "426614174000").joinToString("-")
     fun result(error: String) = AfterchimeApi(
       "https://example.test",
-      false,
       ConnectionFactory { FakeConnection(it, 403, """{"error":"$error"}""") },
     ).contributeExhibit(
       exhibitId = "returning-light-2027",

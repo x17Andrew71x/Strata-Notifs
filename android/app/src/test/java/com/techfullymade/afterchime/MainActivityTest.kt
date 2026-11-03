@@ -54,8 +54,6 @@ class MainActivityTest {
     assertTrue(isRemoteShellEnabled(Uri.parse("https://shell.example/"), bridgeSupported = true))
     assertFalse(isRemoteShellEnabled(Uri.parse("https://shell.example/"), bridgeSupported = false))
     assertFalse(isRemoteShellEnabled(Uri.parse("http://shell.example/"), bridgeSupported = true))
-    assertFalse(isRemoteShellEnabled(Uri.parse("https://shell-disabled.invalid/"), bridgeSupported = true))
-    assertFalse(isRemoteShellEnabled(Uri.parse("https://production-disabled.invalid/"), bridgeSupported = true))
     assertFalse(isRemoteShellEnabled(Uri.parse("https://user@shell.example/"), bridgeSupported = true))
   }
 
@@ -250,7 +248,7 @@ class MainActivityTest {
     var capturedFilename: String? = null
     val accepted = enqueueExhibitDownload(
       imagePath = "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
-      remoteUri = Uri.parse("https://shell.example/app?stale=true"),
+      remoteUri = Uri.parse("https://shell.example/"),
     ) { uri, filename ->
       capturedUri = uri
       capturedFilename = filename
@@ -270,12 +268,6 @@ class MainActivityTest {
       enqueueExhibitDownload(
         "https://example.invalid/private.webp",
         Uri.parse("https://shell.example/"),
-      ) { _, _ -> 1L },
-    )
-    assertFalse(
-      enqueueExhibitDownload(
-        "/exhibits/fall-seasonal-special-2026-4k-eb20514a5829.webp",
-        Uri.parse("https://shell-disabled.invalid/"),
       ) { _, _ -> 1L },
     )
   }

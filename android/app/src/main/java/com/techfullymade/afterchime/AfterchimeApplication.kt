@@ -100,7 +100,7 @@ class AfterchimeApplication : Application() {
     AndroidAnalyticsEnvelopeCipher()
   }
   private val onlineApi by lazy {
-    NetworkModule.create(BuildConfig.API_BASE_URL, BuildConfig.FLAVOR == "dev")
+    NetworkModule.create(BuildConfig.API_BASE_URL)
   }
   private val onlineIdentityRepository: OnlineIdentityRepository by lazy {
     OnlineIdentityRepository(
