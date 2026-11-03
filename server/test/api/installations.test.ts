@@ -271,20 +271,29 @@ describePostgres("installation registration API", () => {
 
   it("rate limits registration attempts before they can create unbounded identities", async () => {
     const app = await appForDatabase();
+    const idempotencyKey = randomUUID();
 
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 10; attempt += 1) {
       const response = await app.inject({
-        headers: { "idempotency-key": randomUUID() },
+        headers: {
+          "idempotency-key": idempotencyKey,
+          "x-forwarded-for": `198.51.100.${attempt + 1}`,
+        },
         method: "POST",
         payload: registration,
+        remoteAddress: `127.0.1.${attempt + 1}`,
         url: "/v1/installations",
       });
-      expect(response.statusCode).toBe(201);
+      expect(response.statusCode).toBe(attempt === 0 ? 201 : 200);
     }
     const limited = await app.inject({
-      headers: { "idempotency-key": randomUUID() },
+      headers: {
+        "idempotency-key": idempotencyKey,
+        "x-forwarded-for": "198.51.100.200",
+      },
       method: "POST",
       payload: registration,
+      remoteAddress: "127.0.1.200",
       url: "/v1/installations",
     });
     expect(limited.statusCode).toBe(429);

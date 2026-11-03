@@ -5,6 +5,7 @@ import type { DatabaseClient } from "../../db/client.js";
 import {
   authorizationRateLimitKey,
   refreshCredentialRateLimitKey,
+  registrationRateLimitKey,
 } from "../../security/rate-limit.js";
 import { verifyAccessToken } from "../../security/tokens.js";
 import { IdempotencyConflictError, IdentityRepository } from "./repository.js";
@@ -62,7 +63,8 @@ export async function registerIdentityRoutes(
     {
       config: {
         rateLimit: {
-          max: 3,
+          keyGenerator: registrationRateLimitKey,
+          max: 10,
           timeWindow: "1 minute",
         },
       },

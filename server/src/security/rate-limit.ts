@@ -10,6 +10,10 @@ export function adminCredentialRateLimitKey(request: FastifyRequest): string {
   return typeof key === "string" && key.length <= 256 ? `admin:${digest(key)}` : `ip:${request.ip}`;
 }
 
+export function registrationRateLimitKey(_request: FastifyRequest): string {
+  return "registration:global";
+}
+
 export function authorizationRateLimitKey(request: FastifyRequest): string {
   const authorization = request.headers.authorization;
   return typeof authorization === "string" && authorization.length <= 4_096
