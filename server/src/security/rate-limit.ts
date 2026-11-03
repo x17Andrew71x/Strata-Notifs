@@ -89,7 +89,7 @@ export function routeRateLimitHandlers(
   credentialMax: number,
 ) {
   return layeredRateLimitHandlers(app, {
-    circuitMax: Math.max(300, credentialMax * 20),
+    circuitMax: Math.max(60, credentialMax * 10),
     clientMax: Math.max(30, credentialMax * 4),
     credentialKey,
     credentialMax,

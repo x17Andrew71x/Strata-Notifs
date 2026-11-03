@@ -8,6 +8,7 @@ import {
   authorizationRateLimitKey,
   layeredRateLimitHandlers,
   registrationRateLimitKey,
+  routeRateLimitHandlers,
 } from "../../src/security/rate-limit.js";
 import { testConfig } from "../test-config.js";
 
@@ -92,6 +93,37 @@ describe("API security hardening", () => {
 
     expect(first.statusCode).toBe(200);
     expect(rotated.statusCode).toBe(429);
+    await app.close();
+  });
+
+  it("bounds rotating invalid credentials across changing proxy peers with an aggregate circuit", async () => {
+    const app = await buildApp({ config: testConfig });
+    app.get(
+      "/test/aggregate-auth-circuit",
+      {
+        preHandler: routeRateLimitHandlers(
+          app,
+          "test-aggregate-auth-circuit",
+          authorizationRateLimitKey,
+          5,
+        ),
+      },
+      async () => ({ ok: true }),
+    );
+
+    const statuses: number[] = [];
+    for (let index = 0; index < 61; index += 1) {
+      const response = await app.inject({
+        headers: { authorization: `Bearer attacker-${index}` },
+        method: "GET",
+        remoteAddress: `127.1.${Math.floor(index / 250)}.${(index % 250) + 1}`,
+        url: "/test/aggregate-auth-circuit",
+      });
+      statuses.push(response.statusCode);
+    }
+
+    expect(statuses.slice(0, 60)).toEqual(Array(60).fill(200));
+    expect(statuses[60]).toBe(429);
     await app.close();
   });
 
