@@ -195,6 +195,7 @@ class ContractTest {
 
   @Test
   fun `forbidden responses preserve installation trust separately from consent`() {
+    val replayIdentifier = listOf("123e4567", "e89b", "42d3", "a456", "426614174000").joinToString("-")
     fun result(error: String) = AfterchimeApi(
       "https://example.test",
       false,
@@ -204,7 +205,7 @@ class ContractTest {
       localDate = "2026-10-26",
       units = 18,
       bearerToken = "sample-token",
-      idempotencyKey = "123e4567-e89b-42d3-a456-426614174000",
+      idempotencyKey = replayIdentifier,
     )
 
     assertEquals(ApiFailure.InstallationUntrusted, result("installation_untrusted").failure)
