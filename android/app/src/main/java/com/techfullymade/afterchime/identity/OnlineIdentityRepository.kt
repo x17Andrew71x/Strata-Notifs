@@ -58,19 +58,6 @@ class OnlineIdentityRepository(
     is CredentialRead.Available -> IdentityResult.Success(stored.session)
   }
 
-  /** Development-only repair hook for a credential envelope that already fails closed. */
-  @Synchronized
-  fun resetUnavailableCredentials(): Boolean {
-    if (credentials.read() != CredentialRead.Unavailable) return false
-    return credentials.clear() && credentials.read() == CredentialRead.Missing
-  }
-
-  /** Development-only repair hook after the feedback API explicitly rejects an access token. */
-  @Synchronized
-  fun resetRejectedDevelopmentFeedbackCredentials(): Boolean {
-    if (credentials.read() == CredentialRead.Missing) return false
-    return credentials.clear() && credentials.read() == CredentialRead.Missing
-  }
 
   /** Exactly one refresh call per invocation. A 401/replay clears; all uncertain failures preserve. */
   @Synchronized

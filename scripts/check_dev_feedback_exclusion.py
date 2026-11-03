@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail when production artifacts retain development-feedback implementation markers."""
+"""Fail when application artifacts retain retired development-feedback markers."""
 from __future__ import annotations
 
 import argparse
@@ -11,6 +11,7 @@ MARKERS = (
     b"devFeedback",
     b"dev-feedback",
     b"DevFeedback",
+    b"DevelopmentFeedback",
     b"dev_feedback",
     b"development_feedback_identity",
     b"/v1/dev-feedback",
@@ -30,7 +31,7 @@ def artifact_bytes(root: pathlib.Path) -> bytes:
 
 def apk_bytes(path: pathlib.Path) -> bytes:
     if not path.is_file() or path.is_symlink():
-        raise ValueError(f"production APK is missing: {path}")
+        raise ValueError(f"APK is missing: {path}")
     chunks: list[bytes] = []
     with zipfile.ZipFile(path) as archive:
         for name in sorted(archive.namelist()):
@@ -49,7 +50,7 @@ def main() -> int:
     parser.add_argument("--web", required=True, type=pathlib.Path)
     parser.add_argument("--server", required=True, type=pathlib.Path)
     parser.add_argument("--migrations", required=True, type=pathlib.Path)
-    parser.add_argument("--apk", required=True, type=pathlib.Path)
+    parser.add_argument("--apk", required=True, action="append", type=pathlib.Path)
     args = parser.parse_args()
     errors: list[str] = []
     try:
@@ -59,14 +60,15 @@ def main() -> int:
             errors.append("server production artifact contains the development-feedback module")
         errors.extend(reject_markers("server production artifact", artifact_bytes(args.server)))
         errors.extend(reject_markers("server production migrations", artifact_bytes(args.migrations)))
-        errors.extend(reject_markers("Android production artifact", apk_bytes(args.apk)))
+        for apk in args.apk:
+            errors.extend(reject_markers(f"Android artifact {apk.name}", apk_bytes(apk)))
     except (OSError, ValueError, zipfile.BadZipFile) as exc:
         errors.append(str(exc))
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
         return 1
-    print("Development-feedback production exclusion check passed.")
+    print("Retired development-feedback artifact exclusion check passed.")
     return 0
 
 

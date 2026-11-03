@@ -70,31 +70,16 @@ describe("web shell routes", () => {
     });
   });
 
-  it("offers the development package ZIP from a stable Railway download URL", async () => {
+  it("does not expose development package downloads from the product server", async () => {
     const app = await buildApp({ config: testConfig, webRoot: await shellRoot() });
     apps.push(app);
-    const response = await app.inject({
-      method: "GET",
-      url: "/downloads/Afterchime-0.1.21-dev.zip",
-    });
-    expect(response.statusCode).toBe(302);
-    expect(response.headers.location).toBe(
-      "https://raw.githubusercontent.com/x17Andrew71x/Strata-Notifs/798e15073cb6a2f09b7736dd5a094841c4d31dc1/Afterchime-0.1.21-dev.zip",
-    );
-    expect(response.headers["cache-control"]).toBe("no-store");
-    expect(response.headers["x-content-type-options"]).toBe("nosniff");
-
-    const retiredPackage = await app.inject({
-      method: "GET",
-      url: "/downloads/Afterchime-0.1.8-dev.zip",
-    });
-    expect(retiredPackage.statusCode).toBe(404);
-
-    const retiredApk = await app.inject({
-      method: "GET",
-      url: "/downloads/Afterchime-0.1.8-dev.apk",
-    });
-    expect(retiredApk.statusCode).toBe(404);
+    for (const url of [
+      "/downloads/Afterchime-0.1.21-dev.zip",
+      "/downloads/Afterchime-0.1.21-dev.apk",
+      "/downloads/Afterchime-0.1.8-dev.zip",
+    ]) {
+      expect((await app.inject({ method: "GET", url })).statusCode).toBe(404);
+    }
   });
 
   it("reserves immutable caching for hashed build assets and rejects unsafe paths", async () => {

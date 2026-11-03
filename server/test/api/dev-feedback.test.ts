@@ -68,6 +68,7 @@ describePostgres("development feedback API", () => {
             deploymentUrl: "https://pjs.example/version.json",
           },
         },
+        afterchimeFeedbackClientEnabled: true,
         databaseUrl: harness.runtimeDatabaseUrl,
         deployedRevision,
         developmentModuleEnabled: true,

@@ -49,6 +49,7 @@ export type ServerConfig = Readonly<{
   refreshTokenPepper: string;
   adminApiKeyHash: string;
   feedbackProjects: Readonly<Record<DevFeedbackProject, DevFeedbackProjectConfig>>;
+  afterchimeFeedbackClientEnabled: boolean;
   developmentModuleEnabled: boolean;
   deployedRevision: string;
   corsOrigins: readonly string[];
@@ -118,6 +119,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): Server
     refreshTokenPepper: value.REFRESH_TOKEN_PEPPER,
     adminApiKeyHash: value.ADMIN_API_KEY_HASH,
     feedbackProjects,
+    afterchimeFeedbackClientEnabled: false,
     developmentModuleEnabled: value.DEV_FEEDBACK_ENABLED === "true",
     deployedRevision,
     corsOrigins: value.CORS_ORIGINS.split(",")

@@ -23,6 +23,16 @@ class DevelopmentFeedbackExclusionTests(unittest.TestCase):
             ["server production migrations contains dev_feedback"],
         )
 
+    def test_rejects_retired_android_class_names(self) -> None:
+        errors = MODULE.reject_markers(
+            "Android artifact",
+            b"com.techfullymade.afterchime.DevelopmentFeedbackFactory",
+        )
+        self.assertEqual(
+            errors,
+            ["Android artifact contains DevelopmentFeedback"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

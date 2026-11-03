@@ -7,7 +7,6 @@ import App, {
   EXCAVATION_CLEAR_MS,
   IMAGE_RETRY_DELAYS_MS,
   launchSafeDisplayState,
-  loadDevelopmentFeedbackRuntime,
   registerShellWorker,
   reloadOnShellWorkerChange,
   SHELL_STATE_REFRESH_MS,
@@ -124,21 +123,6 @@ describe("service worker registration", () => {
 });
 
 describe("full shell application", () => {
-  it("contains an optional development-tool load failure", async () => {
-    const runtime = await loadDevelopmentFeedbackRuntime(async () => {
-      throw new Error("development chunk unavailable");
-    });
-
-    expect(
-      runtime.default({
-        route: "today",
-        shellRevision: "a".repeat(64),
-        appVersion: "0.1.10-dev-debug",
-        registerResponseSink: vi.fn(),
-      }),
-    ).toBeTruthy();
-  });
-
   it("receives replies on the injected WebView bridge channel", () => {
     render(<App />);
     expect(native.onmessage).toBeTypeOf("function");
@@ -191,47 +175,6 @@ describe("full shell application", () => {
       revision: RELIC_VAULT_CATALOG_REVISION,
     });
     expect(update.payload.items).toHaveLength(17);
-  });
-
-  it("mounts development feedback only after native capability and hosted revision proof", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        async () =>
-          new Response(
-            JSON.stringify({
-              shellVersion: 2,
-              bridgeVersion: 2,
-              revision: "a".repeat(64),
-              entry: "/",
-            }),
-            { status: 200, headers: { "content-type": "application/json" } },
-          ),
-      ),
-    );
-    render(<App />);
-    sendState(baseState);
-    expect(screen.queryByRole("button", { name: "Open development feedback" })).toBeNull();
-
-    act(() => {
-      native.onmessage?.(
-        new MessageEvent("message", {
-          data: JSON.stringify({
-            version: 2,
-            id: requestId("capabilities.get"),
-            type: "capabilities.state",
-            bridgeVersion: 2,
-            notificationAccess: true,
-            appDetailsAction: true,
-            catalogUpdates: true,
-            devFeedback: true,
-            appVersion: "0.1.10-dev-debug",
-          }),
-        }),
-      );
-    });
-
-    expect(await screen.findByRole("button", { name: "Open development feedback" })).toBeTruthy();
   });
 
   it("requests bridge state and renders private onboarding from native state", () => {

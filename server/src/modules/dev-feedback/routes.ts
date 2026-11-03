@@ -178,171 +178,173 @@ export async function registerDevelopmentModule(
   if (!config.developmentModuleEnabled || config.buildChannel !== "dev") return;
   const repository = new DevFeedbackRepository(database);
 
-  app.get(
-    "/v1/dev-feedback/items",
-    {
-      preHandler: routeRateLimitHandlers(
-        app,
-        "dev-feedback-owner-read",
-        authorizationRateLimitKey,
-        30,
-      ),
-      schema: { response: { 200: stateResponse, 401: authorizationError } },
-    },
-    async (request, reply) => {
-      const identity = authenticatedIdentity(request.headers.authorization, config);
-      if (!identity) return reply.code(401).send({ error: "unauthorized" });
-      return reply.send(await repository.list(identity));
-    },
-  );
+  if (config.afterchimeFeedbackClientEnabled) {
+    app.get(
+      "/v1/dev-feedback/items",
+      {
+        preHandler: routeRateLimitHandlers(
+          app,
+          "dev-feedback-owner-read",
+          authorizationRateLimitKey,
+          30,
+        ),
+        schema: { response: { 200: stateResponse, 401: authorizationError } },
+      },
+      async (request, reply) => {
+        const identity = authenticatedIdentity(request.headers.authorization, config);
+        if (!identity) return reply.code(401).send({ error: "unauthorized" });
+        return reply.send(await repository.list(identity));
+      },
+    );
 
-  app.post(
-    "/v1/dev-feedback/items",
-    {
-      bodyLimit: 1_100 * 1_024,
-      preHandler: routeRateLimitHandlers(
-        app,
-        "dev-feedback-owner-write",
-        authorizationRateLimitKey,
-        5,
-      ),
-      schema: {
-        body: feedbackBody,
-        headers: idempotencyHeaders,
-        response: {
-          200: stateResponse,
-          201: stateResponse,
-          401: authorizationError,
-          409: authorizationError,
+    app.post(
+      "/v1/dev-feedback/items",
+      {
+        bodyLimit: 1_100 * 1_024,
+        preHandler: routeRateLimitHandlers(
+          app,
+          "dev-feedback-owner-write",
+          authorizationRateLimitKey,
+          5,
+        ),
+        schema: {
+          body: feedbackBody,
+          headers: idempotencyHeaders,
+          response: {
+            200: stateResponse,
+            201: stateResponse,
+            401: authorizationError,
+            409: authorizationError,
+          },
         },
       },
-    },
-    async (request, reply) => {
-      const identity = authenticatedIdentity(request.headers.authorization, config);
-      if (!identity) return reply.code(401).send({ error: "unauthorized" });
-      const headers = idempotencyHeaders.parse(request.headers);
-      try {
-        const state = await repository.create(
-          identity,
-          revisionInput(
-            feedbackBody.parse(request.body),
-            headers["idempotency-key"],
-            config,
-            "afterchime",
-          ),
-        );
-        return reply.code(201).send(state);
-      } catch (error) {
-        if (error instanceof DevFeedbackConflictError)
-          return reply.code(409).send({ error: "conflict" });
-        throw error;
-      }
-    },
-  );
+      async (request, reply) => {
+        const identity = authenticatedIdentity(request.headers.authorization, config);
+        if (!identity) return reply.code(401).send({ error: "unauthorized" });
+        const headers = idempotencyHeaders.parse(request.headers);
+        try {
+          const state = await repository.create(
+            identity,
+            revisionInput(
+              feedbackBody.parse(request.body),
+              headers["idempotency-key"],
+              config,
+              "afterchime",
+            ),
+          );
+          return reply.code(201).send(state);
+        } catch (error) {
+          if (error instanceof DevFeedbackConflictError)
+            return reply.code(409).send({ error: "conflict" });
+          throw error;
+        }
+      },
+    );
 
-  app.post<{ Params: { itemId: string } }>(
-    "/v1/dev-feedback/items/:itemId/amendments",
-    {
-      bodyLimit: 1_100 * 1_024,
-      preHandler: routeRateLimitHandlers(
-        app,
-        "dev-feedback-owner-write",
-        authorizationRateLimitKey,
-        5,
-      ),
-      schema: {
-        params: z.object({ itemId: uuid }),
-        body: feedbackBody,
-        headers: idempotencyHeaders,
-        response: {
-          200: stateResponse,
-          201: stateResponse,
-          401: authorizationError,
-          409: authorizationError,
+    app.post<{ Params: { itemId: string } }>(
+      "/v1/dev-feedback/items/:itemId/amendments",
+      {
+        bodyLimit: 1_100 * 1_024,
+        preHandler: routeRateLimitHandlers(
+          app,
+          "dev-feedback-owner-write",
+          authorizationRateLimitKey,
+          5,
+        ),
+        schema: {
+          params: z.object({ itemId: uuid }),
+          body: feedbackBody,
+          headers: idempotencyHeaders,
+          response: {
+            200: stateResponse,
+            201: stateResponse,
+            401: authorizationError,
+            409: authorizationError,
+          },
         },
       },
-    },
-    async (request, reply) => {
-      const identity = authenticatedIdentity(request.headers.authorization, config);
-      if (!identity) return reply.code(401).send({ error: "unauthorized" });
-      const headers = idempotencyHeaders.parse(request.headers);
-      try {
-        const state = await repository.amend(
-          identity,
-          request.params.itemId,
-          revisionInput(
-            feedbackBody.parse(request.body),
-            headers["idempotency-key"],
-            config,
-            "afterchime",
-          ),
-        );
-        return reply.code(201).send(state);
-      } catch (error) {
-        if (error instanceof DevFeedbackConflictError)
-          return reply.code(409).send({ error: "conflict" });
-        if (error instanceof DevFeedbackNotReadyError)
-          return reply.code(409).send({ error: "not_ready" });
-        throw error;
-      }
-    },
-  );
-
-  app.post<{ Params: { itemId: string } }>(
-    "/v1/dev-feedback/items/:itemId/accept",
-    {
-      preHandler: routeRateLimitHandlers(
-        app,
-        "dev-feedback-owner-finalize",
-        authorizationRateLimitKey,
-        10,
-      ),
-      schema: {
-        params: z.object({ itemId: uuid }),
-        body: z.object({}).strict(),
-        response: { 200: stateResponse, 401: authorizationError, 409: authorizationError },
+      async (request, reply) => {
+        const identity = authenticatedIdentity(request.headers.authorization, config);
+        if (!identity) return reply.code(401).send({ error: "unauthorized" });
+        const headers = idempotencyHeaders.parse(request.headers);
+        try {
+          const state = await repository.amend(
+            identity,
+            request.params.itemId,
+            revisionInput(
+              feedbackBody.parse(request.body),
+              headers["idempotency-key"],
+              config,
+              "afterchime",
+            ),
+          );
+          return reply.code(201).send(state);
+        } catch (error) {
+          if (error instanceof DevFeedbackConflictError)
+            return reply.code(409).send({ error: "conflict" });
+          if (error instanceof DevFeedbackNotReadyError)
+            return reply.code(409).send({ error: "not_ready" });
+          throw error;
+        }
       },
-    },
-    async (request, reply) => {
-      const identity = authenticatedIdentity(request.headers.authorization, config);
-      if (!identity) return reply.code(401).send({ error: "unauthorized" });
-      try {
-        return reply.send(await repository.accept(identity, request.params.itemId));
-      } catch (error) {
-        if (error instanceof DevFeedbackNotReadyError)
-          return reply.code(409).send({ error: "not_ready" });
-        throw error;
-      }
-    },
-  );
+    );
 
-  app.post<{ Params: { itemId: string } }>(
-    "/v1/dev-feedback/items/:itemId/close",
-    {
-      preHandler: routeRateLimitHandlers(
-        app,
-        "dev-feedback-owner-finalize",
-        authorizationRateLimitKey,
-        10,
-      ),
-      schema: {
-        params: z.object({ itemId: uuid }),
-        body: z.object({}).strict(),
-        response: { 200: stateResponse, 401: authorizationError, 409: authorizationError },
+    app.post<{ Params: { itemId: string } }>(
+      "/v1/dev-feedback/items/:itemId/accept",
+      {
+        preHandler: routeRateLimitHandlers(
+          app,
+          "dev-feedback-owner-finalize",
+          authorizationRateLimitKey,
+          10,
+        ),
+        schema: {
+          params: z.object({ itemId: uuid }),
+          body: z.object({}).strict(),
+          response: { 200: stateResponse, 401: authorizationError, 409: authorizationError },
+        },
       },
-    },
-    async (request, reply) => {
-      const identity = authenticatedIdentity(request.headers.authorization, config);
-      if (!identity) return reply.code(401).send({ error: "unauthorized" });
-      try {
-        return reply.send(await repository.close(identity, request.params.itemId));
-      } catch (error) {
-        if (error instanceof DevFeedbackNotReadyError)
-          return reply.code(409).send({ error: "not_ready" });
-        throw error;
-      }
-    },
-  );
+      async (request, reply) => {
+        const identity = authenticatedIdentity(request.headers.authorization, config);
+        if (!identity) return reply.code(401).send({ error: "unauthorized" });
+        try {
+          return reply.send(await repository.accept(identity, request.params.itemId));
+        } catch (error) {
+          if (error instanceof DevFeedbackNotReadyError)
+            return reply.code(409).send({ error: "not_ready" });
+          throw error;
+        }
+      },
+    );
+
+    app.post<{ Params: { itemId: string } }>(
+      "/v1/dev-feedback/items/:itemId/close",
+      {
+        preHandler: routeRateLimitHandlers(
+          app,
+          "dev-feedback-owner-finalize",
+          authorizationRateLimitKey,
+          10,
+        ),
+        schema: {
+          params: z.object({ itemId: uuid }),
+          body: z.object({}).strict(),
+          response: { 200: stateResponse, 401: authorizationError, 409: authorizationError },
+        },
+      },
+      async (request, reply) => {
+        const identity = authenticatedIdentity(request.headers.authorization, config);
+        if (!identity) return reply.code(401).send({ error: "unauthorized" });
+        try {
+          return reply.send(await repository.close(identity, request.params.itemId));
+        } catch (error) {
+          if (error instanceof DevFeedbackNotReadyError)
+            return reply.code(409).send({ error: "not_ready" });
+          throw error;
+        }
+      },
+    );
+  }
 
   app.get(
     "/v1/dev-feedback/trusted/items",
@@ -479,34 +481,36 @@ export async function registerDevelopmentModule(
     );
   }
 
-  app.post(
-    "/v1/dev-feedback/admin/restore-latest-client",
-    {
-      preHandler: routeRateLimitHandlers(
-        app,
-        "dev-feedback-admin-restore",
-        feedbackAdminRateLimitKey,
-        3,
-      ),
-      schema: {
-        headers: adminHeaders,
-        body: z.object({}).strict(),
-        response: {
-          200: restoreResponse,
-          401: authorizationError,
-          409: authorizationError,
+  if (config.afterchimeFeedbackClientEnabled) {
+    app.post(
+      "/v1/dev-feedback/admin/restore-latest-client",
+      {
+        preHandler: routeRateLimitHandlers(
+          app,
+          "dev-feedback-admin-restore",
+          feedbackAdminRateLimitKey,
+          3,
+        ),
+        schema: {
+          headers: adminHeaders,
+          body: z.object({}).strict(),
+          response: {
+            200: restoreResponse,
+            401: authorizationError,
+            409: authorizationError,
+          },
         },
       },
-    },
-    async (request, reply) => {
-      const projectId = authorizedProject(request.headers, config, "admin");
-      if (!projectId) return reply.code(401).send({ error: "unauthorized" });
-      if (projectId !== "afterchime") return reply.code(409).send({ error: "not_ready" });
-      const restored = await repository.restoreLatestClient(projectId);
-      if (!restored) return reply.code(409).send({ error: "not_ready" });
-      return reply.send(restored);
-    },
-  );
+      async (request, reply) => {
+        const projectId = authorizedProject(request.headers, config, "admin");
+        if (!projectId) return reply.code(401).send({ error: "unauthorized" });
+        if (projectId !== "afterchime") return reply.code(409).send({ error: "not_ready" });
+        const restored = await repository.restoreLatestClient(projectId);
+        if (!restored) return reply.code(409).send({ error: "not_ready" });
+        return reply.send(restored);
+      },
+    );
+  }
 
   app.post(
     "/v1/dev-feedback/admin/claim",
@@ -740,6 +744,7 @@ function authorizedProject(
 ): DevFeedbackProject | null {
   const projectId = requestedProject(headers);
   if (!projectId) return null;
+  if (projectId === "afterchime" && !config.afterchimeFeedbackClientEnabled) return null;
   const keyName = kind === "admin" ? "x-dev-feedback-admin-key" : "x-dev-feedback-client-key";
   const fallback = kind === "admin" ? headers["x-afterchime-admin-key"] : undefined;
   const presented = headers[keyName] ?? fallback;

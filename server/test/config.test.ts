@@ -19,6 +19,7 @@ describe("loadConfig", () => {
     expect(config.buildChannel).toBe("dev");
     expect(config.tokenAudience).toBe("afterchime-dev");
     expect(config.allowDevAuth).toBe(false);
+    expect(config.afterchimeFeedbackClientEnabled).toBe(false);
     expect(config.developmentModuleEnabled).toBe(false);
     expect(config.trustedProxyHops).toBe(0);
     expect(config.deployedRevision).toBe("0".repeat(40));

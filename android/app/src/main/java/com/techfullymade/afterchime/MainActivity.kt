@@ -92,10 +92,7 @@ internal data class BridgeRequest(
   val payload: JSONObject? = null,
 )
 
-internal fun parseBridgeRequest(
-  raw: String?,
-  developmentFeedback: DevelopmentFeedbackRequestPolicy = DisabledDevelopmentFeedback,
-): BridgeRequest? {
+internal fun parseBridgeRequest(raw: String?): BridgeRequest? {
   if (raw == null || raw.length > MAX_BRIDGE_REQUEST) return null
   val request = try {
     JSONObject(raw)
@@ -117,7 +114,7 @@ internal fun parseBridgeRequest(
     "exhibits.refresh",
     "worlds.reset",
   )
-  if (type in noPayloadActions || developmentFeedback.acceptsNoPayload(type)) {
+  if (type in noPayloadActions) {
     return if (request.length() == 3 && payload == null) BridgeRequest(id, type) else null
   }
   if (request.length() != 4 || payload == null) return null
@@ -157,7 +154,7 @@ internal fun parseBridgeRequest(
         payload.opt("world") is String &&
         World.entries.any { it.name == payload.optString("world") }
 
-    else -> developmentFeedback.acceptsPayload(type, payload)
+    else -> false
   }
   return if (validPayload) BridgeRequest(id, type, payload) else null
 }
@@ -182,11 +179,6 @@ internal fun shouldFallbackFromHttpError(
 
 internal fun isDevelopmentWorldsEnabled(flavor: String): Boolean = flavor == "dev"
 
-internal fun isDevelopmentFeedbackEnabled(flavor: String, productionEnabled: Boolean): Boolean =
-  flavor == "dev" && !productionEnabled
-
-internal fun developmentRefreshUrl(remoteUri: Uri, nonce: Long): Uri =
-  remoteUri.buildUpon().appendQueryParameter("dev-refresh", nonce.toString()).build()
 
 internal fun enqueueExhibitDownload(
   imagePath: String,
@@ -222,16 +214,6 @@ class MainActivity : ComponentActivity() {
   private val worldCatalog by lazy { DataStoreWorldCatalog(applicationContext.worldCatalogDataStore) }
   private val developmentWorldsEnabled get() = isDevelopmentWorldsEnabled(BuildConfig.FLAVOR)
   private lateinit var shell: WebView
-  private val developmentFeedback by lazy {
-    createDevelopmentFeedback(
-      DevelopmentFeedbackDependencies(
-        activity = this,
-        application = applicationState,
-        shell = { shell },
-        refreshShell = ::refreshRemoteShell,
-      ),
-    )
-  }
   private lateinit var assetLoader: WebViewAssetLoader
   private var replyProxy: JavaScriptReplyProxy? = null
   private var latestShellState: JSONObject? = null
@@ -439,7 +421,7 @@ class MainActivity : ComponentActivity() {
   private fun isAllowedUrl(uri: Uri): Boolean = isAllowedShellUri(uri, remoteUri)
 
   private fun handleBridgeMessage(raw: String?, proxy: JavaScriptReplyProxy): Boolean {
-    val request = parseBridgeRequest(raw, developmentFeedback) ?: return false
+    val request = parseBridgeRequest(raw) ?: return false
     when (request.type) {
       "capabilities.get" -> proxy.postMessage(capabilitiesResponse(request.id).toString())
       "state.get" -> sendShellState(request.id, proxy)
@@ -488,7 +470,7 @@ class MainActivity : ComponentActivity() {
       "worlds.select" -> selectWorld(request, proxy)
       "worlds.own" -> ownWorld(request, proxy)
       "worlds.reset" -> resetWorlds(request, proxy)
-      else -> if (!developmentFeedback.handle(request, proxy)) return false
+      else -> return false
     }
     return true
   }
@@ -741,8 +723,7 @@ class MainActivity : ComponentActivity() {
     )
   }
 
-  internal fun capabilitiesResponse(id: String): JSONObject = developmentFeedback.decorateCapabilities(
-    JSONObject()
+  internal fun capabilitiesResponse(id: String): JSONObject = JSONObject()
       .put("version", BRIDGE_VERSION)
       .put("id", id)
       .put("type", "capabilities.state")
@@ -750,8 +731,7 @@ class MainActivity : ComponentActivity() {
       .put("notificationAccess", notificationAccessEnabled())
       .put("appDetailsAction", true)
       .put("catalogUpdates", true)
-      .put("exhibitDownloads", true),
-  )
+      .put("exhibitDownloads", true)
 
   private fun sendCapabilityState(id: String) {
     replyProxy?.postMessage(capabilitiesResponse(id).toString())
@@ -829,17 +809,6 @@ class MainActivity : ComponentActivity() {
     }
   }
 
-  internal fun refreshRemoteShell(nowEpochMillis: Long = System.currentTimeMillis()): Boolean {
-    if (!isRemoteShellEnabled(remoteUri, bridgeSupported = true)) return false
-    shell.removeCallbacks(remoteReadyWatchdog)
-    usingLocalShell = false
-    remoteShellReady = false
-    shell.loadUrl(
-      developmentRefreshUrl(remoteUri, nowEpochMillis).toString(),
-      mapOf("Cache-Control" to "no-cache", "Pragma" to "no-cache"),
-    )
-    return true
-  }
 }
 
 internal fun UserPreferences.withPreference(key: String, value: Boolean): UserPreferences = when (key) {

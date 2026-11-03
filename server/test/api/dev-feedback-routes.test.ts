@@ -27,6 +27,7 @@ const enabledConfig = {
       deploymentUrl: "https://decree.example/version.json",
     },
   },
+  afterchimeFeedbackClientEnabled: true,
   developmentModuleEnabled: true,
   deployedRevision: "a".repeat(40),
 };
@@ -48,6 +49,28 @@ describe("development feedback route boundary", () => {
     expect(
       (await production.inject({ method: "GET", url: "/v1/dev-feedback/items" })).statusCode,
     ).toBe(404);
+  });
+
+  it("retires the Afterchime client and controller lanes while the shared control plane remains enabled", async () => {
+    const app = await buildApp({
+      config: { ...enabledConfig, afterchimeFeedbackClientEnabled: false },
+      database,
+    });
+    apps.push(app);
+
+    expect((await app.inject({ method: "GET", url: "/v1/dev-feedback/items" })).statusCode).toBe(
+      404,
+    );
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: "/v1/dev-feedback/admin/claim",
+          headers: { "x-afterchime-admin-key": adminKey },
+          payload: {},
+        })
+      ).statusCode,
+    ).toBe(401);
   });
 
   it("requires installation bearer auth and the independent exact admin key", async () => {

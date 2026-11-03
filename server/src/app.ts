@@ -27,10 +27,6 @@ import { registerIdentityRoutes } from "./modules/identity/routes.js";
 import { registerNotificationAggregateRoutes } from "./modules/notifications/routes.js";
 import { registerHealthRoutes } from "./routes/health.js";
 
-const DEVELOPMENT_PACKAGE_FILENAME = "Afterchime-0.1.21-dev.zip";
-const DEVELOPMENT_PACKAGE_URL =
-  "https://raw.githubusercontent.com/x17Andrew71x/Strata-Notifs/798e15073cb6a2f09b7736dd5a094841c4d31dc1/Afterchime-0.1.21-dev.zip";
-
 export type BuildAppOptions = Readonly<{
   config: ServerConfig;
   database?: DatabaseClient;
@@ -130,10 +126,6 @@ function setShellHeaders(reply: FastifyReply, cache: string): void {
 }
 
 async function registerShellRoutes(app: FastifyInstance, webRoot: string): Promise<void> {
-  app.get(`/downloads/${DEVELOPMENT_PACKAGE_FILENAME}`, async (_request, reply) => {
-    setShellHeaders(reply, "no-store");
-    return reply.code(302).header("Location", DEVELOPMENT_PACKAGE_URL).send();
-  });
   app.get("/shell/health", async (_request, reply) => {
     setShellHeaders(reply, "no-store");
     return reply.send({ status: "ok", shell: true });

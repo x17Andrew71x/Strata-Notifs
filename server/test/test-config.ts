@@ -16,6 +16,7 @@ export const testConfig: ServerConfig = {
     decree: { adminKeyHash: "", clientKeyHash: null, deploymentUrl: null },
     "please-just-sleep": { adminKeyHash: "", clientKeyHash: null, deploymentUrl: null },
   },
+  afterchimeFeedbackClientEnabled: false,
   developmentModuleEnabled: false,
   deployedRevision: "0000000000000000000000000000000000000000",
   corsOrigins: [],

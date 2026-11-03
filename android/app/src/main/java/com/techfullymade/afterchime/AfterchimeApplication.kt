@@ -33,17 +33,13 @@ import com.techfullymade.afterchime.generation.GenerationResult
 import com.techfullymade.afterchime.identity.AfterchimeIdentityGateway
 import com.techfullymade.afterchime.identity.AndroidCredentialCipher
 import com.techfullymade.afterchime.identity.AtomicCredentialEnvelopeStorage
-import com.techfullymade.afterchime.identity.CredentialSession
 import com.techfullymade.afterchime.identity.CredentialStore
-import com.techfullymade.afterchime.identity.IdentityFailure
-import com.techfullymade.afterchime.identity.IdentityResult
 import com.techfullymade.afterchime.identity.OnlineIdentityRepository
 import com.techfullymade.afterchime.identity.NetworkProfileActivityApi
 import com.techfullymade.afterchime.identity.ProfileActivityRepository
 import com.techfullymade.afterchime.identity.ProfileTokenProvider
 import com.techfullymade.afterchime.identity.TokenAuthenticator
-import com.techfullymade.afterchime.identity.TokenResult
-import com.techfullymade.afterchime.network.ApiFailure
+
 import com.techfullymade.afterchime.network.NetworkModule
 import com.techfullymade.afterchime.network.RegistrationRequest
 import com.techfullymade.afterchime.sealing.RoomSealDayStore
@@ -70,7 +66,7 @@ import com.techfullymade.afterchime.sync.SharedPreferencesOnlineSyncStateStore
 import java.time.Clock
 import java.time.ZoneId
 import java.util.Locale
-import java.util.UUID
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -118,25 +114,7 @@ class AfterchimeApplication : Application() {
   private val onlineTokenAuthenticator: TokenAuthenticator by lazy {
     TokenAuthenticator(onlineIdentityRepository, refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS)
   }
-  private val developmentFeedbackIdentityRepository: OnlineIdentityRepository by lazy {
-    OnlineIdentityRepository(
-      gateway = AfterchimeIdentityGateway(onlineApi),
-      credentials = CredentialStore(
-        storage = AtomicCredentialEnvelopeStorage(
-          context = this,
-          fileName = DEV_FEEDBACK_CREDENTIAL_FILE,
-          initializationFileName = DEV_FEEDBACK_CREDENTIAL_INITIALIZATION_FILE,
-        ),
-        cipher = AndroidCredentialCipher(DEV_FEEDBACK_CREDENTIAL_KEY_ALIAS),
-      ),
-    )
-  }
-  private val developmentFeedbackTokenAuthenticator: TokenAuthenticator by lazy {
-    TokenAuthenticator(
-      developmentFeedbackIdentityRepository,
-      refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS,
-    )
-  }
+
   internal val profileActivityRepository: ProfileActivityRepository by lazy {
     ProfileActivityRepository(
       api = NetworkProfileActivityApi(onlineApi),
@@ -189,7 +167,6 @@ class AfterchimeApplication : Application() {
           deviceClass = onlineDeviceClass(resources.configuration.smallestScreenWidthDp),
         )
       },
-      retainIdentityWhenOnlineFeaturesDisabled = BuildConfig.DEV_FEEDBACK_ENABLED,
     )
   }
 
@@ -224,46 +201,6 @@ class AfterchimeApplication : Application() {
     onlineWorkManager()?.let { OnlineSyncScheduler(it).scheduleImmediate() }
   }
 
-  internal suspend fun developmentFeedbackToken(): String? {
-    if (!BuildConfig.DEV_FEEDBACK_ENABLED) return null
-    return withContext(Dispatchers.IO) {
-      DevelopmentFeedbackTokenRecovery(
-        currentSession = developmentFeedbackIdentityRepository::currentSession,
-        resetUnavailableCredentials = developmentFeedbackIdentityRepository::resetUnavailableCredentials,
-        registerSession = { registerDevelopmentFeedbackIdentity() != null },
-        tokenLookup = developmentFeedbackTokenAuthenticator::accessToken,
-      ).accessToken()
-    }
-  }
-
-  internal suspend fun recoverDevelopmentFeedbackTokenAfterUnauthorized(): String? {
-    if (!BuildConfig.DEV_FEEDBACK_ENABLED) return null
-    return withContext(Dispatchers.IO) {
-      if (!developmentFeedbackIdentityRepository.resetRejectedDevelopmentFeedbackCredentials()) return@withContext null
-      registerDevelopmentFeedbackIdentity()?.accessToken
-    }
-  }
-
-  private fun registerDevelopmentFeedbackIdentity(): CredentialSession? {
-    val preferences = getSharedPreferences(DEV_FEEDBACK_IDENTITY_STORE, MODE_PRIVATE)
-    val idempotencyKey = preferences.getString(DEV_FEEDBACK_IDEMPOTENCY_KEY, null)
-      ?: UUID.randomUUID().toString().also { generated ->
-        if (!preferences.edit().putString(DEV_FEEDBACK_IDEMPOTENCY_KEY, generated).commit()) {
-          return null
-        }
-      }
-    val registered = developmentFeedbackIdentityRepository.register(
-      RegistrationRequest(
-        appVersion = BuildConfig.VERSION_NAME,
-        androidApiLevel = Build.VERSION.SDK_INT,
-        deviceClass = onlineDeviceClass(resources.configuration.smallestScreenWidthDp),
-      ),
-      idempotencyKey,
-    )
-    val session = (registered as? IdentityResult.Success)?.value ?: return null
-    preferences.edit().remove(DEV_FEEDBACK_IDEMPOTENCY_KEY).commit()
-    return session
-  }
 
   private suspend fun communityAccessToken(): String? = profileAccessToken()
 
@@ -287,6 +224,7 @@ class AfterchimeApplication : Application() {
 
   override fun onCreate() {
     super.onCreate()
+    removeRetiredDevelopmentToolState(this)
     OnlineSyncRuntimeRegistry.runner = OnlineSyncRunner { onlineSyncCoordinator.sync() }
     onlineWorkManager()?.let { OnlineSyncScheduler(it).schedule() }
     val timeZone = ZoneId.systemDefault()
@@ -335,50 +273,7 @@ class AfterchimeApplication : Application() {
 
   private companion object {
     const val DATABASE_NAME = "afterchime.db"
-    const val DEV_FEEDBACK_IDENTITY_STORE = "development_feedback_identity"
-    const val DEV_FEEDBACK_IDEMPOTENCY_KEY = "registration_idempotency_key"
-    const val DEV_FEEDBACK_CREDENTIAL_FILE = "afterchime-development-feedback-credentials.enc"
-    const val DEV_FEEDBACK_CREDENTIAL_INITIALIZATION_FILE =
-      "afterchime-development-feedback-credentials.initialized"
-    const val DEV_FEEDBACK_CREDENTIAL_KEY_ALIAS = "afterchime.development-feedback-credentials.v1"
     const val ONLINE_TOKEN_REFRESH_SKEW_MILLIS = 60_000L
-  }
-}
-
-internal class DevelopmentFeedbackTokenRecovery(
-  private val currentSession: () -> IdentityResult<CredentialSession?>,
-  private val resetUnavailableCredentials: () -> Boolean,
-  private val registerSession: () -> Boolean,
-  private val tokenLookup: () -> TokenResult,
-) {
-  fun accessToken(): String? {
-    repeat(2) { attempt ->
-      val current = when (val session = currentSession()) {
-        is IdentityResult.Success -> session.value
-        is IdentityResult.Failure -> {
-          if (
-            attempt != 0 ||
-            session.reason != IdentityFailure.ProtectedStorageUnavailable ||
-            !resetUnavailableCredentials()
-          ) return null
-          null
-        }
-      }
-      if (current == null && !registerSession()) return null
-      when (val token = tokenLookup()) {
-        is TokenResult.Available -> return token.accessToken
-        is TokenResult.Failure -> {
-          if (attempt != 0) return null
-          when {
-            token.reason == IdentityFailure.ProtectedStorageUnavailable ->
-              if (!resetUnavailableCredentials()) return null
-            token.reason == IdentityFailure.Api(ApiFailure.Unauthorized) -> Unit
-            else -> return null
-          }
-        }
-      }
-    }
-    return null
   }
 }
 
