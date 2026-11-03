@@ -141,6 +141,13 @@
       "when": 1793640211932,
       "tag": "0019_security_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793664386795,
+      "tag": "0020_installation_trust_readback",
+      "breakpoints": true
     }
   ]
 }

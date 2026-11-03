@@ -149,6 +149,20 @@ describePostgres("installation registration API", () => {
     });
     const installationId = created.json().installationId as string;
 
+    const untrusted = await app.inject({
+      headers: { "x-admin-key": trustAdminKey },
+      method: "GET",
+      url: `/v1/admin/installations/${installationId}/trust`,
+    });
+    expect(untrusted.statusCode).toBe(200);
+    expect(untrusted.json()).toEqual({
+      installationId,
+      profileTrusted: false,
+      source: null,
+      grantedAt: null,
+      trustStatus: "untrusted",
+    });
+
     const denied = await app.inject({
       headers: { "x-admin-key": `${trustAdminKey}-wrong` },
       method: "POST",
@@ -165,6 +179,20 @@ describePostgres("installation registration API", () => {
     });
     expect(trusted.statusCode).toBe(200);
     expect(trusted.json()).toEqual({ installationId, trustStatus: "trusted" });
+
+    const readback = await app.inject({
+      headers: { "x-admin-key": trustAdminKey },
+      method: "GET",
+      url: `/v1/admin/installations/${installationId}/trust`,
+    });
+    expect(readback.statusCode).toBe(200);
+    expect(readback.json()).toEqual({
+      installationId,
+      profileTrusted: true,
+      source: "owner_admin",
+      grantedAt: expect.any(String),
+      trustStatus: "trusted",
+    });
 
     const [state] = await admin<
       Readonly<{ grant_count: string; installation_trusted: boolean; user_trusted: boolean }>[]

@@ -12,6 +12,13 @@ const success = z.object({
   installationId: z.string().uuid(),
   trustStatus: z.literal("trusted"),
 });
+const status = z.object({
+  installationId: z.string().uuid(),
+  profileTrusted: z.boolean(),
+  source: z.enum(["owner_admin", "play_integrity"]).nullable(),
+  grantedAt: z.string().datetime().nullable(),
+  trustStatus: z.enum(["trusted", "untrusted"]),
+});
 const error = z.object({ error: z.enum(["not_found", "unauthorized"]) });
 
 export async function registerInstallationTrustRoutes(
@@ -19,6 +26,47 @@ export async function registerInstallationTrustRoutes(
   config: ServerConfig,
   database: DatabaseClient,
 ): Promise<void> {
+  app.get(
+    "/v1/admin/installations/:installationId/trust",
+    {
+      config: {
+        rateLimit: { keyGenerator: adminCredentialRateLimitKey, max: 10, timeWindow: "1 minute" },
+      },
+      schema: {
+        headers,
+        params,
+        response: { 200: status, 401: error, 404: error },
+      },
+    },
+    async (request, reply) => {
+      const parsedHeaders = headers.parse(request.headers);
+      if (!verifyAdminKey(parsedHeaders["x-admin-key"], config.adminApiKeyHash)) {
+        return reply.code(401).send({ error: "unauthorized" });
+      }
+      const parsedParams = params.parse(request.params);
+      const [result] = await database<
+        Readonly<{
+          granted_at: Date | null;
+          installation_id: string;
+          installation_trusted: boolean;
+          profile_trusted: boolean;
+          trust_source: "owner_admin" | "play_integrity" | null;
+        }>[]
+      >`
+        SELECT *
+        FROM public.afterchime_installation_trust_status(${parsedParams.installationId})
+      `;
+      if (!result) return reply.code(404).send({ error: "not_found" });
+      return reply.send({
+        installationId: result.installation_id,
+        profileTrusted: result.profile_trusted,
+        source: result.trust_source,
+        grantedAt: result.granted_at?.toISOString() ?? null,
+        trustStatus: result.installation_trusted ? "trusted" : "untrusted",
+      });
+    },
+  );
+
   app.post(
     "/v1/admin/installations/:installationId/trust",
     {
