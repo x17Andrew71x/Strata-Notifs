@@ -8,7 +8,7 @@ buildscript {
   configurations.configureEach {
     resolutionStrategy.force(
       "com.google.guava:guava:33.7.2-jre",
-      "org.apache.commons:commons-lang3:3.18.0",
+      "org.apache.commons:commons-lang3:3.21.0",
       "org.apache.httpcomponents:httpclient:4.5.14",
       "org.apache.httpcomponents:httpmime:4.5.14",
       "org.bitbucket.b_c:jose4j:0.9.6",
@@ -29,7 +29,7 @@ subprojects {
   configurations.configureEach {
     resolutionStrategy.force(
       "com.google.guava:guava:33.7.2-jre",
-      "org.apache.commons:commons-lang3:3.18.0",
+      "org.apache.commons:commons-lang3:3.21.0",
       "org.apache.httpcomponents:httpclient:4.5.14",
       "org.apache.httpcomponents:httpmime:4.5.14",
       "org.bitbucket.b_c:jose4j:0.9.6",
