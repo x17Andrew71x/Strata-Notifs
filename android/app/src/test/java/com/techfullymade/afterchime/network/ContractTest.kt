@@ -172,6 +172,11 @@ class ContractTest {
     assertEquals("/v1/profile/open", connection.url.path)
     assertEquals("POST", connection.requestMethod)
     assertEquals("Bearer sample-token", connection.header("Authorization"))
+
+    api.deleteAccount("sample-token")
+    assertEquals("/v1/account", connection.url.path)
+    assertEquals("DELETE", connection.requestMethod)
+    assertEquals("Bearer sample-token", connection.header("Authorization"))
   }
 
   @Test

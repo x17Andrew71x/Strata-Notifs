@@ -11,6 +11,7 @@ const CORE_NO_PAYLOAD_ACTIONS = [
   "formation.reveal",
   "exhibits.refresh",
   "worlds.reset",
+  "account.delete",
 ] as const;
 const CORE_PAYLOAD_ACTIONS = [
   "catalog.update",
@@ -187,6 +188,7 @@ export type NativeResponse =
       appDetailsAction: boolean;
       catalogUpdates?: boolean;
       exhibitDownloads?: boolean;
+      accountDeletion?: boolean;
     }
   | {
       version: 2;
@@ -194,7 +196,21 @@ export type NativeResponse =
       type: "action.result";
       action: NativeAction;
       ok: boolean;
+      reason?: AccountDeletionFailureReason;
     };
+
+export type AccountDeletionFailureReason =
+  | "local_reset_required"
+  | "no_account"
+  | "retry"
+  | "failed";
+
+const ACCOUNT_DELETION_FAILURE_REASONS = new Set<AccountDeletionFailureReason>([
+  "local_reset_required",
+  "no_account",
+  "retry",
+  "failed",
+]);
 
 type PendingNativeRequest = Readonly<{ action: NativeAction; expiresAt: number }>;
 const pendingNativeRequests = new Map<string, PendingNativeRequest>();
@@ -332,6 +348,7 @@ function parseNativeResponse(value: unknown): NativeResponse | null {
       legacyKeys,
       [...legacyKeys, "catalogUpdates"],
       [...legacyKeys, "catalogUpdates", "exhibitDownloads"],
+      [...legacyKeys, "catalogUpdates", "exhibitDownloads", "accountDeletion"],
     ];
     if (
       capabilityKeySets.some((keys) => hasExactKeys(value, keys)) &&
@@ -339,7 +356,8 @@ function parseNativeResponse(value: unknown): NativeResponse | null {
       typeof value.notificationAccess === "boolean" &&
       typeof value.appDetailsAction === "boolean" &&
       (value.catalogUpdates === undefined || typeof value.catalogUpdates === "boolean") &&
-      (value.exhibitDownloads === undefined || typeof value.exhibitDownloads === "boolean")
+      (value.exhibitDownloads === undefined || typeof value.exhibitDownloads === "boolean") &&
+      (value.accountDeletion === undefined || typeof value.accountDeletion === "boolean")
     ) {
       return value as NativeResponse;
     }
@@ -347,10 +365,18 @@ function parseNativeResponse(value: unknown): NativeResponse | null {
 
   if (
     value.type === "action.result" &&
-    hasExactKeys(value, ["version", "id", "type", "action", "ok"]) &&
+    [
+      ["version", "id", "type", "action", "ok"],
+      ["version", "id", "type", "action", "ok", "reason"],
+    ].some((keys) => hasExactKeys(value, keys)) &&
     typeof value.action === "string" &&
     isNativeAction(value.action) &&
-    typeof value.ok === "boolean"
+    typeof value.ok === "boolean" &&
+    (value.reason === undefined ||
+      (value.action === "account.delete" &&
+        value.ok === false &&
+        typeof value.reason === "string" &&
+        ACCOUNT_DELETION_FAILURE_REASONS.has(value.reason as AccountDeletionFailureReason)))
   ) {
     return value as NativeResponse;
   }

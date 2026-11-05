@@ -54,7 +54,7 @@ The workflow rebuilds the web fallback, requires a clean fallback diff, builds t
 2. Run the full server, real-PostgreSQL, web, privacy, dependency, Android unit/lint/release-configuration, production-runtime-migration, and artifact-exclusion gates.
 3. Independently review the exact candidate. Any repair creates a new candidate and invalidates prior receipts.
 4. Prove Railway production is still source-less/inert, has no deployment, and does not share the development database or credentials.
-5. Complete a physical `0.1.21` → `0.1.22` development over-install pass before promoting equivalent native code.
+5. Complete a physical `0.1.22` → `0.1.23` production over-install pass before Play promotion.
 
 ## Promotion and launch authorisation
 

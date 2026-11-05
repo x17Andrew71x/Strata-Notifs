@@ -1,7 +1,8 @@
 package com.techfullymade.afterchime
 
-import android.app.DownloadManager
+import android.app.ActivityManager
 import android.app.AlertDialog
+import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
@@ -45,6 +46,7 @@ import com.techfullymade.afterchime.domain.CombineResult
 import com.techfullymade.afterchime.domain.MuseumSpecimen
 import com.techfullymade.afterchime.gameplay.FossilCatalogManifest
 import com.techfullymade.afterchime.gameplay.GameBalance
+import com.techfullymade.afterchime.identity.AccountDeletionOutcome
 import com.techfullymade.afterchime.render.World
 import com.techfullymade.afterchime.settings.UserPreferences
 import com.techfullymade.afterchime.sharing.ShareUseCase
@@ -113,6 +115,7 @@ internal fun parseBridgeRequest(raw: String?): BridgeRequest? {
     "formation.reveal",
     "exhibits.refresh",
     "worlds.reset",
+    "account.delete",
   )
   if (type in noPayloadActions) {
     return if (request.length() == 3 && payload == null) BridgeRequest(id, type) else null
@@ -202,6 +205,18 @@ internal fun enqueueExhibitDownload(
 
 internal fun isRemoteShellEnabled(remoteUri: Uri, bridgeSupported: Boolean): Boolean =
   bridgeSupported && ShellOriginPolicy.isAllowed(remoteUri)
+
+internal fun accountDeletionAllowsLocalReset(
+  outcome: AccountDeletionOutcome,
+  reset: () -> Boolean,
+): Boolean = outcome == AccountDeletionOutcome.DELETED && runCatching(reset).getOrDefault(false)
+
+internal fun accountDeletionFailureReason(outcome: AccountDeletionOutcome): String = when (outcome) {
+  AccountDeletionOutcome.DELETED -> "local_reset_required"
+  AccountDeletionOutcome.NO_ACCOUNT -> "no_account"
+  AccountDeletionOutcome.RETRY -> "retry"
+  AccountDeletionOutcome.FAILURE -> "failed"
+}
 
 class MainActivity : ComponentActivity() {
   private val applicationState get() = application as AfterchimeApplication
@@ -468,6 +483,7 @@ class MainActivity : ComponentActivity() {
       "worlds.select" -> selectWorld(request, proxy)
       "worlds.own" -> ownWorld(request, proxy)
       "worlds.reset" -> resetWorlds(request, proxy)
+      "account.delete" -> deleteAccount(request, proxy)
       else -> return false
     }
     return true
@@ -668,6 +684,9 @@ class MainActivity : ComponentActivity() {
       "Combine these specimens?" to "This permanently exchanges three specimens for one result."
     NativeConfirmationKind.CONTRIBUTE_EXHIBIT_ENERGY ->
       "Contribute this energy?" to "This permanently sends today’s banked surplus to the Exhibit."
+    NativeConfirmationKind.DELETE_ACCOUNT ->
+      "Delete account and data?" to
+        "This permanently deletes the online account and linked server data, then clears Afterchime data on this device. Anonymous Exhibit progress remains without an account link."
   }
 
   private fun selectWorld(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
@@ -704,21 +723,62 @@ class MainActivity : ComponentActivity() {
     }
   }
 
+  private fun deleteAccount(request: BridgeRequest, proxy: JavaScriptReplyProxy) {
+    confirmNativeAction(
+      kind = requireNotNull(actionConfirmation(request.type)),
+      request = request,
+      proxy = proxy,
+    ) {
+      lifecycleScope.launch {
+        val outcome = applicationState.deleteOnlineAccount()
+        val accepted = accountDeletionAllowsLocalReset(outcome) {
+          getSystemService(ActivityManager::class.java).clearApplicationUserData()
+        }
+        if (!accepted) {
+          if (outcome == AccountDeletionOutcome.DELETED) showLocalResetRequired()
+          postActionResult(
+            request = request,
+            ok = false,
+            proxy = proxy,
+            failureReason = accountDeletionFailureReason(outcome),
+          )
+        }
+      }
+    }
+  }
+
+  private fun showLocalResetRequired() {
+    AlertDialog.Builder(this)
+      .setTitle("Clear local Afterchime data")
+      .setMessage(
+        "Your online account was deleted, but Android could not clear this device automatically. " +
+          "Open App info, then clear Afterchime storage.",
+      )
+      .setPositiveButton("Open App info") { _, _ ->
+        startActivity(
+          Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+            .setData(Uri.parse("package:$packageName")),
+        )
+      }
+      .setNegativeButton("Not now", null)
+      .show()
+  }
+
   private fun postActionResult(
     request: BridgeRequest,
     ok: Boolean,
     proxy: JavaScriptReplyProxy? = replyProxy,
+    failureReason: String? = null,
   ) {
     proxy ?: return
-    proxy.postMessage(
-      JSONObject()
-        .put("version", BRIDGE_VERSION)
-        .put("id", request.id)
-        .put("type", "action.result")
-        .put("action", request.type)
-        .put("ok", ok)
-        .toString(),
-    )
+    val response = JSONObject()
+      .put("version", BRIDGE_VERSION)
+      .put("id", request.id)
+      .put("type", "action.result")
+      .put("action", request.type)
+      .put("ok", ok)
+    if (failureReason != null) response.put("reason", failureReason)
+    proxy.postMessage(response.toString())
   }
 
   internal fun capabilitiesResponse(id: String): JSONObject = JSONObject()
@@ -730,6 +790,7 @@ class MainActivity : ComponentActivity() {
       .put("appDetailsAction", true)
       .put("catalogUpdates", true)
       .put("exhibitDownloads", true)
+      .put("accountDeletion", true)
 
   private fun sendCapabilityState(id: String) {
     replyProxy?.postMessage(capabilitiesResponse(id).toString())

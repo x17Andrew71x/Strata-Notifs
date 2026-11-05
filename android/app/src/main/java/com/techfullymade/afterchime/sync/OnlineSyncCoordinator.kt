@@ -310,16 +310,9 @@ internal class OnlineSyncCoordinator(
       val outcome = syncConsent(scope, target, token)
       if (outcome != OnlineSyncOutcome.SUCCESS) return outcome
     }
-    return when (val result = identity.logout()) {
-      is IdentityResult.Success -> if (state.clear()) OnlineSyncOutcome.SUCCESS else OnlineSyncOutcome.FAILURE
-      is IdentityResult.Failure -> {
-        if (result.reason == IdentityFailure.Api(ApiFailure.Unauthorized)) {
-          if (state.clear()) OnlineSyncOutcome.SUCCESS else OnlineSyncOutcome.FAILURE
-        } else {
-          identityFailureOutcome(result.reason)
-        }
-      }
-    }
+    // Keep the encrypted anonymous credential after revoking every online scope so the user can
+    // re-enable the same identity or authenticate a later account-deletion request.
+    return if (state.clear()) OnlineSyncOutcome.SUCCESS else OnlineSyncOutcome.FAILURE
   }
 
   private fun encodeDailySummary(summary: DailyNotificationSummaryEntity): String =

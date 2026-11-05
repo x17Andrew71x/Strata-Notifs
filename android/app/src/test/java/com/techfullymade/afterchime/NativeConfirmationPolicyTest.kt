@@ -27,6 +27,7 @@ class NativeConfirmationPolicyTest {
       NativeConfirmationKind.CONTRIBUTE_EXHIBIT_ENERGY,
       actionConfirmation("exhibits.contribute"),
     )
+    assertEquals(NativeConfirmationKind.DELETE_ACCOUNT, actionConfirmation("account.delete"))
   }
 
   @Test

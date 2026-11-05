@@ -31,6 +31,8 @@ import com.techfullymade.afterchime.gameplay.FossilCatalogStore
 import com.techfullymade.afterchime.gameplay.SharedPreferencesFossilCatalogPersistence
 import com.techfullymade.afterchime.generation.GenerationResult
 import com.techfullymade.afterchime.identity.AfterchimeIdentityGateway
+import com.techfullymade.afterchime.identity.AccountDeletionCoordinator
+import com.techfullymade.afterchime.identity.AccountDeletionOutcome
 import com.techfullymade.afterchime.identity.AndroidCredentialCipher
 import com.techfullymade.afterchime.identity.AtomicCredentialEnvelopeStorage
 import com.techfullymade.afterchime.identity.CredentialStore
@@ -113,6 +115,13 @@ class AfterchimeApplication : Application() {
   }
   private val onlineTokenAuthenticator: TokenAuthenticator by lazy {
     TokenAuthenticator(onlineIdentityRepository, refreshSkewMillis = ONLINE_TOKEN_REFRESH_SKEW_MILLIS)
+  }
+  private val accountDeletionCoordinator: AccountDeletionCoordinator by lazy {
+    AccountDeletionCoordinator(
+      currentSession = onlineIdentityRepository::currentSession,
+      accessToken = onlineTokenAuthenticator::accessToken,
+      deleteAccount = onlineApi::deleteAccount,
+    )
   }
 
   internal val profileActivityRepository: ProfileActivityRepository by lazy {
@@ -199,6 +208,10 @@ class AfterchimeApplication : Application() {
 
   internal fun scheduleOnlineSync() {
     onlineWorkManager()?.let { OnlineSyncScheduler(it).scheduleImmediate() }
+  }
+
+  internal suspend fun deleteOnlineAccount(): AccountDeletionOutcome = withContext(Dispatchers.IO) {
+    accountDeletionCoordinator.delete()
   }
 
 

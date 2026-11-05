@@ -6,6 +6,7 @@ internal enum class NativeConfirmationKind {
   ENABLE_NOTIFICATION_AGGREGATES,
   COMBINE_SPECIMENS,
   CONTRIBUTE_EXHIBIT_ENERGY,
+  DELETE_ACCOUNT,
 }
 
 internal fun preferenceConfirmation(key: String, value: Boolean): NativeConfirmationKind? {
@@ -21,6 +22,7 @@ internal fun preferenceConfirmation(key: String, value: Boolean): NativeConfirma
 internal fun actionConfirmation(type: String): NativeConfirmationKind? = when (type) {
   "museum.combine" -> NativeConfirmationKind.COMBINE_SPECIMENS
   "exhibits.contribute" -> NativeConfirmationKind.CONTRIBUTE_EXHIBIT_ENERGY
+  "account.delete" -> NativeConfirmationKind.DELETE_ACCOUNT
   else -> null
 }
 

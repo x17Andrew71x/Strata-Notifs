@@ -41,6 +41,7 @@ function catalogCacheStorage(
 
 beforeEach(() => {
   cleanup();
+  window.history.replaceState({}, "", "/");
   window.location.hash = "";
   Object.defineProperty(window, "AfterchimeBridge", { configurable: true, value: native });
   Object.defineProperty(globalThis, "caches", {
@@ -123,6 +124,119 @@ describe("service worker registration", () => {
 });
 
 describe("full shell application", () => {
+  it("renders public policy pages without requiring the Android bridge", () => {
+    delete window.AfterchimeBridge;
+    window.history.replaceState({}, "", "/privacy");
+
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Privacy policy" })).toBeTruthy();
+    expect(
+      screen.getByText(/notification text, titles, senders, contacts, actions, and media/i),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/same identity can be re-enabled or an authenticated deletion/i),
+    ).toBeTruthy();
+    expect(screen.getByText(/If you contact TechfullyMade by email/i)).toBeTruthy();
+    expect(screen.getByText(/anonymous Exhibit progress/i)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "privacy@techfullymade.com" })).toHaveAttribute(
+      "href",
+      "mailto:privacy@techfullymade.com",
+    );
+    expect(screen.queryByText(/Open Afterchime on Android/i)).toBeNull();
+    expect(
+      within(screen.getByRole("navigation", { name: "Policy pages" }))
+        .getAllByRole("link")
+        .map((link) => link.textContent?.trim()),
+    ).toEqual(["Privacy", "Support", "Delete account"]);
+  });
+
+  it("publishes the dedicated support contact", () => {
+    delete window.AfterchimeBridge;
+    window.history.replaceState({}, "", "/support");
+
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Support" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "support@techfullymade.com" })).toHaveAttribute(
+      "href",
+      "mailto:support@techfullymade.com",
+    );
+    expect(screen.getByRole("link", { name: "privacy@techfullymade.com" })).toHaveAttribute(
+      "href",
+      "mailto:privacy@techfullymade.com",
+    );
+  });
+
+  it("publishes deletion instructions and the dedicated privacy request address", () => {
+    delete window.AfterchimeBridge;
+    window.history.replaceState({}, "", "/delete-account");
+
+    render(<App />);
+
+    expect(screen.getByRole("heading", { name: "Delete account" })).toBeTruthy();
+    expect(
+      screen.getByText(/contribution row and all user or installation links are removed/i),
+    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Email a deletion request" })).toHaveAttribute(
+      "href",
+      "mailto:privacy@techfullymade.com?subject=Afterchime%20deletion",
+    );
+  });
+
+  it("keeps policy and account controls inside Settings and capability-gates deletion", () => {
+    render(<App />);
+    act(() => {
+      native.onmessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            version: 2,
+            id: requestId("capabilities.get"),
+            type: "capabilities.state",
+            bridgeVersion: 2,
+            notificationAccess: true,
+            appDetailsAction: true,
+            catalogUpdates: true,
+            exhibitDownloads: true,
+            accountDeletion: true,
+          }),
+        }),
+      );
+    });
+    sendState(baseState);
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    fireEvent.click(screen.getByRole("button", { name: /Privacy policy/ }));
+    expect(screen.getByRole("heading", { name: "Privacy policy" })).toBeTruthy();
+    expect(window.location.pathname).toBe("/");
+
+    act(() => {
+      window.location.hash = "#more";
+      window.dispatchEvent(new Event("hashchange"));
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Account & data/ }));
+    expect(screen.getByRole("heading", { name: "Account & data" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Delete account and online data" }));
+    expect(lastRequest()).toMatchObject({ version: 2, type: "account.delete" });
+    const deletionId = requestId("account.delete");
+    act(() => {
+      native.onmessage?.(
+        new MessageEvent("message", {
+          data: JSON.stringify({
+            version: 2,
+            id: deletionId,
+            type: "action.result",
+            action: "account.delete",
+            ok: false,
+            reason: "local_reset_required",
+          }),
+        }),
+      );
+    });
+    expect(screen.getByText(/Clear Afterchime storage in Android App info/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Reset this device" })).toBeDisabled();
+  });
+
   it("receives replies on the injected WebView bridge channel", () => {
     render(<App />);
     expect(native.onmessage).toBeTypeOf("function");

@@ -158,18 +158,22 @@ async function registerShellRoutes(app: FastifyInstance, webRoot: string): Promi
       return reply.code(404).type("text/plain; charset=utf-8").send("Not found");
     }
   });
-  app.get("/", async (_request, reply) => {
-    setShellHeaders(reply, "no-cache, must-revalidate");
-    try {
-      const html = await readFile(path.join(webRoot, "index.html"));
-      return reply.type("text/html; charset=utf-8").send(html);
-    } catch {
-      return reply
-        .code(503)
-        .type("text/plain; charset=utf-8")
-        .send("Afterchime web shell is not built. Use the bundled app shell or build web assets.");
-    }
-  });
+  for (const route of ["/", "/privacy", "/support", "/delete-account"] as const) {
+    app.get(route, async (_request, reply) => {
+      setShellHeaders(reply, "no-cache, must-revalidate");
+      try {
+        const html = await readFile(path.join(webRoot, "index.html"));
+        return reply.type("text/html; charset=utf-8").send(html);
+      } catch {
+        return reply
+          .code(503)
+          .type("text/plain; charset=utf-8")
+          .send(
+            "Afterchime web shell is not built. Use the bundled app shell or build web assets.",
+          );
+      }
+    });
+  }
   app.get<{ Params: { asset: string } }>("/assets/:asset", async (request, reply) => {
     const filename = request.params.asset;
     if (!/^[A-Za-z0-9_-]{1,96}-[A-Za-z0-9_-]{8,64}\.(?:js|css)$/.test(filename)) {

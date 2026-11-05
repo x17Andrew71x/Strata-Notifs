@@ -99,6 +99,17 @@ class AfterchimeApi(
       parser = ::discardResponse,
     )
 
+  fun deleteAccount(bearerToken: String): ApiResult<Unit> =
+    execute(
+      path = "/v1/account",
+      method = "DELETE",
+      body = null,
+      token = bearerToken,
+      headers = emptyMap(),
+      successCodes = intArrayOf(204),
+      parser = ::discardResponse,
+    )
+
   fun updateConsent(
     request: ConsentUpdate,
     bearerToken: String,

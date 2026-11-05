@@ -51,6 +51,20 @@ describe("web shell routes", () => {
     );
   });
 
+  it("serves public policy routes from the same revalidated shell", async () => {
+    const app = await buildApp({ config: testConfig, webRoot: await shellRoot() });
+    apps.push(app);
+
+    for (const url of ["/privacy", "/support", "/delete-account"]) {
+      const response = await app.inject({ method: "GET", url });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toContain("doctype html");
+      expect(response.headers["content-type"]).toContain("text/html");
+      expect(response.headers["cache-control"]).toBe("no-cache, must-revalidate");
+      expect(response.headers["content-security-policy"]).toContain("form-action 'none'");
+    }
+  });
+
   it("publishes only non-secret protocol metadata and explicit health", async () => {
     const root = await shellRoot();
     const app = await buildApp({ config: testConfig, webRoot: root });

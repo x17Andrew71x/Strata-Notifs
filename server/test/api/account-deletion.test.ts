@@ -83,7 +83,9 @@ describePostgres("account deletion API", () => {
 
     await admin`
       INSERT INTO consent_records (id, installation_id, scope, scope_version, granted)
-      VALUES (${randomUUID()}, ${session.installationId}, 'product_analytics', '1', true)
+      VALUES
+        (${randomUUID()}, ${session.installationId}, 'essential_online', '1', true),
+        (${randomUUID()}, ${session.installationId}, 'product_analytics', '1', true)
     `;
     await admin`
       INSERT INTO analytics_events (
@@ -217,6 +219,38 @@ describePostgres("account deletion API", () => {
     const target = await register(app);
     const survivor = await register(app);
     const targetUserId = await seedDirectlyLinkedRecords(target);
+    await runtime`
+      SELECT public.afterchime_grant_installation_trust(
+        ${target.installationId},
+        ${"owner_admin"}
+      )
+    `;
+
+    const contribution = await app.inject({
+      headers: {
+        authorization: `Bearer ${target.accessToken}`,
+        "idempotency-key": randomUUID(),
+      },
+      method: "POST",
+      payload: {
+        local_date: new Date().toISOString().slice(0, 10),
+        units: 1,
+      },
+      url: "/v1/exhibits/fall-seasonal-special-2026/contributions",
+    });
+    expect(contribution.statusCode).toBe(201);
+    const [exhibitBeforeDeletion] = await admin<
+      Readonly<{ contribution_count: string; total_credit_microunits: string }>[]
+    >`
+      SELECT
+        (SELECT count(*)::text FROM exhibit_contributions WHERE installation_id = ${target.installationId}) AS contribution_count,
+        total_credit_microunits::text
+      FROM exhibits
+      WHERE slug = 'fall-seasonal-special-2026'
+        AND build_channel = 'dev'
+    `;
+    expect(exhibitBeforeDeletion?.contribution_count).toBe("1");
+    expect(BigInt(exhibitBeforeDeletion?.total_credit_microunits ?? "0")).toBeGreaterThan(0n);
 
     const unauthenticated = await app.inject({ method: "DELETE", url: "/v1/account" });
     expect(unauthenticated.statusCode).toBe(401);
@@ -275,6 +309,21 @@ describePostgres("account deletion API", () => {
       idempotency_records: "0",
       installations: "0",
       users: "0",
+    });
+
+    const [exhibitAfterDeletion] = await admin<
+      Readonly<{ contribution_count: string; total_credit_microunits: string }>[]
+    >`
+      SELECT
+        (SELECT count(*)::text FROM exhibit_contributions WHERE installation_id = ${target.installationId}) AS contribution_count,
+        total_credit_microunits::text
+      FROM exhibits
+      WHERE slug = 'fall-seasonal-special-2026'
+        AND build_channel = 'dev'
+    `;
+    expect(exhibitAfterDeletion).toEqual({
+      contribution_count: "0",
+      total_credit_microunits: exhibitBeforeDeletion?.total_credit_microunits,
     });
 
     const [survivorCount] = await admin<Readonly<{ count: string }>[]>`

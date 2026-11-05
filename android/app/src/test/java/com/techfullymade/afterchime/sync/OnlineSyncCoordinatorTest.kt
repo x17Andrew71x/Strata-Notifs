@@ -20,7 +20,6 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -180,7 +179,7 @@ class OnlineSyncCoordinatorTest {
   }
 
   @Test
-  fun `opt out revokes optional scopes first and essential last then logs out`() = runBlocking {
+  fun `opt out revokes optional scopes first and essential last while retaining deletion credentials`() = runBlocking {
     val fixture = Fixture(UserPreferences(), currentSession = SESSION)
     fixture.acknowledgeAll(true)
 
@@ -194,26 +193,19 @@ class OnlineSyncCoordinatorTest {
       fixture.api.consentCalls.map { it.request.scope },
     )
     assertTrue(fixture.api.consentCalls.all { !it.request.granted })
-    assertEquals(1, fixture.identity.logoutCalls)
-    assertNull(fixture.identity.current)
+    assertEquals(0, fixture.identity.logoutCalls)
+    assertEquals(SESSION, fixture.identity.current)
   }
 
-
   @Test
-  fun `uncertain logout preserves credentials and acknowledged revocations for retry`() = runBlocking {
+  fun `repeated opt out is idempotent and keeps credentials available for deletion`() = runBlocking {
     val fixture = Fixture(UserPreferences(), currentSession = SESSION)
-    fixture.acknowledgeAll(true)
-    fixture.identity.logoutResults += IdentityResult.Failure(IdentityFailure.Api(ApiFailure.Network))
-    fixture.identity.logoutResults += IdentityResult.Success(Unit)
-
-    assertEquals(OnlineSyncOutcome.RETRY, fixture.coordinator().sync())
-    assertEquals(SESSION, fixture.identity.current)
-    assertEquals(3, fixture.api.consentCalls.size)
-    fixture.api.consentCalls.clear()
+    fixture.acknowledgeAll(false)
 
     assertEquals(OnlineSyncOutcome.SUCCESS, fixture.coordinator().sync())
     assertTrue(fixture.api.consentCalls.isEmpty())
-    assertNull(fixture.identity.current)
+    assertEquals(0, fixture.identity.logoutCalls)
+    assertEquals(SESSION, fixture.identity.current)
   }
 
   @Test

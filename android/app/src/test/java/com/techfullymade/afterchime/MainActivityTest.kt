@@ -11,6 +11,7 @@ import androidx.webkit.WebViewFeature
 import com.techfullymade.afterchime.capture.StrataNotificationListenerService
 import com.techfullymade.afterchime.gameplay.FossilCatalog
 import com.techfullymade.afterchime.gameplay.FossilCatalogManifest
+import com.techfullymade.afterchime.identity.AccountDeletionOutcome
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -48,6 +49,41 @@ class MainActivityTest {
     assertFalse(isDevelopmentWorldsEnabled("prod"))
   }
 
+  @Test
+  fun `local data resets only after server account deletion succeeds`() {
+    var resetRequested = false
+    assertFalse(
+      accountDeletionAllowsLocalReset(AccountDeletionOutcome.RETRY) {
+        resetRequested = true
+        true
+      },
+    )
+    assertFalse(resetRequested)
+
+    assertTrue(
+      accountDeletionAllowsLocalReset(AccountDeletionOutcome.DELETED) {
+        resetRequested = true
+        true
+      },
+    )
+    assertTrue(resetRequested)
+
+    resetRequested = false
+    assertFalse(
+      accountDeletionAllowsLocalReset(AccountDeletionOutcome.DELETED) {
+        resetRequested = true
+        false
+      },
+    )
+    assertTrue(resetRequested)
+    assertEquals(
+      "local_reset_required",
+      accountDeletionFailureReason(AccountDeletionOutcome.DELETED),
+    )
+    assertEquals("no_account", accountDeletionFailureReason(AccountDeletionOutcome.NO_ACCOUNT))
+    assertEquals("retry", accountDeletionFailureReason(AccountDeletionOutcome.RETRY))
+    assertEquals("failed", accountDeletionFailureReason(AccountDeletionOutcome.FAILURE))
+  }
 
   @Test
   fun `remote shell requires the bounded bridge and an enabled HTTPS origin`() {
@@ -124,6 +160,10 @@ class MainActivityTest {
     assertEquals(
       BridgeRequest("req_1", "state.get"),
       parseBridgeRequest("""{"version":2,"id":"req_1","type":"state.get"}"""),
+    )
+    assertEquals(
+      BridgeRequest("delete_account", "account.delete"),
+      parseBridgeRequest("""{"version":2,"id":"delete_account","type":"account.delete"}"""),
     )
     val preference = parseBridgeRequest(
       """{"version":2,"id":"req_2","type":"preferences.update","payload":{"key":"reduceMotionEnabled","value":true}}""",
@@ -237,6 +277,7 @@ class MainActivityTest {
     assertTrue(response.getBoolean("appDetailsAction"))
     assertTrue(response.getBoolean("catalogUpdates"))
     assertTrue(response.getBoolean("exhibitDownloads"))
+    assertTrue(response.getBoolean("accountDeletion"))
     assertFalse(response.has("devFeedback"))
     assertFalse(response.has("appVersion"))
   }

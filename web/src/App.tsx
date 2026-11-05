@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  type AccountDeletionFailureReason,
   installResponseListener,
   type NativeAction,
   type NativeResponse,
@@ -13,6 +14,12 @@ import {
 } from "./bridge";
 import { ExhibitReveal } from "./ExhibitReveal";
 import { exhibitArtwork, formatProgressBasisPoints } from "./exhibits";
+import {
+  InAppPolicyPage,
+  type PolicyPageKind,
+  PublicPolicyPage,
+  publicPolicyKind,
+} from "./PolicyPages";
 import { referenceNotesFor } from "./relic-reference";
 import {
   type Artifact,
@@ -40,7 +47,7 @@ type ShellMetadata = {
 };
 
 type RootRoute = "today" | "museum" | "community" | "more";
-type Route = RootRoute | "worlds" | `specimen/${string}`;
+type Route = RootRoute | "worlds" | "privacy" | "support" | "account-data" | `specimen/${string}`;
 const ROOT_NAV_ITEMS: readonly { route: RootRoute; label: string }[] = [
   { route: "today", label: "Excavate" },
   { route: "museum", label: "Collection" },
@@ -160,10 +167,20 @@ export async function waitForCatalogAssets(
 }
 
 function App() {
+  const publicPage = publicPolicyKind(window.location.pathname);
+  return publicPage ? (
+    <PublicPolicyPage kind={publicPage} brandMarkPath={BRAND_MARK_PATH} />
+  ) : (
+    <NativeApp />
+  );
+}
+
+function NativeApp() {
   const [shellState, setShellState] = useState<ShellState | null>(null);
   const [access, setAccess] = useState<boolean | null>(null);
   const [appDetailsAction, setAppDetailsAction] = useState(false);
   const [exhibitDownloads, setExhibitDownloads] = useState(false);
+  const [accountDeletion, setAccountDeletion] = useState(false);
   const [message, setMessage] = useState("");
   const [toastExiting, setToastExiting] = useState(false);
   const [metadata, setMetadata] = useState<ShellMetadata | null>(null);
@@ -192,6 +209,7 @@ function App() {
         setAccess(response.notificationAccess);
         setAppDetailsAction(response.appDetailsAction);
         setExhibitDownloads(response.exhibitDownloads === true);
+        setAccountDeletion(response.accountDeletion === true);
 
         if (response.catalogUpdates && remoteOrigin && !catalogSyncStarted) {
           catalogSyncStarted = true;
@@ -204,7 +222,7 @@ function App() {
         response.action !== "catalog.update" &&
         response.action !== "excavation.dig"
       ) {
-        setMessage(actionMessage(response.action, response.ok));
+        setMessage(actionMessage(response.action, response.ok, response.reason));
       }
     });
     const onHashChange = () => setRoute(parseRoute(window.location.hash));
@@ -330,7 +348,8 @@ function App() {
     : null;
   const selectedRoot = rootFor(route);
   const selectedWorld = worldDefinition(displayState.worlds.selected);
-  const showHeaderBack = selectedSpecimenId !== null || route === "worlds";
+  const policyRoute = policyPageForRoute(route);
+  const showHeaderBack = selectedSpecimenId !== null || route === "worlds" || policyRoute !== null;
 
   return (
     <div
@@ -404,9 +423,21 @@ function App() {
               act("notificationAccess.openSettings", undefined, "Opening notification access…")
             }
             onWorlds={() => navigate("worlds")}
+            onPrivacy={() => navigate("privacy")}
+            onAccount={() => navigate("account-data")}
+            onSupport={() => navigate("support")}
           />
         )}
         {route === "worlds" && <Worlds state={displayState} />}
+        {policyRoute && (
+          <InAppPolicyPage
+            kind={policyRoute}
+            canDeleteAccount={accountDeletion}
+            onDeleteAccount={() =>
+              act("account.delete", undefined, "Deleting account and local data…")
+            }
+          />
+        )}
         {selectedSpecimenId && (
           <SpecimenDetail
             specimen={selectedSpecimen}
@@ -415,7 +446,7 @@ function App() {
           />
         )}
       </main>
-      {!selectedSpecimenId && route !== "worlds" && (
+      {!selectedSpecimenId && route !== "worlds" && !policyRoute && (
         <nav className="bottom-nav" aria-label="Main navigation">
           {ROOT_NAV_ITEMS.map(({ route: item, label }) => (
             <button
@@ -1453,6 +1484,9 @@ function More({
   onPreference,
   onOpenSettings,
   onWorlds,
+  onPrivacy,
+  onAccount,
+  onSupport,
 }: {
   state: ShellState;
   metadata: ShellMetadata | null;
@@ -1460,6 +1494,9 @@ function More({
   onPreference(key: PreferenceKey, value: boolean): void;
   onOpenSettings(): void;
   onWorlds(): void;
+  onPrivacy(): void;
+  onAccount(): void;
+  onSupport(): void;
 }) {
   const preferences = state.preferences;
   return (
@@ -1490,6 +1527,20 @@ function More({
           Data & privacy
         </h2>
         <div className="settings-group">
+          <button type="button" className="settings-link" onClick={onPrivacy}>
+            <span>
+              <strong>Privacy policy</strong>
+              <small>What stays on this device and what optional online features send</small>
+            </span>
+            <span>›</span>
+          </button>
+          <button type="button" className="settings-link" onClick={onAccount}>
+            <span>
+              <strong>Account &amp; data</strong>
+              <small>Delete online data and review device-reset behaviour</small>
+            </span>
+            <span>›</span>
+          </button>
           <button type="button" className="settings-link" onClick={onOpenSettings}>
             <span>
               <strong>Notification access</strong>
@@ -1514,6 +1565,20 @@ function More({
             disabled={!preferences.onlineFeaturesEnabled}
             onChange={(value) => onPreference("notificationAggregateSharingEnabled", value)}
           />
+        </div>
+      </section>
+      <section className="settings-section" aria-labelledby="help-title">
+        <h2 id="help-title" className="settings-section-title">
+          Help
+        </h2>
+        <div className="settings-group">
+          <button type="button" className="settings-link" onClick={onSupport}>
+            <span>
+              <strong>Support</strong>
+              <small>Contact TechfullyMade from the app</small>
+            </span>
+            <span>›</span>
+          </button>
         </div>
       </section>
       <section className="settings-section" aria-labelledby="accessibility-title">
@@ -1793,8 +1858,22 @@ function todayCopy(state: ShellState): { title: string; body: string | null } {
   }
 }
 
-function actionMessage(action: NativeAction, ok: boolean): string {
-  if (!ok) return "That action could not be completed. Nothing was changed.";
+function actionMessage(
+  action: NativeAction,
+  ok: boolean,
+  failureReason?: AccountDeletionFailureReason,
+): string {
+  if (!ok) {
+    if (action !== "account.delete")
+      return "That action could not be completed. Nothing was changed.";
+    if (failureReason === "local_reset_required") {
+      return "Online account deleted. Clear Afterchime storage in Android App info to finish removing local data.";
+    }
+    if (failureReason === "no_account") return "No online account or synced server data was found.";
+    if (failureReason === "retry")
+      return "The server could not be reached. Nothing was deleted; try again.";
+    return "Deletion could not be verified. Nothing was deleted.";
+  }
   switch (action) {
     case "notificationAccess.openSettings":
       return "Notification access settings are open.";
@@ -1814,6 +1893,8 @@ function actionMessage(action: NativeAction, ok: boolean): string {
       return "Download started.";
     case "exhibits.refresh":
       return "Exhibits updated.";
+    case "account.delete":
+      return "Account and local data deleted.";
     default:
       return "Saved on this device.";
   }
@@ -1821,7 +1902,19 @@ function actionMessage(action: NativeAction, ok: boolean): string {
 
 function parseRoute(hash: string): Route {
   const value = decodeURIComponent(hash.replace(/^#/, ""));
-  if (["today", "museum", "community", "more", "worlds"].includes(value)) return value as Route;
+  if (
+    [
+      "today",
+      "museum",
+      "community",
+      "more",
+      "worlds",
+      "privacy",
+      "support",
+      "account-data",
+    ].includes(value)
+  )
+    return value as Route;
   if (/^specimen\/[A-Za-z0-9_-]{1,128}$/.test(value)) return value as Route;
   return "today";
 }
@@ -1829,8 +1922,13 @@ function parseRoute(hash: string): Route {
 function rootFor(route: Route): RootRoute {
   if (route === "museum" || route.startsWith("specimen/")) return "museum";
   if (route === "community") return "community";
-  if (route === "more" || route === "worlds") return "more";
+  if (["more", "worlds", "privacy", "support", "account-data"].includes(route)) return "more";
   return "today";
+}
+
+function policyPageForRoute(route: Route): PolicyPageKind | null {
+  if (route === "privacy" || route === "support") return route;
+  return route === "account-data" ? "delete-account" : null;
 }
 
 function NavIcon({ route }: { route: RootRoute }) {

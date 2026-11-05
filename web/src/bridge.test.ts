@@ -50,6 +50,13 @@ describe("versioned native bridge requests", () => {
       type: "capabilities.get",
     });
     expect(
+      parseNativeRequest({ version: 2, id: "delete_account", type: "account.delete" }),
+    ).toEqual({
+      version: 2,
+      id: "delete_account",
+      type: "account.delete",
+    });
+    expect(
       parseNativeRequest({
         version: 2,
         id: "req_2",
@@ -249,6 +256,43 @@ describe("versioned native bridge requests", () => {
     emitBridge(bridge, accepted);
     stop();
     delete window.AfterchimeBridge;
+
+    expect(responses).toEqual([accepted]);
+  });
+
+  it("accepts only bounded account-deletion failure reasons", () => {
+    const responses: unknown[] = [];
+    const bridge = installTestBridge();
+    const stop = installResponseListener((response) => responses.push(response));
+    const id = sendNativeRequest("account.delete");
+    expect(id).not.toBeNull();
+
+    emitBridge(bridge, {
+      version: 2,
+      id: id as string,
+      type: "action.result",
+      action: "account.delete",
+      ok: true,
+      reason: "local_reset_required",
+    });
+    emitBridge(bridge, {
+      version: 2,
+      id: id as string,
+      type: "action.result",
+      action: "account.delete",
+      ok: false,
+      reason: "invented",
+    });
+    const accepted = {
+      version: 2,
+      id: id as string,
+      type: "action.result",
+      action: "account.delete",
+      ok: false,
+      reason: "local_reset_required",
+    };
+    emitBridge(bridge, accepted);
+    stop();
 
     expect(responses).toEqual([accepted]);
   });
